@@ -19,15 +19,6 @@ private:
 	bool checkValidationLayerSupport();
 	void setupDebugMessenger();
 	std::vector<const char*> getReqiuredExtensions();
-
-	void pickGpu();
-	bool isGpuSuitable(VkPhysicalDevice gpu);
-
-	struct QueueFamilyIndices
-	{
-		std::optional<uint32_t> graphics;
-	};
-	QueueFamilyIndices findQueueFamilies(VkPhysicalDevice gpu);
 	
 	static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
 		VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -38,6 +29,16 @@ private:
 	void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
 	static VkResult createDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger);
 	static void destroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator);
+
+	void pickGpu();
+	bool isGpuSuitable(VkPhysicalDevice gpu);
+	struct QueueFamilyIndices
+	{
+		std::optional<uint32_t> graphics;
+	};
+	QueueFamilyIndices findQueueFamilies(VkPhysicalDevice gpu);
+
+	void createDevice();
 
 private:
 #ifdef _DEBUG
@@ -50,10 +51,11 @@ private:
 		"VK_LAYER_KHRONOS_validation"
 	};
 
-
 	VkInstance m_instance{};
 	VkDebugUtilsMessengerEXT m_debugMessenger{};
 	VkPhysicalDevice m_gpu{};
+	VkDevice m_device{};
+	VkQueue m_graphicsQueue{};
 
 };
 

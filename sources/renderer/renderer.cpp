@@ -9,10 +9,12 @@ Renderer::Renderer()
 	createInstance();
 	setupDebugMessenger();
 	pickGpu();
+	createDevice();
 }
 
 Renderer::~Renderer()
 {
+	vkDestroyDevice(m_device, nullptr);
 	if (USE_VALIDATION_LAYERS) destroyDebugUtilsMessengerEXT(m_instance, m_debugMessenger, nullptr);
 	vkDestroyInstance(m_instance, nullptr);
 }
@@ -190,4 +192,36 @@ Renderer::QueueFamilyIndices Renderer::findQueueFamilies(VkPhysicalDevice gpu)
 	}
 
 	return indices;
+}
+
+void Renderer::createDevice()
+{
+	auto indices = findQueueFamilies(m_gpu);
+
+	auto queueCreateInfo = VkDeviceQueueCreateInfo{};
+	queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+	queueCreateInfo.queueFamilyIndex = indices.graphics.value();
+	auto queuePriority = 1.0f;
+	queueCreateInfo.pQueuePriorities = &queuePriority;
+	queueCreateInfo.queueCount = 1;
+	
+	auto deviceFeatures = VkPhysicalDeviceFeatures{};
+
+	auto createInfo = VkDeviceCreateInfo{};
+	createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+	createInfo.pQueueCreateInfos = &queueCreateInfo;
+	createInfo.queueCreateInfoCount = 1;
+	createInfo.pEnabledFeatures = &deviceFeatures;
+	createInfo.enabledExtensionCount = 0;
+	if (USE_VALIDATION_LAYERS)
+	{
+		createInfo.ppEnabledLayerNames = VALIDATION_LAYER_NAMES.data();
+		createInfo.enabledLayerCount = static_cast<uint32_t>(VALIDATION_LAYER_NAMES.size());
+	}
+	else
+		createInfo.enabledLayerCount = 0;
+	if (vkCreateDevice(m_gpu, &createInfo, nullptr, &m_device) != VK_SUCCESS)
+		throw std::runtime_error{ "failed to create vulkan device" };
+
+	vkGetDeviceQueue(m_device, indices.graphics.value(), 0, &m_graphicsQueue);
 }
