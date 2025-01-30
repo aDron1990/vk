@@ -2,12 +2,14 @@
 
 #include <stdexcept>
 #include <print>
+#include <set>
 #include <cstdint>
 
-Renderer::Renderer()
+Renderer::Renderer(GLFWwindow* window)
 {
 	createInstance();
 	setupDebugMessenger();
+	createSurface(window);
 	pickGpu();
 	createDevice();
 }
@@ -16,6 +18,7 @@ Renderer::~Renderer()
 {
 	vkDestroyDevice(m_device, nullptr);
 	if (USE_VALIDATION_LAYERS) destroyDebugUtilsMessengerEXT(m_instance, m_debugMessenger, nullptr);
+	vkDestroySurfaceKHR(m_instance, m_surface, nullptr);
 	vkDestroyInstance(m_instance, nullptr);
 }
 
@@ -167,7 +170,7 @@ bool Renderer::isGpuSuitable(VkPhysicalDevice gpu)
 		gpuFeatures.geometryShader)
 	{
 		std::println("GPU: {}", gpuProperties.deviceName);
-		return true && indices.graphics.has_value();
+		return true && indices.graphics.has_value() && indices.present.has_value();
 	}
 	return false;
 }
@@ -180,6 +183,7 @@ Renderer::QueueFamilyIndices Renderer::findQueueFamilies(VkPhysicalDevice gpu)
 	vkGetPhysicalDeviceQueueFamilyProperties(gpu, &queueFamilyCount, nullptr);
 	auto queueFamilies = std::vector<VkQueueFamilyProperties>(queueFamilyCount);
 	vkGetPhysicalDeviceQueueFamilyProperties(gpu, &queueFamilyCount, queueFamilies.data());
+
 	auto i = int{};
 	for (const auto& queueFamily : queueFamilies)
 	{
@@ -191,26 +195,47 @@ Renderer::QueueFamilyIndices Renderer::findQueueFamilies(VkPhysicalDevice gpu)
 		i++;
 	}
 
+	i = int{};
+	for (const auto& queueFamily : queueFamilies)
+	{
+		auto presentSupport = VkBool32{};
+		vkGetPhysicalDeviceSurfaceSupportKHR(gpu, i, m_surface, &presentSupport);
+		if (presentSupport)
+		{
+			indices.present = i;
+			break;
+		}
+		i++;
+	}
+
 	return indices;
 }
 
 void Renderer::createDevice()
 {
 	auto indices = findQueueFamilies(m_gpu);
+	auto uniqueQueueFamilies = std::set<uint32_t>{indices.graphics.value(), indices.present.value() };
+	auto queueCreateInfos = std::vector<VkDeviceQueueCreateInfo>{};
+	queueCreateInfos.reserve(2);
 
-	auto queueCreateInfo = VkDeviceQueueCreateInfo{};
-	queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-	queueCreateInfo.queueFamilyIndex = indices.graphics.value();
-	auto queuePriority = 1.0f;
-	queueCreateInfo.pQueuePriorities = &queuePriority;
-	queueCreateInfo.queueCount = 1;
+	for (auto& queueFamily : uniqueQueueFamilies)
+
+	{
+		auto queueCreateInfo = VkDeviceQueueCreateInfo{};
+		auto queuePriority = 1.0f;
+		queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+		queueCreateInfo.queueFamilyIndex = queueFamily;
+		queueCreateInfo.pQueuePriorities = &queuePriority;
+		queueCreateInfo.queueCount = 1;
+		queueCreateInfos.push_back(queueCreateInfo);
+	}
 	
 	auto deviceFeatures = VkPhysicalDeviceFeatures{};
 
 	auto createInfo = VkDeviceCreateInfo{};
 	createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-	createInfo.pQueueCreateInfos = &queueCreateInfo;
-	createInfo.queueCreateInfoCount = 1;
+	createInfo.pQueueCreateInfos = queueCreateInfos.data();
+	createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
 	createInfo.pEnabledFeatures = &deviceFeatures;
 	createInfo.enabledExtensionCount = 0;
 	if (USE_VALIDATION_LAYERS)
@@ -224,4 +249,11 @@ void Renderer::createDevice()
 		throw std::runtime_error{ "failed to create vulkan device" };
 
 	vkGetDeviceQueue(m_device, indices.graphics.value(), 0, &m_graphicsQueue);
+	vkGetDeviceQueue(m_device, indices.present.value(), 0, &m_presentQueue);
+}
+
+void Renderer::createSurface(GLFWwindow* window)
+{
+	if (glfwCreateWindowSurface(m_instance, window, nullptr, &m_surface) != VK_SUCCESS)
+		throw std::runtime_error{ "failed to create vulkan surface" };
 }

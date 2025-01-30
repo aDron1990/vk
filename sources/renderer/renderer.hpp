@@ -9,7 +9,7 @@
 class Renderer
 {
 public:
-	Renderer();
+	Renderer(GLFWwindow* window);
 	~Renderer();
 	void draw();
 
@@ -35,10 +35,13 @@ private:
 	struct QueueFamilyIndices
 	{
 		std::optional<uint32_t> graphics;
+		std::optional<uint32_t> present;
 	};
 	QueueFamilyIndices findQueueFamilies(VkPhysicalDevice gpu);
 
 	void createDevice();
+
+	void createSurface(GLFWwindow* window);
 
 private:
 #ifdef _DEBUG
@@ -56,6 +59,7 @@ private:
 	VkPhysicalDevice m_gpu{};
 	VkDevice m_device{};
 	VkQueue m_graphicsQueue{};
-
+	VkQueue m_presentQueue{};
+	VkSurfaceKHR m_surface{};
 };
 
