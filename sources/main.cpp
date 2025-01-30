@@ -18,7 +18,7 @@ int main()
 	}
 	catch (std::exception& ex)
 	{
-		std::print("{}", ex.what());
+		std::println("{}", ex.what());
 	}
 	return 0;
 }

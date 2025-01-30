@@ -4,6 +4,7 @@
 #include <GLFW/glfw3.h>
 
 #include <vector>
+#include <optional>
 
 class Renderer
 {
@@ -14,9 +15,19 @@ public:
 
 private:
 	void createInstance();
+
 	bool checkValidationLayerSupport();
 	void setupDebugMessenger();
 	std::vector<const char*> getReqiuredExtensions();
+
+	void pickGpu();
+	bool isGpuSuitable(VkPhysicalDevice gpu);
+
+	struct QueueFamilyIndices
+	{
+		std::optional<uint32_t> graphics;
+	};
+	QueueFamilyIndices findQueueFamilies(VkPhysicalDevice gpu);
 	
 	static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
 		VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -41,7 +52,8 @@ private:
 
 
 	VkInstance m_instance{};
-	VkDebugUtilsMessengerEXT m_debugMessenger;
+	VkDebugUtilsMessengerEXT m_debugMessenger{};
+	VkPhysicalDevice m_gpu{};
 
 };
 

@@ -8,6 +8,7 @@ Renderer::Renderer()
 {
 	createInstance();
 	setupDebugMessenger();
+	pickGpu();
 }
 
 Renderer::~Renderer()
@@ -117,7 +118,7 @@ VKAPI_ATTR VkBool32 VKAPI_CALL Renderer::debugCallback(
 	void* pUserData)
 {
 	if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
-		std::print("validation layer: {}", pCallbackData->pMessage);
+		std::println("validation layer: {}", pCallbackData->pMessage);
 	return VK_FALSE;
 }
 
@@ -132,4 +133,61 @@ void Renderer::destroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMe
 {
 	auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
 	if (func != nullptr) func(instance, debugMessenger, pAllocator);
+}
+
+void Renderer::pickGpu()
+{
+	auto gpuCount = uint32_t{};
+	vkEnumeratePhysicalDevices(m_instance, &gpuCount, nullptr);
+	auto gpus = std::vector<VkPhysicalDevice>(gpuCount);
+	vkEnumeratePhysicalDevices(m_instance, &gpuCount, gpus.data());
+	for (const auto& gpu : gpus)
+	{
+		if (isGpuSuitable(gpu))
+		{
+			m_gpu = gpu;
+			break;
+		}
+	}
+
+	if (m_gpu == VK_NULL_HANDLE)
+		throw std::runtime_error{ "failed to pick gpu" };
+}
+
+bool Renderer::isGpuSuitable(VkPhysicalDevice gpu)
+{
+	auto indices = findQueueFamilies(gpu);
+	auto gpuProperties = VkPhysicalDeviceProperties{};
+	auto gpuFeatures = VkPhysicalDeviceFeatures{};
+	vkGetPhysicalDeviceProperties(gpu, &gpuProperties);
+	vkGetPhysicalDeviceFeatures(gpu, &gpuFeatures);
+	if (gpuProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU &&
+		gpuFeatures.geometryShader)
+	{
+		std::println("GPU: {}", gpuProperties.deviceName);
+		return true && indices.graphics.has_value();
+	}
+	return false;
+}
+
+Renderer::QueueFamilyIndices Renderer::findQueueFamilies(VkPhysicalDevice gpu)
+{
+	auto indices = QueueFamilyIndices{};
+	
+	auto queueFamilyCount = uint32_t{};
+	vkGetPhysicalDeviceQueueFamilyProperties(gpu, &queueFamilyCount, nullptr);
+	auto queueFamilies = std::vector<VkQueueFamilyProperties>(queueFamilyCount);
+	vkGetPhysicalDeviceQueueFamilyProperties(gpu, &queueFamilyCount, queueFamilies.data());
+	auto i = int{};
+	for (const auto& queueFamily : queueFamilies)
+	{
+		if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT)
+		{
+			indices.graphics = i;
+			break;
+		}
+		i++;
+	}
+
+	return indices;
 }
