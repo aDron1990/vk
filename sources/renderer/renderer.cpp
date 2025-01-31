@@ -17,12 +17,14 @@ Renderer::Renderer(GLFWwindow* window) : m_window{window}
 	createDevice();
 	createSwapchain();
 	createImageViews();
+	createRenderPass();
 	createGraphicsPipeline();
 }
 
 Renderer::~Renderer()
 {
 	vkDestroyPipelineLayout(m_device, m_pipelineLayout, nullptr);
+	vkDestroyRenderPass(m_device, m_renderPass, nullptr);
 	for (auto view : m_swapchainImageViews)
 		vkDestroyImageView(m_device, view, nullptr);
 	vkDestroySwapchainKHR(m_device, m_swapchain, nullptr);
@@ -428,6 +430,38 @@ void Renderer::createImageViews()
 		if (vkCreateImageView(m_device, &createInfo, nullptr, &m_swapchainImageViews[i]))
 			throw std::runtime_error{ "failed to create swapchain image view" };
 	}
+}
+
+void Renderer::createRenderPass()
+{
+	auto colorAttachment = VkAttachmentDescription{};
+	colorAttachment.format = m_swapchainFormat;
+	colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+	colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+	colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+	colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+	colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+	colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+	auto colorAttachmentRef = VkAttachmentReference{};
+	colorAttachmentRef.attachment = 0;
+	colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+	auto subpass = VkSubpassDescription{};
+	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+	subpass.pColorAttachments = &colorAttachmentRef;
+	subpass.colorAttachmentCount = 1;
+
+	auto createInfo = VkRenderPassCreateInfo{};
+	createInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+	createInfo.pAttachments = &colorAttachment;
+	createInfo.attachmentCount = 1;
+	createInfo.pSubpasses = &subpass;
+	createInfo.subpassCount = 1;
+
+	if (vkCreateRenderPass(m_device, &createInfo, nullptr, &m_renderPass) != VK_SUCCESS)
+		throw std::runtime_error{ "failed to create vulkan render pass" };
 }
 
 void Renderer::createGraphicsPipeline()
