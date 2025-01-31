@@ -433,4 +433,25 @@ void Renderer::createGraphicsPipeline()
 {
 	auto vertexCode = loadFile("../../resources/shaders/shader.vert.spv");
 	auto fragmentCode = loadFile("../../resources/shaders/shader.frag.spv");
+	auto vertex = createShaderModule(vertexCode);
+	auto fragment = createShaderModule(fragmentCode);
+
+
+
+	vkDestroyShaderModule(m_device, vertex, nullptr);
+	vkDestroyShaderModule(m_device, fragment, nullptr);
+}
+
+VkShaderModule Renderer::createShaderModule(const std::vector<char>& code)
+{
+	auto createInfo = VkShaderModuleCreateInfo{};
+	createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+	createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
+	createInfo.codeSize = code.size();
+
+	auto shaderModule = VkShaderModule{};
+	if (vkCreateShaderModule(m_device, &createInfo, nullptr, &shaderModule) != VK_SUCCESS)
+		throw std::runtime_error{ "failed to create shader module" };
+	
+	return shaderModule;
 }

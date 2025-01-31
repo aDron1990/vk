@@ -57,6 +57,7 @@ private:
 	void createImageViews();
 
 	void createGraphicsPipeline();
+	VkShaderModule createShaderModule(const std::vector<char>& code);
 
 private:
 #ifdef _DEBUG

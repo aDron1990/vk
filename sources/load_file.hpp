@@ -8,8 +8,6 @@
 
 inline std::vector<char> loadFile(const std::string& filename)
 {
-	auto cp = std::filesystem::current_path();
-	std::println("{}", cp.string());
 	auto file = std::ifstream{ filename, std::ios::ate | std::ios::binary };
 	if (!file.is_open())
 		throw std::runtime_error{ "failed to open file" };
