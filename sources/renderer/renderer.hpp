@@ -60,6 +60,8 @@ private:
 	VkShaderModule createShaderModule(const std::vector<char>& code);
 	void createRenderPass();
 
+	void createFramebuffers();
+
 private:
 #ifdef _DEBUG
 	const bool USE_VALIDATION_LAYERS = true;
@@ -90,7 +92,7 @@ private:
 	VkRenderPass m_renderPass{};
 	VkPipelineLayout m_pipelineLayout{};
 	VkPipeline m_graphicsPipeline{};
-	
+	std::vector<VkFramebuffer> m_swapchainFramebuffers;
 
 
 	std::vector<VkImage> m_swapchainImages{};

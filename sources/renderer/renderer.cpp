@@ -19,10 +19,13 @@ Renderer::Renderer(GLFWwindow* window) : m_window{window}
 	createImageViews();
 	createRenderPass();
 	createGraphicsPipeline();
+	createFramebuffers();
 }
 
 Renderer::~Renderer()
 {
+	for (auto framebuffer : m_swapchainFramebuffers)
+		vkDestroyFramebuffer(m_device, framebuffer, nullptr);
 	vkDestroyPipeline(m_device, m_graphicsPipeline, nullptr);
 	vkDestroyPipelineLayout(m_device, m_pipelineLayout, nullptr);
 	vkDestroyRenderPass(m_device, m_renderPass, nullptr);
@@ -580,4 +583,25 @@ VkShaderModule Renderer::createShaderModule(const std::vector<char>& code)
 		throw std::runtime_error{ "failed to create shader module" };
 	
 	return shaderModule;
+}
+
+void Renderer::createFramebuffers()
+{
+	m_swapchainFramebuffers.resize(m_swapchainImages.size());
+	for (int i = 0; i < m_swapchainImages.size(); i++)
+	{
+		auto attachments = { m_swapchainImageViews[i] };
+
+		auto createInfo = VkFramebufferCreateInfo{};
+		createInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+		createInfo.renderPass = m_renderPass;
+		createInfo.pAttachments = attachments.begin();
+		createInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
+		createInfo.width = m_swapchainExtent.width;
+		createInfo.height = m_swapchainExtent.height;
+		createInfo.layers = 1;
+
+		if (vkCreateFramebuffer(m_device, &createInfo, nullptr, &m_swapchainFramebuffers[i]) != VK_SUCCESS)
+			throw std::runtime_error{ "failed to create framebuffer" };
+	}
 }
