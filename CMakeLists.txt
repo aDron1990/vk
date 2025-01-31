@@ -7,6 +7,7 @@ find_package(Vulkan REQUIRED)
 
 add_executable(vk 
 	"sources/main.cpp"
+	"sources/load_file.hpp"
 
 	"sources/window/window.hpp"
 	"sources/window/glfw_window.hpp"

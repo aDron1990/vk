@@ -56,6 +56,8 @@ private:
 	void createSwapchain();
 	void createImageViews();
 
+	void createGraphicsPipeline();
+
 private:
 #ifdef _DEBUG
 	const bool USE_VALIDATION_LAYERS = true;

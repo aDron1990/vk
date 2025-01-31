@@ -1,4 +1,5 @@
 #include "renderer/renderer.hpp"
+#include "load_file.hpp"
 
 #include <stdexcept>
 #include <print>
@@ -16,6 +17,7 @@ Renderer::Renderer(GLFWwindow* window) : m_window{window}
 	createDevice();
 	createSwapchain();
 	createImageViews();
+	createGraphicsPipeline();
 }
 
 Renderer::~Renderer()
@@ -425,4 +427,10 @@ void Renderer::createImageViews()
 		if (vkCreateImageView(m_device, &createInfo, nullptr, &m_swapchainImageViews[i]))
 			throw std::runtime_error{ "failed to create swapchain image view" };
 	}
+}
+
+void Renderer::createGraphicsPipeline()
+{
+	auto vertexCode = loadFile("../../resources/shaders/shader.vert.spv");
+	auto fragmentCode = loadFile("../../resources/shaders/shader.frag.spv");
 }
