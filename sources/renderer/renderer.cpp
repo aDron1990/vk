@@ -23,6 +23,7 @@ Renderer::Renderer(GLFWwindow* window) : m_window{window}
 
 Renderer::~Renderer()
 {
+	vkDestroyPipeline(m_device, m_graphicsPipeline, nullptr);
 	vkDestroyPipelineLayout(m_device, m_pipelineLayout, nullptr);
 	vkDestroyRenderPass(m_device, m_renderPass, nullptr);
 	for (auto view : m_swapchainImageViews)
@@ -543,7 +544,25 @@ void Renderer::createGraphicsPipeline()
 	if (vkCreatePipelineLayout(m_device, &pipelineLayoutInfo, nullptr, &m_pipelineLayout) != VK_SUCCESS)
 		throw std::runtime_error{ "failed to create vulkan pipeline layout" };
 
+	auto createInfo = VkGraphicsPipelineCreateInfo{};
+	createInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+	createInfo.pStages = shaderStages.begin();
+	createInfo.stageCount = static_cast<uint32_t>(shaderStages.size());
+	createInfo.pVertexInputState = &vertexInputInfo;
+	createInfo.pInputAssemblyState = &inputAssembly;
+	createInfo.pViewportState = &viewportState;
+	createInfo.pRasterizationState = &rasterizer;
+	createInfo.pMultisampleState = &multisampling;
+	createInfo.pDepthStencilState = nullptr;
+	createInfo.pColorBlendState = &blending;
+	createInfo.pDynamicState = &dynamicInfo;
 
+	createInfo.layout = m_pipelineLayout;
+	createInfo.renderPass = m_renderPass;
+	createInfo.subpass = 0;
+
+	if (vkCreateGraphicsPipelines(m_device, VK_NULL_HANDLE, 1, &createInfo, nullptr, &m_graphicsPipeline))
+		throw std::runtime_error{ "failed to create vulkan pipeline" };
 
 	vkDestroyShaderModule(m_device, vertexModule, nullptr);
 	vkDestroyShaderModule(m_device, fragmentModule, nullptr);
