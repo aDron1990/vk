@@ -32,6 +32,7 @@ private:
 
 	void pickGpu();
 	bool isGpuSuitable(VkPhysicalDevice gpu);
+	bool checkGpuExtensionsSupport(VkPhysicalDevice gpu);
 	struct QueueFamilyIndices
 	{
 		std::optional<uint32_t> graphics;
@@ -41,7 +42,18 @@ private:
 
 	void createDevice();
 
-	void createSurface(GLFWwindow* window);
+	void createSurface();
+	struct SwapchainSupportDetails
+	{
+		VkSurfaceCapabilitiesKHR capabilities;
+		std::vector<VkSurfaceFormatKHR> formats;
+		std::vector<VkPresentModeKHR> presentModes;
+	};
+	SwapchainSupportDetails querySwapchainSupport(VkPhysicalDevice gpu);
+	VkSurfaceFormatKHR chooseSwapchainSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
+	VkPresentModeKHR chooseSwapchainPresentMode(const std::vector<VkPresentModeKHR>& availableModes);
+	VkExtent2D chooseSwapchainExtent(const VkSurfaceCapabilitiesKHR& capabilities);
+	void createSwapchain();
 
 private:
 #ifdef _DEBUG
@@ -54,6 +66,13 @@ private:
 		"VK_LAYER_KHRONOS_validation"
 	};
 
+	const std::vector<const char*> DEVICE_EXTENSIONS = 
+	{
+		VK_KHR_SWAPCHAIN_EXTENSION_NAME
+	};
+
+	GLFWwindow* m_window;
+
 	VkInstance m_instance{};
 	VkDebugUtilsMessengerEXT m_debugMessenger{};
 	VkPhysicalDevice m_gpu{};
@@ -61,5 +80,11 @@ private:
 	VkQueue m_graphicsQueue{};
 	VkQueue m_presentQueue{};
 	VkSurfaceKHR m_surface{};
+	VkSwapchainKHR m_swapchain{};
+
+	std::vector<VkImage> m_swapchainImages{};
+	VkFormat m_swapchainFormat{};
+	VkExtent2D m_swapchainExtent{};
+	
 };
 
