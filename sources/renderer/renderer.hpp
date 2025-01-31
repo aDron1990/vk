@@ -86,6 +86,7 @@ private:
 	VkSurfaceKHR m_surface{};
 	VkSwapchainKHR m_swapchain{};
 	std::vector<VkImageView> m_swapchainImageViews{};
+	VkPipelineLayout m_pipelineLayout{};
 
 
 	std::vector<VkImage> m_swapchainImages{};

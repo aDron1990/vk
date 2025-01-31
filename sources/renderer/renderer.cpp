@@ -22,6 +22,7 @@ Renderer::Renderer(GLFWwindow* window) : m_window{window}
 
 Renderer::~Renderer()
 {
+	vkDestroyPipelineLayout(m_device, m_pipelineLayout, nullptr);
 	for (auto view : m_swapchainImageViews)
 		vkDestroyImageView(m_device, view, nullptr);
 	vkDestroySwapchainKHR(m_device, m_swapchain, nullptr);
@@ -433,13 +434,85 @@ void Renderer::createGraphicsPipeline()
 {
 	auto vertexCode = loadFile("../../resources/shaders/shader.vert.spv");
 	auto fragmentCode = loadFile("../../resources/shaders/shader.frag.spv");
-	auto vertex = createShaderModule(vertexCode);
-	auto fragment = createShaderModule(fragmentCode);
+	auto vertexModule = createShaderModule(vertexCode);
+	auto fragmentModule = createShaderModule(fragmentCode);
+
+	auto vertexStageInfo = VkPipelineShaderStageCreateInfo{};
+	vertexStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+	vertexStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
+	vertexStageInfo.module = vertexModule;
+	vertexStageInfo.pName = "main";
+
+	auto fragmentStageInfo = VkPipelineShaderStageCreateInfo{};
+	fragmentStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+	fragmentStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+	fragmentStageInfo.module = fragmentModule;
+	fragmentStageInfo.pName = "main";
+
+	auto shaderStages = { vertexStageInfo, fragmentStageInfo };
+
+	auto dynamicStates = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
+
+	auto dynamicInfo = VkPipelineDynamicStateCreateInfo{};
+	dynamicInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+	dynamicInfo.pDynamicStates = dynamicStates.begin();
+	dynamicInfo.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size());
+
+	auto viewportState = VkPipelineViewportStateCreateInfo{};
+	viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+	viewportState.viewportCount = 1;
+	viewportState.scissorCount = 1;
+
+	auto vertexInputInfo = VkPipelineVertexInputStateCreateInfo{};
+	vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+	vertexInputInfo.vertexBindingDescriptionCount = 0;
+	vertexInputInfo.pVertexBindingDescriptions = nullptr; // Optional
+	vertexInputInfo.vertexAttributeDescriptionCount = 0;
+	vertexInputInfo.pVertexAttributeDescriptions = nullptr; // Optional
+
+	auto inputAssembly = VkPipelineInputAssemblyStateCreateInfo{};
+	inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+	inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+	inputAssembly.primitiveRestartEnable = VK_FALSE;
+
+	auto rasterizer = VkPipelineRasterizationStateCreateInfo{};
+	rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+	rasterizer.depthClampEnable = VK_FALSE;
+	rasterizer.rasterizerDiscardEnable = VK_FALSE;
+	rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
+	rasterizer.lineWidth = 1.0f;
+	rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
+	rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
+	rasterizer.depthBiasEnable = VK_FALSE;
+
+	auto multisampling = VkPipelineMultisampleStateCreateInfo{};
+	multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+	multisampling.sampleShadingEnable = VK_FALSE;
+	multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+
+	auto blendingAttachment = VkPipelineColorBlendAttachmentState{};
+	blendingAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | 
+								VK_COLOR_COMPONENT_G_BIT |
+								VK_COLOR_COMPONENT_B_BIT | 
+								VK_COLOR_COMPONENT_A_BIT;
+	blendingAttachment.blendEnable = VK_FALSE;
+
+	auto blending = VkPipelineColorBlendStateCreateInfo{};
+	blending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+	blending.logicOpEnable = VK_FALSE;
+	blending.attachmentCount = 1;
+	blending.pAttachments = &blendingAttachment;
+
+	auto pipelineLayoutInfo = VkPipelineLayoutCreateInfo{};
+	pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+
+	if (vkCreatePipelineLayout(m_device, &pipelineLayoutInfo, nullptr, &m_pipelineLayout) != VK_SUCCESS)
+		throw std::runtime_error{ "failed to create vulkan pipeline layout" };
 
 
 
-	vkDestroyShaderModule(m_device, vertex, nullptr);
-	vkDestroyShaderModule(m_device, fragment, nullptr);
+	vkDestroyShaderModule(m_device, vertexModule, nullptr);
+	vkDestroyShaderModule(m_device, fragmentModule, nullptr);
 }
 
 VkShaderModule Renderer::createShaderModule(const std::vector<char>& code)
