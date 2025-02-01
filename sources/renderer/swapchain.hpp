@@ -8,10 +8,20 @@
 #include <vector>
 #include <optional>
 
+struct SwapchainProperties
+{
+	VkInstance instance;
+	VkPhysicalDevice gpu;
+	VkDevice device;
+	VkCommandPool commandPool;
+	GLFWwindow* window;
+	FindQueueFamilyFunc findQueueFamily;
+};
+
 class Swapchain
 {
 public:
-	Swapchain(VkInstance instance, VkPhysicalDevice gpu, VkDevice device, VkCommandPool commandPool, GLFWwindow* window, FindQueueFamilyFunc findQueueFamily);
+	Swapchain(SwapchainProperties properties);
 	~Swapchain();
 
 	VkExtent2D getExtent();

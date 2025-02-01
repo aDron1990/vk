@@ -18,32 +18,30 @@ public:
 
 private:
 	void createInstance();
+	void pickGpu();
+	void createDevice();
+	void createGraphicsPipeline();
+	void createCommandPool();
 
+private:
 	bool checkValidationLayerSupport();
 	void setupDebugMessenger();
 	std::vector<const char*> getReqiuredExtensions();
-	
+	void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
+	static VkResult createDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger);
+	static void destroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator);
+	bool isGpuSuitable(VkPhysicalDevice gpu);
+	bool checkGpuExtensionsSupport(VkPhysicalDevice gpu);
+	QueueFamilyIndices findQueueFamilies(VkPhysicalDevice gpu);
+	VkShaderModule createShaderModule(const std::vector<char>& code);
+	void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
+
+private:
 	static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
 		VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
 		VkDebugUtilsMessageTypeFlagsEXT messageType,
 		const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
 		void* pUserData);
-
-	void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
-	static VkResult createDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger);
-	static void destroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator);
-
-	void pickGpu();
-	bool isGpuSuitable(VkPhysicalDevice gpu);
-	bool checkGpuExtensionsSupport(VkPhysicalDevice gpu);
-	QueueFamilyIndices findQueueFamilies(VkPhysicalDevice gpu);
-
-	void createDevice();
-
-	void createGraphicsPipeline();
-	VkShaderModule createShaderModule(const std::vector<char>& code);
-	void createCommandPool();
-	void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
 
 private:
 #ifdef _DEBUG

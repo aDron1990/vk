@@ -15,14 +15,15 @@ Renderer::Renderer(GLFWwindow* window) : m_window{window}
 	pickGpu();
 	createDevice();
 	createCommandPool();
+	
 	m_swapchain.reset(new Swapchain
-	{ 
-		m_instance, m_gpu, m_device, m_commandPool, m_window, 
-		[this](VkPhysicalDevice gpu) 
+	{{
+		m_instance, m_gpu, m_device, m_commandPool, m_window,
+		[this](VkPhysicalDevice gpu)
 		{
-			return findQueueFamilies(gpu); 
-		} 
-	});
+			return findQueueFamilies(gpu);
+		}
+	}});
 	createGraphicsPipeline();
 }
 

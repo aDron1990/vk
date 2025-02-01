@@ -3,8 +3,8 @@
 #include <stdexcept>
 #include <algorithm>
 
-Swapchain::Swapchain(VkInstance instance, VkPhysicalDevice gpu, VkDevice device, VkCommandPool commandPool, GLFWwindow* window, FindQueueFamilyFunc findQueueFamily)
-	: m_instance{ instance }, m_gpu{gpu}, m_device { device }, m_commandPool{ commandPool }, m_window{ window }, findQueueFamilies{findQueueFamily}
+Swapchain::Swapchain(SwapchainProperties properties)
+	: m_instance{ properties.instance }, m_gpu{ properties.gpu}, m_device { properties.device }, m_commandPool{ properties.commandPool }, m_window{ properties.window }, findQueueFamilies{ properties.findQueueFamily}
 {
 	auto indices = findQueueFamilies(m_gpu);
 	vkGetDeviceQueue(m_device, indices.present.value(), 0, &m_presentQueue);
