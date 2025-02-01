@@ -402,29 +402,21 @@ void Renderer::createRenderPass()
 
 void Renderer::createVertexBuffer()
 {
-	auto createInfo = VkBufferCreateInfo{};
-	createInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-	createInfo.size = sizeof(vertices[0]) * vertices.size();
-	createInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-	createInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-	if (vkCreateBuffer(m_device, &createInfo, nullptr, &m_vertexBuffer) != VK_SUCCESS)
-		throw std::runtime_error{ "failed to create vertex buffer" };
+	VkDeviceSize size = sizeof(vertices[0]) * vertices.size();
 
-	auto memReq = VkMemoryRequirements{};
-	vkGetBufferMemoryRequirements(m_device, m_vertexBuffer, &memReq);
+	auto stagingBuffer = VkBuffer{};
+	auto stagingBufferMemory = VkDeviceMemory{};
+	createBuffer(size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
 
-	auto allocInfo = VkMemoryAllocateInfo{};
-	allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-	allocInfo.allocationSize = memReq.size;
-	allocInfo.memoryTypeIndex = findMemoryType(memReq.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-	if (vkAllocateMemory(m_device, &allocInfo, nullptr, &m_vertexBufferMemory) != VK_SUCCESS)
-		throw std::runtime_error{ "failed to allocate vertex buffer memory" };
-
-	vkBindBufferMemory(m_device, m_vertexBuffer, m_vertexBufferMemory, 0);
 	void* data{};
-	auto a = vkMapMemory(m_device, m_vertexBufferMemory, 0, createInfo.size, 0, &data);
-	memcpy(data, vertices.data(), static_cast<size_t>(createInfo.size));
-	vkUnmapMemory(m_device, m_vertexBufferMemory);
+	auto a = vkMapMemory(m_device, stagingBufferMemory, 0, size, 0, &data);
+	memcpy(data, vertices.data(), static_cast<size_t>(size));
+	vkUnmapMemory(m_device, stagingBufferMemory);
+
+	createBuffer(size, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, 
+		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_vertexBuffer, m_vertexBufferMemory);
+
+	copyBuffer(stagingBuffer, m_vertexBuffer, size);
 }
 
 uint32_t Renderer::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties)
@@ -588,6 +580,66 @@ void Renderer::createCommandPool()
 
 	if (vkCreateCommandPool(m_device, &createInfo, nullptr, &m_commandPool) != VK_SUCCESS)
 		throw std::runtime_error{ "failed to create vulkan command pool" };
+}
+
+void Renderer::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& memory)
+{
+	auto createInfo = VkBufferCreateInfo{};
+	createInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+	createInfo.size = size;
+	createInfo.usage = usage;
+	createInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+	if (vkCreateBuffer(m_device, &createInfo, nullptr, &buffer) != VK_SUCCESS)
+		throw std::runtime_error{ "failed to create vertex buffer" };
+
+	auto memReq = VkMemoryRequirements{};
+	vkGetBufferMemoryRequirements(m_device, buffer, &memReq);
+
+	auto allocInfo = VkMemoryAllocateInfo{};
+	allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+	allocInfo.allocationSize = memReq.size;
+	allocInfo.memoryTypeIndex = findMemoryType(memReq.memoryTypeBits, properties);
+	if (vkAllocateMemory(m_device, &allocInfo, nullptr, &memory) != VK_SUCCESS)
+		throw std::runtime_error{ "failed to allocate vertex buffer memory" };
+
+	vkBindBufferMemory(m_device, buffer, memory, 0);
+}
+
+void Renderer::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size)
+{
+	auto commandBuffer = VkCommandBuffer{};
+	auto allocInfo = VkCommandBufferAllocateInfo{};
+	allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+	allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+	allocInfo.commandPool = m_commandPool;
+	allocInfo.commandBufferCount = 1;
+	if (vkAllocateCommandBuffers(m_device, &allocInfo, &commandBuffer) != VK_SUCCESS)
+		throw std::runtime_error{ "failed to allocate command buffer" };
+
+	auto beginInfo = VkCommandBufferBeginInfo{};
+	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+	if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS)
+		throw std::runtime_error{ "failed to begin command buffer" };
+
+	auto copyRegion = VkBufferCopy{};
+	copyRegion.srcOffset = 0;
+	copyRegion.dstOffset = 0;
+	copyRegion.size = size;
+	vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
+
+	if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS)
+		throw std::runtime_error{ "failed to end command buffer" };
+
+	auto submitInfo = VkSubmitInfo{};
+	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+	submitInfo.pCommandBuffers = &commandBuffer;
+	submitInfo.commandBufferCount = 1;
+	if (vkQueueSubmit(m_graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE) != VK_SUCCESS)
+		throw std::runtime_error{ "failed to submit command buffer" };
+
+	vkQueueWaitIdle(m_graphicsQueue);
+	vkFreeCommandBuffers(m_device, m_commandPool, 1, &commandBuffer);
 }
 
 void Renderer::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex)
