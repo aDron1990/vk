@@ -62,6 +62,10 @@ private:
 
 	void createFramebuffers();
 
+	void createCommandPool();
+	void createCommandBuffer();
+	void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
+
 private:
 #ifdef _DEBUG
 	const bool USE_VALIDATION_LAYERS = true;
@@ -93,6 +97,8 @@ private:
 	VkPipelineLayout m_pipelineLayout{};
 	VkPipeline m_graphicsPipeline{};
 	std::vector<VkFramebuffer> m_swapchainFramebuffers;
+	VkCommandPool m_commandPool{};
+	VkCommandBuffer m_commandBuffer{};
 
 
 	std::vector<VkImage> m_swapchainImages{};
