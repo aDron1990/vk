@@ -4,10 +4,20 @@
 
 #include <vulkan/vulkan.h>
 #include <GLFW/glfw3.h>
+#include <glm/glm.hpp>
 
 #include <vector>
 #include <optional>
 #include <memory>
+
+struct Vertex
+{
+	glm::vec2 pos;
+	glm::vec3 color;
+
+	static constexpr VkVertexInputBindingDescription getBindDesc();
+	static constexpr std::array<VkVertexInputAttributeDescription, 2> getAttrDesc();
+};
 
 class Renderer
 {

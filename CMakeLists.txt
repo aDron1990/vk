@@ -4,6 +4,7 @@ project(vk)
 
 find_package(glfw3 CONFIG REQUIRED)
 find_package(Vulkan REQUIRED)
+find_package(glm CONFIG REQUIRED)
 
 add_executable(vk 
 	"sources/main.cpp"
@@ -28,4 +29,5 @@ target_include_directories(vk PRIVATE "sources/")
 target_link_libraries(vk PRIVATE
 	glfw
 	Vulkan::Vulkan
+	glm::glm-header-only
 )

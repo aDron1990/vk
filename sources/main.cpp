@@ -16,7 +16,6 @@ int main()
 			window->update();
 			renderer.draw();
 		}
-
 	}
 	catch (std::exception& ex)
 	{

@@ -4,9 +4,43 @@
 #include <stdexcept>
 #include <print>
 #include <set>
+#include <array>
 #include <algorithm>
 #include <limits>
 #include <cstdint>
+
+const std::vector<Vertex> vertices = 
+{
+	{{0.0f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+	{{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
+	{{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}
+};
+
+constexpr VkVertexInputBindingDescription Vertex::getBindDesc()
+{
+	auto bindDesc = VkVertexInputBindingDescription{};
+	bindDesc.binding = 0;
+	bindDesc.stride = sizeof(Vertex);
+	bindDesc.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+	return bindDesc;
+}
+
+constexpr std::array<VkVertexInputAttributeDescription, 2> Vertex::getAttrDesc()
+{
+	auto attrDesc = std::array<VkVertexInputAttributeDescription, 2>{};
+
+	attrDesc[0].binding = 0;
+	attrDesc[0].location = 0;
+	attrDesc[0].format = VK_FORMAT_R32G32_SFLOAT;
+	attrDesc[0].offset = offsetof(Vertex, pos);
+
+	attrDesc[1].binding = 0;
+	attrDesc[1].location = 1;
+	attrDesc[1].format = VK_FORMAT_R32G32B32_SFLOAT;
+	attrDesc[1].offset = offsetof(Vertex, color);
+
+	return attrDesc;
+}
 
 Renderer::Renderer(GLFWwindow* window) : m_window{window}
 {
@@ -414,12 +448,15 @@ void Renderer::createGraphicsPipeline()
 	viewportState.viewportCount = 1;
 	viewportState.scissorCount = 1;
 
+	constexpr auto bindDesc = Vertex::getBindDesc();
+	constexpr auto attrDesc = Vertex::getAttrDesc();
+
 	auto vertexInputInfo = VkPipelineVertexInputStateCreateInfo{};
 	vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-	vertexInputInfo.vertexBindingDescriptionCount = 0;
-	vertexInputInfo.pVertexBindingDescriptions = nullptr; // Optional
-	vertexInputInfo.vertexAttributeDescriptionCount = 0;
-	vertexInputInfo.pVertexAttributeDescriptions = nullptr; // Optional
+	vertexInputInfo.pVertexBindingDescriptions = &bindDesc;
+	vertexInputInfo.vertexBindingDescriptionCount = 1;
+	vertexInputInfo.pVertexAttributeDescriptions = attrDesc.data();
+	vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attrDesc.size());
 
 	auto inputAssembly = VkPipelineInputAssemblyStateCreateInfo{};
 	inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
