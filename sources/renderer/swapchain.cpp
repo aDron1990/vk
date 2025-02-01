@@ -4,8 +4,9 @@
 #include <algorithm>
 
 Swapchain::Swapchain(SwapchainProperties properties)
-	: m_instance{ properties.instance }, m_gpu{ properties.gpu }, m_device{ properties.device }, m_commandPool{ properties.commandPool }, 
-	m_surface{ properties.surface }, m_window{ properties.window }, m_queueFamilyIndices{properties.queueFamilyIndices}
+	: m_instance{ properties.instance }, m_gpu{ properties.gpu }, m_device{ properties.device }, 
+	m_commandPool{ properties.commandPool }, m_surface{ properties.surface }, m_window{ properties.window }, 
+	m_queueFamilyIndices{properties.queueFamilyIndices}, m_swapchainSupportDetails{properties.swapchainSupportDetails}
 {
 	vkGetDeviceQueue(m_device, m_queueFamilyIndices.present.value(), 0, &m_presentQueue);
 	createSwapchain();
@@ -34,7 +35,7 @@ Swapchain::~Swapchain()
 
 void Swapchain::createSwapchain()
 {
-	auto swapchainDetails = querySwapchainSupport(m_gpu);
+	auto swapchainDetails = m_swapchainSupportDetails;
 	auto surfaceFormat = chooseSwapchainSurfaceFormat(swapchainDetails.formats);
 	auto presentMode = chooseSwapchainPresentMode(swapchainDetails.presentModes);
 	auto extent = chooseSwapchainExtent(swapchainDetails.capabilities);
@@ -68,7 +69,7 @@ void Swapchain::createSwapchain()
 	createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
 	createInfo.presentMode = presentMode;
 	createInfo.clipped = VK_TRUE;
-	createInfo.oldSwapchain = VK_NULL_HANDLE; //!!!
+	createInfo.oldSwapchain = VK_NULL_HANDLE;
 
 	if (vkCreateSwapchainKHR(m_device, &createInfo, nullptr, &m_swapchain) != VK_SUCCESS)
 		throw std::runtime_error{ "failed to create vulkan swapchain" };
@@ -78,31 +79,6 @@ void Swapchain::createSwapchain()
 	vkGetSwapchainImagesKHR(m_device, m_swapchain, &imageCount, m_swapchainImages.data());
 	m_swapchainFormat = surfaceFormat.format;
 	m_swapchainExtent = extent;
-}
-
-Swapchain::SwapchainSupportDetails Swapchain::querySwapchainSupport(VkPhysicalDevice gpu)
-{
-	auto details = SwapchainSupportDetails{};
-
-	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(gpu, m_surface, &details.capabilities);
-
-	auto formatCount = uint32_t{};
-	vkGetPhysicalDeviceSurfaceFormatsKHR(gpu, m_surface, &formatCount, nullptr);
-	if (formatCount != 0)
-	{
-		details.formats.resize(formatCount);
-		vkGetPhysicalDeviceSurfaceFormatsKHR(gpu, m_surface, &formatCount, details.formats.data());
-	}
-
-	auto presentModeCount = uint32_t{};
-	vkGetPhysicalDeviceSurfacePresentModesKHR(gpu, m_surface, &presentModeCount, nullptr);
-	if (presentModeCount != 0)
-	{
-		details.presentModes.resize(presentModeCount);
-		vkGetPhysicalDeviceSurfacePresentModesKHR(gpu, m_surface, &presentModeCount, details.presentModes.data());
-	}
-
-	return details;
 }
 
 VkSurfaceFormatKHR Swapchain::chooseSwapchainSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats)

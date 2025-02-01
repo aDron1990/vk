@@ -16,10 +16,10 @@ Renderer::Renderer(GLFWwindow* window) : m_window{window}
 	pickGpu();
 	createDevice();
 	createCommandPool();
-	
 	m_swapchain.reset(new Swapchain
 	{{
-		m_instance, m_gpu, m_device, m_commandPool, m_surface, m_window, findQueueFamilies(m_gpu)
+		m_instance, m_gpu, m_device, m_commandPool, m_surface, m_window, 
+		findQueueFamilies(m_gpu), querySwapchainSupport(m_gpu)
 	}});
 	createGraphicsPipeline();
 }
@@ -234,13 +234,12 @@ QueueFamilyIndices Renderer::findQueueFamilies(VkPhysicalDevice gpu)
 		if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT)
 		{
 			indices.graphics = i;
-			indices.present = i;
 			break;
 		}
 		i++;
 	}
 
-	/*i = int{};
+	i = int{};
 	for (const auto& queueFamily : queueFamilies)
 	{
 		auto presentSupport = VkBool32{};
@@ -251,9 +250,34 @@ QueueFamilyIndices Renderer::findQueueFamilies(VkPhysicalDevice gpu)
 			break;
 		}
 		i++;
-	}*/
+	}
 
 	return indices;
+}
+
+SwapchainSupportDetails Renderer::querySwapchainSupport(VkPhysicalDevice gpu)
+{
+	auto details = SwapchainSupportDetails{};
+
+	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(gpu, m_surface, &details.capabilities);
+
+	auto formatCount = uint32_t{};
+	vkGetPhysicalDeviceSurfaceFormatsKHR(gpu, m_surface, &formatCount, nullptr);
+	if (formatCount != 0)
+	{
+		details.formats.resize(formatCount);
+		vkGetPhysicalDeviceSurfaceFormatsKHR(gpu, m_surface, &formatCount, details.formats.data());
+	}
+
+	auto presentModeCount = uint32_t{};
+	vkGetPhysicalDeviceSurfacePresentModesKHR(gpu, m_surface, &presentModeCount, nullptr);
+	if (presentModeCount != 0)
+	{
+		details.presentModes.resize(presentModeCount);
+		vkGetPhysicalDeviceSurfacePresentModesKHR(gpu, m_surface, &presentModeCount, details.presentModes.data());
+	}
+
+	return details;
 }
 
 void Renderer::createDevice()

@@ -17,6 +17,7 @@ struct SwapchainProperties
 	VkSurfaceKHR surface;
 	GLFWwindow* window;
 	QueueFamilyIndices queueFamilyIndices;
+	SwapchainSupportDetails swapchainSupportDetails;
 };
 
 class Swapchain
@@ -47,15 +48,6 @@ private:
 	void createCommandBuffers();
 
 private:
-	struct SwapchainSupportDetails
-	{
-		VkSurfaceCapabilitiesKHR capabilities;
-		std::vector<VkSurfaceFormatKHR> formats;
-		std::vector<VkPresentModeKHR> presentModes;
-	};
-
-private:
-	SwapchainSupportDetails querySwapchainSupport(VkPhysicalDevice gpu);
 	VkSurfaceFormatKHR chooseSwapchainSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
 	VkPresentModeKHR chooseSwapchainPresentMode(const std::vector<VkPresentModeKHR>& availableModes);
 	VkExtent2D chooseSwapchainExtent(const VkSurfaceCapabilitiesKHR& capabilities);
@@ -72,6 +64,7 @@ private:
 	const VkCommandPool m_commandPool;
 	const VkSurfaceKHR m_surface;
 	const QueueFamilyIndices m_queueFamilyIndices;
+	const SwapchainSupportDetails m_swapchainSupportDetails;
 	GLFWwindow* m_window;
 	uint32_t currentFrame{};
 

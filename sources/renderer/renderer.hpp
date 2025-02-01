@@ -34,6 +34,7 @@ private:
 	bool isGpuSuitable(VkPhysicalDevice gpu);
 	bool checkGpuExtensionsSupport(VkPhysicalDevice gpu);
 	QueueFamilyIndices findQueueFamilies(VkPhysicalDevice gpu);
+	SwapchainSupportDetails querySwapchainSupport(VkPhysicalDevice gpu);
 	VkShaderModule createShaderModule(const std::vector<char>& code);
 	void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
 
