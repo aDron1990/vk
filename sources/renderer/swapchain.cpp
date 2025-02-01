@@ -3,8 +3,12 @@
 #include <stdexcept>
 #include <algorithm>
 
-Swapchain::Swapchain(VkInstance instance, VkPhysicalDevice gpu, VkDevice device, VkCommandPool commandPool, GLFWwindow* window) : m_instance{ instance }, m_gpu{gpu}, m_device { device }, m_commandPool{ commandPool }, m_window{ window }
+Swapchain::Swapchain(VkInstance instance, VkPhysicalDevice gpu, VkDevice device, VkCommandPool commandPool, GLFWwindow* window, FindQueueFamilyFunc findQueueFamily)
+	: m_instance{ instance }, m_gpu{gpu}, m_device { device }, m_commandPool{ commandPool }, m_window{ window }, findQueueFamilies{findQueueFamily}
 {
+	auto indices = findQueueFamilies(m_gpu);
+	vkGetDeviceQueue(m_device, indices.present.value(), 0, &m_presentQueue);
+
 	createSurface();
 	createSwapchain();
 	createImageViews();
@@ -12,6 +16,23 @@ Swapchain::Swapchain(VkInstance instance, VkPhysicalDevice gpu, VkDevice device,
 	createFramebuffers();
 	createSyncObjects();
 	createCommandBuffers();
+}
+
+Swapchain::~Swapchain()
+{
+	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+	{
+		vkDestroySemaphore(m_device, m_imageAvailableSemaphores[i], nullptr);
+		vkDestroySemaphore(m_device, m_renderFinishedSemaphores[i], nullptr);
+		vkDestroyFence(m_device, m_inFlightFences[i], nullptr);
+	}
+	for (auto framebuffer : m_swapchainFramebuffers)
+		vkDestroyFramebuffer(m_device, framebuffer, nullptr);
+	vkDestroyRenderPass(m_device, m_renderPass, nullptr);
+	for (auto view : m_swapchainImageViews)
+		vkDestroyImageView(m_device, view, nullptr);
+	vkDestroySwapchainKHR(m_device, m_swapchain, nullptr);
+	vkDestroySurfaceKHR(m_instance, m_surface, nullptr);
 }
 
 void Swapchain::createSurface()
@@ -66,42 +87,6 @@ void Swapchain::createSwapchain()
 	vkGetSwapchainImagesKHR(m_device, m_swapchain, &imageCount, m_swapchainImages.data());
 	m_swapchainFormat = surfaceFormat.format;
 	m_swapchainExtent = extent;
-}
-
-Swapchain::QueueFamilyIndices Swapchain::findQueueFamilies(VkPhysicalDevice gpu)
-{
-	auto indices = QueueFamilyIndices{};
-
-	auto queueFamilyCount = uint32_t{};
-	vkGetPhysicalDeviceQueueFamilyProperties(gpu, &queueFamilyCount, nullptr);
-	auto queueFamilies = std::vector<VkQueueFamilyProperties>(queueFamilyCount);
-	vkGetPhysicalDeviceQueueFamilyProperties(gpu, &queueFamilyCount, queueFamilies.data());
-
-	auto i = int{};
-	for (const auto& queueFamily : queueFamilies)
-	{
-		if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT)
-		{
-			indices.graphics = i;
-			break;
-		}
-		i++;
-	}
-
-	i = int{};
-	for (const auto& queueFamily : queueFamilies)
-	{
-		auto presentSupport = VkBool32{};
-		vkGetPhysicalDeviceSurfaceSupportKHR(gpu, i, m_surface, &presentSupport);
-		if (presentSupport)
-		{
-			indices.present = i;
-			break;
-		}
-		i++;
-	}
-
-	return indices;
 }
 
 Swapchain::SwapchainSupportDetails Swapchain::querySwapchainSupport(VkPhysicalDevice gpu)
@@ -288,4 +273,68 @@ void Swapchain::createCommandBuffers()
 	allocInfo.commandBufferCount = MAX_FRAMES_IN_FLIGHT;
 	if (vkAllocateCommandBuffers(m_device, &allocInfo, m_commandBuffers.data()) != VK_SUCCESS)
 		throw std::runtime_error{ "failed to allocate vulkan command buffers" };
+}
+
+VkExtent2D Swapchain::getExtent()
+{
+	return m_swapchainExtent;
+}
+
+VkRenderPass Swapchain::getRenderPass()
+{
+	return m_renderPass;
+}
+
+VkSemaphore Swapchain::getImageAvailableSemaphore()
+{
+	return m_imageAvailableSemaphores[currentFrame];
+}
+
+VkSemaphore Swapchain::getRenderFinishedSemaphore()
+{
+	return m_renderFinishedSemaphores[currentFrame];
+}
+
+VkFence Swapchain::getInFlightFence()
+{
+	return m_inFlightFences[currentFrame];
+}
+
+VkFramebuffer Swapchain::getFramebuffer(uint32_t index)
+{
+	return m_swapchainFramebuffers[index];
+}
+
+VkCommandBuffer Swapchain::getCommandBuffer()
+{
+	return m_commandBuffers[currentFrame];
+}
+
+uint32_t Swapchain::getCurrentFrame()
+{
+	return currentFrame;
+}
+
+uint32_t Swapchain::beginFrame()
+{
+	currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+
+	vkWaitForFences(m_device, 1, &m_inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
+	vkResetFences(m_device, 1, &m_inFlightFences[currentFrame]);
+
+	auto imageIndex = uint32_t{};
+	vkAcquireNextImageKHR(m_device, m_swapchain, UINT64_MAX, m_imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
+	return imageIndex;
+}
+
+void Swapchain::endFrame(uint32_t imageIndex)
+{
+	auto presentInfo = VkPresentInfoKHR{};
+	presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+	presentInfo.pWaitSemaphores = &m_renderFinishedSemaphores[currentFrame];
+	presentInfo.waitSemaphoreCount = 1;
+	presentInfo.pSwapchains = &m_swapchain;
+	presentInfo.swapchainCount = 1;
+	presentInfo.pImageIndices = &imageIndex;
+	vkQueuePresentKHR(m_presentQueue, &presentInfo);
 }

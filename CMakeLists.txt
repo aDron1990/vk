@@ -13,6 +13,7 @@ add_executable(vk
 	"sources/window/glfw_window.hpp"
 	"sources/window/glfw_window.cpp"
 
+	"sources/renderer/types.hpp"
 	"sources/renderer/renderer.hpp"
 	"sources/renderer/renderer.cpp"
 	"sources/renderer/swapchain.hpp"

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "renderer/types.hpp"
+
 #include <vulkan/vulkan.h>
 #include <GLFW/glfw3.h>
 
@@ -9,7 +11,21 @@
 class Swapchain
 {
 public:
-	Swapchain(VkInstance instance, VkPhysicalDevice gpu, VkDevice device, VkCommandPool commandPool, GLFWwindow* window);
+	Swapchain(VkInstance instance, VkPhysicalDevice gpu, VkDevice device, VkCommandPool commandPool, GLFWwindow* window, FindQueueFamilyFunc findQueueFamily);
+	~Swapchain();
+
+	VkExtent2D getExtent();
+	VkRenderPass getRenderPass();
+	VkSemaphore getImageAvailableSemaphore();
+	VkSemaphore getRenderFinishedSemaphore();
+	VkCommandBuffer getCommandBuffer();
+	VkFence getInFlightFence();
+	VkFramebuffer getFramebuffer(uint32_t index);
+
+	uint32_t getCurrentFrame();
+
+	uint32_t beginFrame();
+	void endFrame(uint32_t imageIndex);
 
 private:
 	void createSurface();
@@ -27,14 +43,9 @@ private:
 		std::vector<VkSurfaceFormatKHR> formats;
 		std::vector<VkPresentModeKHR> presentModes;
 	};
-	struct QueueFamilyIndices
-	{
-		std::optional<uint32_t> graphics;
-		std::optional<uint32_t> present;
-	};
 
 private:
-	QueueFamilyIndices findQueueFamilies(VkPhysicalDevice gpu);
+	FindQueueFamilyFunc findQueueFamilies;
 	SwapchainSupportDetails querySwapchainSupport(VkPhysicalDevice gpu);
 	VkSurfaceFormatKHR chooseSwapchainSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
 	VkPresentModeKHR chooseSwapchainPresentMode(const std::vector<VkPresentModeKHR>& availableModes);
@@ -51,6 +62,7 @@ private:
 	const VkDevice m_device;
 	const VkCommandPool m_commandPool;
 	GLFWwindow* m_window;
+	uint32_t currentFrame{};
 
 	VkQueue m_presentQueue;
 	VkRenderPass m_renderPass;

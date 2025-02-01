@@ -1,10 +1,13 @@
 #pragma once
 
+#include "renderer/swapchain.hpp"
+
 #include <vulkan/vulkan.h>
 #include <GLFW/glfw3.h>
 
 #include <vector>
 #include <optional>
+#include <memory>
 
 class Renderer
 {
@@ -33,40 +36,14 @@ private:
 	void pickGpu();
 	bool isGpuSuitable(VkPhysicalDevice gpu);
 	bool checkGpuExtensionsSupport(VkPhysicalDevice gpu);
-	struct QueueFamilyIndices
-	{
-		std::optional<uint32_t> graphics;
-		std::optional<uint32_t> present;
-	};
 	QueueFamilyIndices findQueueFamilies(VkPhysicalDevice gpu);
 
 	void createDevice();
 
-	void createSurface();
-	struct SwapchainSupportDetails
-	{
-		VkSurfaceCapabilitiesKHR capabilities;
-		std::vector<VkSurfaceFormatKHR> formats;
-		std::vector<VkPresentModeKHR> presentModes;
-	};
-	SwapchainSupportDetails querySwapchainSupport(VkPhysicalDevice gpu);
-	VkSurfaceFormatKHR chooseSwapchainSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
-	VkPresentModeKHR chooseSwapchainPresentMode(const std::vector<VkPresentModeKHR>& availableModes);
-	VkExtent2D chooseSwapchainExtent(const VkSurfaceCapabilitiesKHR& capabilities);
-	void createSwapchain();
-	void createImageViews();
-
 	void createGraphicsPipeline();
 	VkShaderModule createShaderModule(const std::vector<char>& code);
-	void createRenderPass();
-
-	void createFramebuffers();
-
 	void createCommandPool();
-	void createCommandBuffers();
 	void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
-
-	void createSyncObjects();
 
 private:
 #ifdef _DEBUG
@@ -98,18 +75,6 @@ private:
 	VkPipeline m_graphicsPipeline{};
 	VkCommandPool m_commandPool{};
 
-	std::vector<VkCommandBuffer> m_commandBuffers{};
-	VkQueue m_presentQueue{};
-	std::vector<VkSemaphore> m_imageAvailableSemaphores{};
-	std::vector<VkSemaphore> m_renderFinishedSemaphores{};
-	std::vector<VkFence> m_inFlightFences{};
-	VkRenderPass m_renderPass{};
-	VkSurfaceKHR m_surface{};
-	VkSwapchainKHR m_swapchain{};
-	std::vector<VkImage> m_swapchainImages{};
-	std::vector<VkImageView> m_swapchainImageViews{};
-	std::vector<VkFramebuffer> m_swapchainFramebuffers{};
-	VkFormat m_swapchainFormat{};
-	VkExtent2D m_swapchainExtent{};
+	std::unique_ptr<Swapchain> m_swapchain;
 };
 
