@@ -16,11 +16,7 @@ Renderer::Renderer(GLFWwindow* window) : m_window{window}
 	pickGpu();
 	createDevice();
 	createCommandPool();
-	m_swapchain.reset(new Swapchain
-	{{
-		m_instance, m_gpu, m_device, m_commandPool, m_surface, m_window, 
-		findQueueFamilies(m_gpu), querySwapchainSupport(m_gpu)
-	}});
+	createSwapchain();
 	createGraphicsPipeline();
 }
 
@@ -319,6 +315,23 @@ void Renderer::createDevice()
 		throw std::runtime_error{ "failed to create vulkan device" };
 
 	vkGetDeviceQueue(m_device, indices.graphics.value(), 0, &m_graphicsQueue);
+}
+
+void Renderer::createSwapchain()
+{
+	int width, height;
+	glfwGetFramebufferSize(m_window, &width, &height);
+	auto extent = VkExtent2D{ static_cast<uint32_t>(width), static_cast<uint32_t>(height) };
+	auto createProps = SwapchainProperties{};
+	createProps.instance = m_instance;
+	createProps.gpu = m_gpu;
+	createProps.device = m_device;
+	createProps.commandPool = m_commandPool;
+	createProps.surface = m_surface;
+	createProps.extent = extent;
+	createProps.queueFamilyIndices = findQueueFamilies(m_gpu);
+	createProps.swapchainSupportDetails = querySwapchainSupport(m_gpu);
+	m_swapchain.reset(new Swapchain{createProps});
 }
 
 void Renderer::createGraphicsPipeline()

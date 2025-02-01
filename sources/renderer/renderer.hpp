@@ -21,8 +21,10 @@ private:
 	void createSurface();
 	void pickGpu();
 	void createDevice();
-	void createGraphicsPipeline();
 	void createCommandPool();
+	void createSwapchain();
+	void createGraphicsPipeline();
+	
 
 private:
 	bool checkValidationLayerSupport();

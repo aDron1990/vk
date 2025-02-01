@@ -5,7 +5,7 @@
 
 Swapchain::Swapchain(SwapchainProperties properties)
 	: m_instance{ properties.instance }, m_gpu{ properties.gpu }, m_device{ properties.device }, 
-	m_commandPool{ properties.commandPool }, m_surface{ properties.surface }, m_window{ properties.window }, 
+	m_commandPool{ properties.commandPool }, m_surface{ properties.surface }, m_extent{properties.extent},
 	m_queueFamilyIndices{properties.queueFamilyIndices}, m_swapchainSupportDetails{properties.swapchainSupportDetails}
 {
 	vkGetDeviceQueue(m_device, m_queueFamilyIndices.present.value(), 0, &m_presentQueue);
@@ -108,14 +108,7 @@ VkExtent2D Swapchain::chooseSwapchainExtent(const VkSurfaceCapabilitiesKHR& capa
 		return capabilities.currentExtent;
 	else
 	{
-		auto width = int{};
-		auto height = int{};
-		glfwGetFramebufferSize(m_window, &width, &height);
-		auto actualExtent = VkExtent2D
-		{
-			.width = static_cast<uint32_t>(width),
-			.height = static_cast<uint32_t>(height)
-		};
+		auto actualExtent = m_extent;
 		actualExtent.width = std::clamp(actualExtent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
 		actualExtent.height = std::clamp(actualExtent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
 		return actualExtent;

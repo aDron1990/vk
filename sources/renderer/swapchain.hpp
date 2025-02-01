@@ -3,7 +3,6 @@
 #include "renderer/types.hpp"
 
 #include <vulkan/vulkan.h>
-#include <GLFW/glfw3.h>
 
 #include <vector>
 #include <optional>
@@ -15,7 +14,7 @@ struct SwapchainProperties
 	VkDevice device;
 	VkCommandPool commandPool;
 	VkSurfaceKHR surface;
-	GLFWwindow* window;
+	VkExtent2D extent;
 	QueueFamilyIndices queueFamilyIndices;
 	SwapchainSupportDetails swapchainSupportDetails;
 };
@@ -65,7 +64,7 @@ private:
 	const VkSurfaceKHR m_surface;
 	const QueueFamilyIndices m_queueFamilyIndices;
 	const SwapchainSupportDetails m_swapchainSupportDetails;
-	GLFWwindow* m_window;
+	VkExtent2D m_extent;
 	uint32_t currentFrame{};
 
 	VkQueue m_presentQueue;
