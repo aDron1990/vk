@@ -1,0 +1,291 @@
+#include "renderer/swapchain.hpp"
+
+#include <stdexcept>
+#include <algorithm>
+
+Swapchain::Swapchain(VkInstance instance, VkPhysicalDevice gpu, VkDevice device, VkCommandPool commandPool, GLFWwindow* window) : m_instance{ instance }, m_gpu{gpu}, m_device { device }, m_commandPool{ commandPool }, m_window{ window }
+{
+	createSurface();
+	createSwapchain();
+	createImageViews();
+	createRenderPass();
+	createFramebuffers();
+	createSyncObjects();
+	createCommandBuffers();
+}
+
+void Swapchain::createSurface()
+{
+	if (glfwCreateWindowSurface(m_instance, m_window, nullptr, &m_surface) != VK_SUCCESS)
+		throw std::runtime_error{ "failed to create vulkan surface" };
+}
+
+void Swapchain::createSwapchain()
+{
+	auto swapchainDetails = querySwapchainSupport(m_gpu);
+	auto surfaceFormat = chooseSwapchainSurfaceFormat(swapchainDetails.formats);
+	auto presentMode = chooseSwapchainPresentMode(swapchainDetails.presentModes);
+	auto extent = chooseSwapchainExtent(swapchainDetails.capabilities);
+
+	auto imageCount = swapchainDetails.capabilities.minImageCount + 1;
+	if (swapchainDetails.capabilities.maxImageCount > 0 && imageCount > swapchainDetails.capabilities.maxImageCount)
+		imageCount = swapchainDetails.capabilities.maxImageCount;
+
+	auto createInfo = VkSwapchainCreateInfoKHR{};
+	createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+	createInfo.surface = m_surface;
+	createInfo.minImageCount = imageCount;
+	createInfo.imageFormat = surfaceFormat.format;
+	createInfo.imageColorSpace = surfaceFormat.colorSpace;
+	createInfo.imageExtent = extent;
+	createInfo.imageArrayLayers = 1;
+	createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+
+	auto indices = findQueueFamilies(m_gpu);
+	if (indices.graphics != indices.present)
+	{
+		auto queueFamilyIndices = { indices.graphics.value(), indices.present.value() };
+		createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
+		createInfo.pQueueFamilyIndices = queueFamilyIndices.begin();
+		createInfo.queueFamilyIndexCount = static_cast<uint32_t>(queueFamilyIndices.size());
+	}
+	else
+		createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+	createInfo.preTransform = swapchainDetails.capabilities.currentTransform;
+	createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+	createInfo.presentMode = presentMode;
+	createInfo.clipped = VK_TRUE;
+	createInfo.oldSwapchain = VK_NULL_HANDLE; //!!!
+
+	if (vkCreateSwapchainKHR(m_device, &createInfo, nullptr, &m_swapchain) != VK_SUCCESS)
+		throw std::runtime_error{ "failed to create vulkan swapchain" };
+
+	vkGetSwapchainImagesKHR(m_device, m_swapchain, &imageCount, nullptr);
+	m_swapchainImages.resize(imageCount);
+	vkGetSwapchainImagesKHR(m_device, m_swapchain, &imageCount, m_swapchainImages.data());
+	m_swapchainFormat = surfaceFormat.format;
+	m_swapchainExtent = extent;
+}
+
+Swapchain::QueueFamilyIndices Swapchain::findQueueFamilies(VkPhysicalDevice gpu)
+{
+	auto indices = QueueFamilyIndices{};
+
+	auto queueFamilyCount = uint32_t{};
+	vkGetPhysicalDeviceQueueFamilyProperties(gpu, &queueFamilyCount, nullptr);
+	auto queueFamilies = std::vector<VkQueueFamilyProperties>(queueFamilyCount);
+	vkGetPhysicalDeviceQueueFamilyProperties(gpu, &queueFamilyCount, queueFamilies.data());
+
+	auto i = int{};
+	for (const auto& queueFamily : queueFamilies)
+	{
+		if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT)
+		{
+			indices.graphics = i;
+			break;
+		}
+		i++;
+	}
+
+	i = int{};
+	for (const auto& queueFamily : queueFamilies)
+	{
+		auto presentSupport = VkBool32{};
+		vkGetPhysicalDeviceSurfaceSupportKHR(gpu, i, m_surface, &presentSupport);
+		if (presentSupport)
+		{
+			indices.present = i;
+			break;
+		}
+		i++;
+	}
+
+	return indices;
+}
+
+Swapchain::SwapchainSupportDetails Swapchain::querySwapchainSupport(VkPhysicalDevice gpu)
+{
+	auto details = SwapchainSupportDetails{};
+
+	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(gpu, m_surface, &details.capabilities);
+
+	auto formatCount = uint32_t{};
+	vkGetPhysicalDeviceSurfaceFormatsKHR(gpu, m_surface, &formatCount, nullptr);
+	if (formatCount != 0)
+	{
+		details.formats.resize(formatCount);
+		vkGetPhysicalDeviceSurfaceFormatsKHR(gpu, m_surface, &formatCount, details.formats.data());
+	}
+
+	auto presentModeCount = uint32_t{};
+	vkGetPhysicalDeviceSurfacePresentModesKHR(gpu, m_surface, &presentModeCount, nullptr);
+	if (presentModeCount != 0)
+	{
+		details.presentModes.resize(presentModeCount);
+		vkGetPhysicalDeviceSurfacePresentModesKHR(gpu, m_surface, &presentModeCount, details.presentModes.data());
+	}
+
+	return details;
+}
+
+VkSurfaceFormatKHR Swapchain::chooseSwapchainSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats)
+{
+	for (const auto& format : availableFormats)
+	{
+		if (format.format == VK_FORMAT_B8G8R8A8_SRGB &&
+			format.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
+			return format;
+	}
+	return availableFormats[0];
+}
+
+VkPresentModeKHR Swapchain::chooseSwapchainPresentMode(const std::vector<VkPresentModeKHR>& availableModes)
+{
+	for (const auto& mode : availableModes)
+	{
+		if (mode == VK_PRESENT_MODE_MAILBOX_KHR)
+			return mode;
+	}
+	return VK_PRESENT_MODE_FIFO_KHR;
+}
+
+VkExtent2D Swapchain::chooseSwapchainExtent(const VkSurfaceCapabilitiesKHR& capabilities)
+{
+	if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max())
+		return capabilities.currentExtent;
+	else
+	{
+		auto width = int{};
+		auto height = int{};
+		glfwGetFramebufferSize(m_window, &width, &height);
+		auto actualExtent = VkExtent2D
+		{
+			.width = static_cast<uint32_t>(width),
+			.height = static_cast<uint32_t>(height)
+		};
+		actualExtent.width = std::clamp(actualExtent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
+		actualExtent.height = std::clamp(actualExtent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
+		return actualExtent;
+	}
+}
+
+void Swapchain::createImageViews()
+{
+	m_swapchainImageViews.resize(m_swapchainImages.size());
+	for (int i = 0; i < m_swapchainImages.size(); i++)
+	{
+		auto createInfo = VkImageViewCreateInfo{};
+		createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+		createInfo.image = m_swapchainImages[i];
+		createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+		createInfo.format = m_swapchainFormat;
+		createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+		createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+		createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+		createInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+		createInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		createInfo.subresourceRange.baseMipLevel = 0;
+		createInfo.subresourceRange.levelCount = 1;
+		createInfo.subresourceRange.baseArrayLayer = 0;
+		createInfo.subresourceRange.layerCount = 1;
+		if (vkCreateImageView(m_device, &createInfo, nullptr, &m_swapchainImageViews[i]))
+			throw std::runtime_error{ "failed to create swapchain image view" };
+	}
+}
+
+void Swapchain::createRenderPass()
+{
+	auto colorAttachment = VkAttachmentDescription{};
+	colorAttachment.format = m_swapchainFormat;
+	colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+	colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+	colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+	colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+	colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+	colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+	auto colorAttachmentRef = VkAttachmentReference{};
+	colorAttachmentRef.attachment = 0;
+	colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+	auto subpass = VkSubpassDescription{};
+	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+	subpass.pColorAttachments = &colorAttachmentRef;
+	subpass.colorAttachmentCount = 1;
+
+	auto dependency = VkSubpassDependency{};
+	dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+	dependency.dstSubpass = 0;
+	dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+	dependency.srcAccessMask = 0;
+	dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+	dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
+	auto createInfo = VkRenderPassCreateInfo{};
+	createInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+	createInfo.pAttachments = &colorAttachment;
+	createInfo.attachmentCount = 1;
+	createInfo.pSubpasses = &subpass;
+	createInfo.subpassCount = 1;
+	createInfo.pDependencies = &dependency;
+	createInfo.dependencyCount = 1;
+
+	if (vkCreateRenderPass(m_device, &createInfo, nullptr, &m_renderPass) != VK_SUCCESS)
+		throw std::runtime_error{ "failed to create vulkan render pass" };
+}
+
+void Swapchain::createFramebuffers()
+{
+	m_swapchainFramebuffers.resize(m_swapchainImages.size());
+	for (int i = 0; i < m_swapchainImages.size(); i++)
+	{
+		auto attachments = { m_swapchainImageViews[i] };
+
+		auto createInfo = VkFramebufferCreateInfo{};
+		createInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+		createInfo.renderPass = m_renderPass;
+		createInfo.pAttachments = attachments.begin();
+		createInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
+		createInfo.width = m_swapchainExtent.width;
+		createInfo.height = m_swapchainExtent.height;
+		createInfo.layers = 1;
+
+		if (vkCreateFramebuffer(m_device, &createInfo, nullptr, &m_swapchainFramebuffers[i]) != VK_SUCCESS)
+			throw std::runtime_error{ "failed to create framebuffer" };
+	}
+}
+
+void Swapchain::createSyncObjects()
+{
+	auto semaphoreInfo = VkSemaphoreCreateInfo{};
+	semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+	auto fenceInfo = VkFenceCreateInfo{};
+	fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+	fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+
+	m_imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
+	m_renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
+	m_inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
+	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+	{
+		if (vkCreateSemaphore(m_device, &semaphoreInfo, nullptr, &m_imageAvailableSemaphores[i]) != VK_SUCCESS ||
+			vkCreateSemaphore(m_device, &semaphoreInfo, nullptr, &m_renderFinishedSemaphores[i]) != VK_SUCCESS ||
+			vkCreateFence(m_device, &fenceInfo, nullptr, &m_inFlightFences[i]) != VK_SUCCESS)
+			throw std::runtime_error{ "failed to create vulkan sync objects" };
+	}
+}
+
+void Swapchain::createCommandBuffers()
+{
+	m_commandBuffers.resize(MAX_FRAMES_IN_FLIGHT);
+	auto allocInfo = VkCommandBufferAllocateInfo{};
+	allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+	allocInfo.commandPool = m_commandPool;
+	allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+	allocInfo.commandBufferCount = MAX_FRAMES_IN_FLIGHT;
+	if (vkAllocateCommandBuffers(m_device, &allocInfo, m_commandBuffers.data()) != VK_SUCCESS)
+		throw std::runtime_error{ "failed to allocate vulkan command buffers" };
+}

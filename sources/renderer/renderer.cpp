@@ -12,17 +12,22 @@ Renderer::Renderer(GLFWwindow* window) : m_window{window}
 {
 	createInstance();
 	setupDebugMessenger();
-	createSurface();
 	pickGpu();
 	createDevice();
+	createCommandPool();
+	
+
+
+	createSurface();
 	createSwapchain();
 	createImageViews();
 	createRenderPass();
-	createGraphicsPipeline();
 	createFramebuffers();
-	createCommandPool();
-	createCommandBuffers();
 	createSyncObjects();
+	createCommandBuffers();
+
+	
+	createGraphicsPipeline();
 }
 
 Renderer::~Renderer()

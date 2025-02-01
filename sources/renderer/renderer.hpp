@@ -94,22 +94,21 @@ private:
 	VkPhysicalDevice m_gpu{};
 	VkDevice m_device{};
 	VkQueue m_graphicsQueue{};
-	VkQueue m_presentQueue{};
-	VkSurfaceKHR m_surface{};
-	VkSwapchainKHR m_swapchain{};
-	std::vector<VkImageView> m_swapchainImageViews{};
-	VkRenderPass m_renderPass{};
 	VkPipelineLayout m_pipelineLayout{};
 	VkPipeline m_graphicsPipeline{};
-	std::vector<VkFramebuffer> m_swapchainFramebuffers;
 	VkCommandPool m_commandPool{};
+
 	std::vector<VkCommandBuffer> m_commandBuffers{};
+	VkQueue m_presentQueue{};
 	std::vector<VkSemaphore> m_imageAvailableSemaphores{};
 	std::vector<VkSemaphore> m_renderFinishedSemaphores{};
 	std::vector<VkFence> m_inFlightFences{};
-
-
+	VkRenderPass m_renderPass{};
+	VkSurfaceKHR m_surface{};
+	VkSwapchainKHR m_swapchain{};
 	std::vector<VkImage> m_swapchainImages{};
+	std::vector<VkImageView> m_swapchainImageViews{};
+	std::vector<VkFramebuffer> m_swapchainFramebuffers{};
 	VkFormat m_swapchainFormat{};
 	VkExtent2D m_swapchainExtent{};
 };

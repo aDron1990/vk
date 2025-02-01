@@ -15,6 +15,8 @@ add_executable(vk
 
 	"sources/renderer/renderer.hpp"
 	"sources/renderer/renderer.cpp"
+	"sources/renderer/swapchain.hpp"
+	"sources/renderer/swapchain.cpp"
 )
 
 set_property(TARGET vk PROPERTY CXX_STANDARD 23)
