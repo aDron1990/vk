@@ -34,6 +34,7 @@ private:
 	void createCommandPool();
 	void createRenderPass();
 	void createVertexBuffer();
+	void createIndexBuffer();
 	void createSwapchain();
 	void createGraphicsPipeline();
 
@@ -94,6 +95,8 @@ private:
 	VkCommandPool m_commandPool;
 	VkBuffer m_vertexBuffer;
 	VkDeviceMemory m_vertexBufferMemory;
+	VkBuffer m_indexBuffer;
+	VkDeviceMemory m_indexBufferMemory;
 
 	std::unique_ptr<Swapchain> m_swapchain;
 };
