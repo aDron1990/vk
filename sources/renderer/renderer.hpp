@@ -33,9 +33,9 @@ private:
 	void createDevice();
 	void createCommandPool();
 	void createRenderPass();
+	void createVertexBuffer();
 	void createSwapchain();
 	void createGraphicsPipeline();
-	
 
 private:
 	bool checkValidationLayerSupport();
@@ -50,6 +50,7 @@ private:
 	SwapchainSupportDetails querySwapchainSupport(VkPhysicalDevice gpu);
 	VkShaderModule createShaderModule(const std::vector<char>& code);
 	void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
+	uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
 
 private:
 	static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
@@ -89,6 +90,8 @@ private:
 	VkPipelineLayout m_pipelineLayout;
 	VkPipeline m_graphicsPipeline;
 	VkCommandPool m_commandPool;
+	VkBuffer m_vertexBuffer;
+	VkDeviceMemory m_vertexBufferMemory;
 
 	std::unique_ptr<Swapchain> m_swapchain;
 };

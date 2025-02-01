@@ -51,6 +51,7 @@ Renderer::Renderer(GLFWwindow* window) : m_window{window}
 	createDevice();
 	createCommandPool();
 	createRenderPass();
+	createVertexBuffer();
 	createSwapchain();
 	createGraphicsPipeline();
 }
@@ -62,6 +63,8 @@ Renderer::~Renderer()
 	vkDestroyPipeline(m_device, m_graphicsPipeline, nullptr);
 	vkDestroyPipelineLayout(m_device, m_pipelineLayout, nullptr);
 	m_swapchain.reset();
+	vkDestroyBuffer(m_device, m_vertexBuffer, nullptr);
+	vkFreeMemory(m_device, m_vertexBufferMemory, nullptr);
 	vkDestroyRenderPass(m_device, m_renderPass, nullptr);
 	vkDestroyDevice(m_device, nullptr);
 	vkDestroySurfaceKHR(m_instance, m_surface, nullptr);
@@ -397,6 +400,45 @@ void Renderer::createRenderPass()
 		throw std::runtime_error{ "failed to create vulkan render pass" };
 }
 
+void Renderer::createVertexBuffer()
+{
+	auto createInfo = VkBufferCreateInfo{};
+	createInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+	createInfo.size = sizeof(vertices[0]) * vertices.size();
+	createInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+	createInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+	if (vkCreateBuffer(m_device, &createInfo, nullptr, &m_vertexBuffer) != VK_SUCCESS)
+		throw std::runtime_error{ "failed to create vertex buffer" };
+
+	auto memReq = VkMemoryRequirements{};
+	vkGetBufferMemoryRequirements(m_device, m_vertexBuffer, &memReq);
+
+	auto allocInfo = VkMemoryAllocateInfo{};
+	allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+	allocInfo.allocationSize = memReq.size;
+	allocInfo.memoryTypeIndex = findMemoryType(memReq.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+	if (vkAllocateMemory(m_device, &allocInfo, nullptr, &m_vertexBufferMemory) != VK_SUCCESS)
+		throw std::runtime_error{ "failed to allocate vertex buffer memory" };
+
+	vkBindBufferMemory(m_device, m_vertexBuffer, m_vertexBufferMemory, 0);
+	void* data{};
+	auto a = vkMapMemory(m_device, m_vertexBufferMemory, 0, createInfo.size, 0, &data);
+	memcpy(data, vertices.data(), static_cast<size_t>(createInfo.size));
+	vkUnmapMemory(m_device, m_vertexBufferMemory);
+}
+
+uint32_t Renderer::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties)
+{
+	auto memProps = VkPhysicalDeviceMemoryProperties{};
+	vkGetPhysicalDeviceMemoryProperties(m_gpu, &memProps);
+	for (uint32_t i = 0; i < memProps.memoryTypeCount; i++)
+	{
+		if ((typeFilter & (1 << i)) && (memProps.memoryTypes[i].propertyFlags & properties) == properties)
+			return i;
+	}
+	throw std::runtime_error{ "failed to find suitable memory type!" };
+}
+
 void Renderer::createSwapchain()
 {
 	int width, height;
@@ -582,7 +624,9 @@ void Renderer::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t image
 	scissor.extent = m_swapchain->getExtent();
 	vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-	vkCmdDraw(commandBuffer, 3, 1, 0, 0);
+	VkDeviceSize offsets[] = {0};
+	vkCmdBindVertexBuffers(commandBuffer, 0, 1, &m_vertexBuffer, offsets);
+	vkCmdDraw(commandBuffer, static_cast<uint32_t>(vertices.size()), 1, 0, 0);
 
 	vkCmdEndRenderPass(commandBuffer);
 
