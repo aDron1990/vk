@@ -12,13 +12,14 @@ Renderer::Renderer(GLFWwindow* window) : m_window{window}
 {
 	createInstance();
 	setupDebugMessenger();
+	createSurface();
 	pickGpu();
 	createDevice();
 	createCommandPool();
 	
 	m_swapchain.reset(new Swapchain
 	{{
-		m_instance, m_gpu, m_device, m_commandPool, m_window,
+		m_instance, m_gpu, m_device, m_commandPool, m_surface, m_window,
 		[this](VkPhysicalDevice gpu)
 		{
 			return findQueueFamilies(gpu);
@@ -35,6 +36,7 @@ Renderer::~Renderer()
 	vkDestroyPipelineLayout(m_device, m_pipelineLayout, nullptr);
 	m_swapchain.reset();
 	vkDestroyDevice(m_device, nullptr);
+	vkDestroySurfaceKHR(m_instance, m_surface, nullptr);
 	if (USE_VALIDATION_LAYERS) destroyDebugUtilsMessengerEXT(m_instance, m_debugMessenger, nullptr);
 	vkDestroyInstance(m_instance, nullptr);
 }
@@ -155,6 +157,12 @@ void Renderer::destroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMe
 {
 	auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
 	if (func != nullptr) func(instance, debugMessenger, pAllocator);
+}
+
+void Renderer::createSurface()
+{
+	if (glfwCreateWindowSurface(m_instance, m_window, nullptr, &m_surface) != VK_SUCCESS)
+		throw std::runtime_error{ "failed to create vulkan surface" };
 }
 
 void Renderer::pickGpu()

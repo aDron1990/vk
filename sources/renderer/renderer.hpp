@@ -18,6 +18,7 @@ public:
 
 private:
 	void createInstance();
+	void createSurface();
 	void pickGpu();
 	void createDevice();
 	void createGraphicsPipeline();
@@ -66,6 +67,7 @@ private:
 
 	VkInstance m_instance{};
 	VkDebugUtilsMessengerEXT m_debugMessenger{};
+	VkSurfaceKHR m_surface;
 	VkPhysicalDevice m_gpu{};
 	VkDevice m_device{};
 	VkQueue m_graphicsQueue{};

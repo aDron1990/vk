@@ -14,6 +14,7 @@ struct SwapchainProperties
 	VkPhysicalDevice gpu;
 	VkDevice device;
 	VkCommandPool commandPool;
+	VkSurfaceKHR surface;
 	GLFWwindow* window;
 	FindQueueFamilyFunc findQueueFamily;
 };
@@ -38,7 +39,6 @@ public:
 	void endFrame(uint32_t imageIndex);
 
 private:
-	void createSurface();
 	void createSwapchain();
 	void createImageViews();
 	void createRenderPass();
@@ -71,12 +71,13 @@ private:
 	const VkPhysicalDevice m_gpu;
 	const VkDevice m_device;
 	const VkCommandPool m_commandPool;
+	const VkSurfaceKHR m_surface;
 	GLFWwindow* m_window;
 	uint32_t currentFrame{};
 
 	VkQueue m_presentQueue;
 	VkRenderPass m_renderPass;
-	VkSurfaceKHR m_surface;
+	
 	VkSwapchainKHR m_swapchain;
 
 	std::vector<VkCommandBuffer> m_commandBuffers;

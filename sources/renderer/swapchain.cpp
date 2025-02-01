@@ -4,12 +4,10 @@
 #include <algorithm>
 
 Swapchain::Swapchain(SwapchainProperties properties)
-	: m_instance{ properties.instance }, m_gpu{ properties.gpu}, m_device { properties.device }, m_commandPool{ properties.commandPool }, m_window{ properties.window }, findQueueFamilies{ properties.findQueueFamily}
+	: m_instance{ properties.instance }, m_gpu{ properties.gpu }, m_device{ properties.device }, m_commandPool{ properties.commandPool }, m_surface{ properties.surface }, m_window{ properties.window }, findQueueFamilies{ properties.findQueueFamily }
 {
 	auto indices = findQueueFamilies(m_gpu);
 	vkGetDeviceQueue(m_device, indices.present.value(), 0, &m_presentQueue);
-
-	createSurface();
 	createSwapchain();
 	createImageViews();
 	createRenderPass();
@@ -32,13 +30,6 @@ Swapchain::~Swapchain()
 	for (auto view : m_swapchainImageViews)
 		vkDestroyImageView(m_device, view, nullptr);
 	vkDestroySwapchainKHR(m_device, m_swapchain, nullptr);
-	vkDestroySurfaceKHR(m_instance, m_surface, nullptr);
-}
-
-void Swapchain::createSurface()
-{
-	if (glfwCreateWindowSurface(m_instance, m_window, nullptr, &m_surface) != VK_SUCCESS)
-		throw std::runtime_error{ "failed to create vulkan surface" };
 }
 
 void Swapchain::createSwapchain()
