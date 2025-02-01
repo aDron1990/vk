@@ -9,10 +9,12 @@ int main()
 	try
 	{
 		auto window = createWindow(800, 600, "window");
+		auto& renderer = window->getRenderer();
 
 		while (!window->shouldClose())
 		{
 			window->update();
+			renderer.draw();
 		}
 
 	}

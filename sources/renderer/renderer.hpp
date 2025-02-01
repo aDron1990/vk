@@ -66,6 +66,8 @@ private:
 	void createCommandBuffer();
 	void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
 
+	void createSyncObjects();
+
 private:
 #ifdef _DEBUG
 	const bool USE_VALIDATION_LAYERS = true;
@@ -99,6 +101,9 @@ private:
 	std::vector<VkFramebuffer> m_swapchainFramebuffers;
 	VkCommandPool m_commandPool{};
 	VkCommandBuffer m_commandBuffer{};
+	VkSemaphore m_imageAvailableSemaphore{};
+	VkSemaphore m_renderFinishedSemaphore{};
+	VkFence m_inFlightFence{};
 
 
 	std::vector<VkImage> m_swapchainImages{};
