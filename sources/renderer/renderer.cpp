@@ -195,8 +195,8 @@ bool Renderer::isGpuSuitable(VkPhysicalDevice gpu)
 		auto swapchainAdequate = false;
 		if (extensionsSupport)
 		{
-			//auto swapchainSupport = querySwapchainSupport(gpu);
-			swapchainAdequate = true;//!swapchainSupport.formats.empty() && !swapchainSupport.presentModes.empty();
+			auto swapchainSupport = querySwapchainSupport(gpu);
+			swapchainAdequate = !swapchainSupport.formats.empty() && !swapchainSupport.presentModes.empty();
 		}
 		return true && indices.graphics.has_value() && indices.present.has_value() && extensionsSupport && swapchainAdequate;
 	}
