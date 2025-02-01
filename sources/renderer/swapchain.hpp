@@ -16,7 +16,7 @@ struct SwapchainProperties
 	VkCommandPool commandPool;
 	VkSurfaceKHR surface;
 	GLFWwindow* window;
-	FindQueueFamilyFunc findQueueFamily;
+	QueueFamilyIndices queueFamilyIndices;
 };
 
 class Swapchain
@@ -55,7 +55,6 @@ private:
 	};
 
 private:
-	FindQueueFamilyFunc findQueueFamilies;
 	SwapchainSupportDetails querySwapchainSupport(VkPhysicalDevice gpu);
 	VkSurfaceFormatKHR chooseSwapchainSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
 	VkPresentModeKHR chooseSwapchainPresentMode(const std::vector<VkPresentModeKHR>& availableModes);
@@ -72,6 +71,7 @@ private:
 	const VkDevice m_device;
 	const VkCommandPool m_commandPool;
 	const VkSurfaceKHR m_surface;
+	const QueueFamilyIndices m_queueFamilyIndices;
 	GLFWwindow* m_window;
 	uint32_t currentFrame{};
 

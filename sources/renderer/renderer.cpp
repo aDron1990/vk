@@ -19,11 +19,7 @@ Renderer::Renderer(GLFWwindow* window) : m_window{window}
 	
 	m_swapchain.reset(new Swapchain
 	{{
-		m_instance, m_gpu, m_device, m_commandPool, m_surface, m_window,
-		[this](VkPhysicalDevice gpu)
-		{
-			return findQueueFamilies(gpu);
-		}
+		m_instance, m_gpu, m_device, m_commandPool, m_surface, m_window, findQueueFamilies(m_gpu)
 	}});
 	createGraphicsPipeline();
 }

@@ -4,10 +4,10 @@
 #include <algorithm>
 
 Swapchain::Swapchain(SwapchainProperties properties)
-	: m_instance{ properties.instance }, m_gpu{ properties.gpu }, m_device{ properties.device }, m_commandPool{ properties.commandPool }, m_surface{ properties.surface }, m_window{ properties.window }, findQueueFamilies{ properties.findQueueFamily }
+	: m_instance{ properties.instance }, m_gpu{ properties.gpu }, m_device{ properties.device }, m_commandPool{ properties.commandPool }, 
+	m_surface{ properties.surface }, m_window{ properties.window }, m_queueFamilyIndices{properties.queueFamilyIndices}
 {
-	auto indices = findQueueFamilies(m_gpu);
-	vkGetDeviceQueue(m_device, indices.present.value(), 0, &m_presentQueue);
+	vkGetDeviceQueue(m_device, m_queueFamilyIndices.present.value(), 0, &m_presentQueue);
 	createSwapchain();
 	createImageViews();
 	createRenderPass();
@@ -53,7 +53,7 @@ void Swapchain::createSwapchain()
 	createInfo.imageArrayLayers = 1;
 	createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-	auto indices = findQueueFamilies(m_gpu);
+	auto indices = m_queueFamilyIndices;
 	if (indices.graphics != indices.present)
 	{
 		auto queueFamilyIndices = { indices.graphics.value(), indices.present.value() };
