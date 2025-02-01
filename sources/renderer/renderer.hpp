@@ -22,6 +22,7 @@ private:
 	void pickGpu();
 	void createDevice();
 	void createCommandPool();
+	void createRenderPass();
 	void createSwapchain();
 	void createGraphicsPipeline();
 	
@@ -68,15 +69,16 @@ private:
 
 	GLFWwindow* m_window;
 
-	VkInstance m_instance{};
-	VkDebugUtilsMessengerEXT m_debugMessenger{};
+	VkInstance m_instance;
+	VkDebugUtilsMessengerEXT m_debugMessenger;
 	VkSurfaceKHR m_surface;
-	VkPhysicalDevice m_gpu{};
-	VkDevice m_device{};
-	VkQueue m_graphicsQueue{};
-	VkPipelineLayout m_pipelineLayout{};
-	VkPipeline m_graphicsPipeline{};
-	VkCommandPool m_commandPool{};
+	VkPhysicalDevice m_gpu;
+	VkDevice m_device;
+	VkQueue m_graphicsQueue;
+	VkRenderPass m_renderPass;
+	VkPipelineLayout m_pipelineLayout;
+	VkPipeline m_graphicsPipeline;
+	VkCommandPool m_commandPool;
 
 	std::unique_ptr<Swapchain> m_swapchain;
 };

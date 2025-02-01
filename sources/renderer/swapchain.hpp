@@ -13,6 +13,7 @@ struct SwapchainProperties
 	VkPhysicalDevice gpu;
 	VkDevice device;
 	VkCommandPool commandPool;
+	VkRenderPass renderPass;
 	VkSurfaceKHR surface;
 	VkExtent2D extent;
 	QueueFamilyIndices queueFamilyIndices;
@@ -26,7 +27,7 @@ public:
 	~Swapchain();
 
 	VkExtent2D getExtent();
-	VkRenderPass getRenderPass();
+	VkFormat getFormat();
 	VkSemaphore getImageAvailableSemaphore();
 	VkSemaphore getRenderFinishedSemaphore();
 	VkCommandBuffer getCommandBuffer();
@@ -41,35 +42,33 @@ public:
 private:
 	void createSwapchain();
 	void createImageViews();
-	void createRenderPass();
 	void createFramebuffers();
 	void createSyncObjects();
 	void createCommandBuffers();
 
-private:
-	VkSurfaceFormatKHR chooseSwapchainSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
-	VkPresentModeKHR chooseSwapchainPresentMode(const std::vector<VkPresentModeKHR>& availableModes);
+public:
+	static VkSurfaceFormatKHR chooseSwapchainSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
+	static VkPresentModeKHR chooseSwapchainPresentMode(const std::vector<VkPresentModeKHR>& availableModes);
 	VkExtent2D chooseSwapchainExtent(const VkSurfaceCapabilitiesKHR& capabilities);
 
 private:
 	const int MAX_FRAMES_IN_FLIGHT = 2;
 	VkFormat m_swapchainFormat;
 	VkExtent2D m_swapchainExtent;
+	VkExtent2D m_extent;
+	uint32_t currentFrame{};
 
 private:
 	const VkInstance m_instance;
 	const VkPhysicalDevice m_gpu;
 	const VkDevice m_device;
 	const VkCommandPool m_commandPool;
+	const VkRenderPass m_renderPass;
 	const VkSurfaceKHR m_surface;
 	const QueueFamilyIndices m_queueFamilyIndices;
 	const SwapchainSupportDetails m_swapchainSupportDetails;
-	VkExtent2D m_extent;
-	uint32_t currentFrame{};
-
-	VkQueue m_presentQueue;
-	VkRenderPass m_renderPass;
 	
+	VkQueue m_presentQueue;
 	VkSwapchainKHR m_swapchain;
 
 	std::vector<VkCommandBuffer> m_commandBuffers;

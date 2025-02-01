@@ -4,14 +4,13 @@
 #include <algorithm>
 
 Swapchain::Swapchain(SwapchainProperties properties)
-	: m_instance{ properties.instance }, m_gpu{ properties.gpu }, m_device{ properties.device }, 
-	m_commandPool{ properties.commandPool }, m_surface{ properties.surface }, m_extent{properties.extent},
+	: m_instance{ properties.instance }, m_gpu{ properties.gpu }, m_device{ properties.device }, m_commandPool{ properties.commandPool }, 
+	m_renderPass{ properties.renderPass }, m_surface {properties.surface }, m_extent{ properties.extent }, 
 	m_queueFamilyIndices{properties.queueFamilyIndices}, m_swapchainSupportDetails{properties.swapchainSupportDetails}
 {
 	vkGetDeviceQueue(m_device, m_queueFamilyIndices.present.value(), 0, &m_presentQueue);
 	createSwapchain();
 	createImageViews();
-	createRenderPass();
 	createFramebuffers();
 	createSyncObjects();
 	createCommandBuffers();
@@ -27,7 +26,6 @@ Swapchain::~Swapchain()
 	}
 	for (auto framebuffer : m_swapchainFramebuffers)
 		vkDestroyFramebuffer(m_device, framebuffer, nullptr);
-	vkDestroyRenderPass(m_device, m_renderPass, nullptr);
 	for (auto view : m_swapchainImageViews)
 		vkDestroyImageView(m_device, view, nullptr);
 	vkDestroySwapchainKHR(m_device, m_swapchain, nullptr);
@@ -139,48 +137,6 @@ void Swapchain::createImageViews()
 	}
 }
 
-void Swapchain::createRenderPass()
-{
-	auto colorAttachment = VkAttachmentDescription{};
-	colorAttachment.format = m_swapchainFormat;
-	colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-	colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-	colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-	colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-	colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-	colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-
-	auto colorAttachmentRef = VkAttachmentReference{};
-	colorAttachmentRef.attachment = 0;
-	colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-	auto subpass = VkSubpassDescription{};
-	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-	subpass.pColorAttachments = &colorAttachmentRef;
-	subpass.colorAttachmentCount = 1;
-
-	auto dependency = VkSubpassDependency{};
-	dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
-	dependency.dstSubpass = 0;
-	dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-	dependency.srcAccessMask = 0;
-	dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-	dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-
-	auto createInfo = VkRenderPassCreateInfo{};
-	createInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-	createInfo.pAttachments = &colorAttachment;
-	createInfo.attachmentCount = 1;
-	createInfo.pSubpasses = &subpass;
-	createInfo.subpassCount = 1;
-	createInfo.pDependencies = &dependency;
-	createInfo.dependencyCount = 1;
-
-	if (vkCreateRenderPass(m_device, &createInfo, nullptr, &m_renderPass) != VK_SUCCESS)
-		throw std::runtime_error{ "failed to create vulkan render pass" };
-}
-
 void Swapchain::createFramebuffers()
 {
 	m_swapchainFramebuffers.resize(m_swapchainImages.size());
@@ -240,9 +196,9 @@ VkExtent2D Swapchain::getExtent()
 	return m_swapchainExtent;
 }
 
-VkRenderPass Swapchain::getRenderPass()
+VkFormat Swapchain::getFormat()
 {
-	return m_renderPass;
+	return m_swapchainFormat;
 }
 
 VkSemaphore Swapchain::getImageAvailableSemaphore()

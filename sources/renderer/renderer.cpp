@@ -16,6 +16,7 @@ Renderer::Renderer(GLFWwindow* window) : m_window{window}
 	pickGpu();
 	createDevice();
 	createCommandPool();
+	createRenderPass();
 	createSwapchain();
 	createGraphicsPipeline();
 }
@@ -27,6 +28,7 @@ Renderer::~Renderer()
 	vkDestroyPipeline(m_device, m_graphicsPipeline, nullptr);
 	vkDestroyPipelineLayout(m_device, m_pipelineLayout, nullptr);
 	m_swapchain.reset();
+	vkDestroyRenderPass(m_device, m_renderPass, nullptr);
 	vkDestroyDevice(m_device, nullptr);
 	vkDestroySurfaceKHR(m_instance, m_surface, nullptr);
 	if (USE_VALIDATION_LAYERS) destroyDebugUtilsMessengerEXT(m_instance, m_debugMessenger, nullptr);
@@ -317,6 +319,50 @@ void Renderer::createDevice()
 	vkGetDeviceQueue(m_device, indices.graphics.value(), 0, &m_graphicsQueue);
 }
 
+void Renderer::createRenderPass()
+{
+	auto details = querySwapchainSupport(m_gpu);
+	auto format = Swapchain::chooseSwapchainSurfaceFormat(details.formats);
+	auto colorAttachment = VkAttachmentDescription{};
+	colorAttachment.format = format.format;
+	colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+	colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+	colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+	colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+	colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+	colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+	auto colorAttachmentRef = VkAttachmentReference{};
+	colorAttachmentRef.attachment = 0;
+	colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+	auto subpass = VkSubpassDescription{};
+	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+	subpass.pColorAttachments = &colorAttachmentRef;
+	subpass.colorAttachmentCount = 1;
+
+	auto dependency = VkSubpassDependency{};
+	dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+	dependency.dstSubpass = 0;
+	dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+	dependency.srcAccessMask = 0;
+	dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+	dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
+	auto createInfo = VkRenderPassCreateInfo{};
+	createInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+	createInfo.pAttachments = &colorAttachment;
+	createInfo.attachmentCount = 1;
+	createInfo.pSubpasses = &subpass;
+	createInfo.subpassCount = 1;
+	createInfo.pDependencies = &dependency;
+	createInfo.dependencyCount = 1;
+
+	if (vkCreateRenderPass(m_device, &createInfo, nullptr, &m_renderPass) != VK_SUCCESS)
+		throw std::runtime_error{ "failed to create vulkan render pass" };
+}
+
 void Renderer::createSwapchain()
 {
 	int width, height;
@@ -328,6 +374,7 @@ void Renderer::createSwapchain()
 	createProps.device = m_device;
 	createProps.commandPool = m_commandPool;
 	createProps.surface = m_surface;
+	createProps.renderPass = m_renderPass;
 	createProps.extent = extent;
 	createProps.queueFamilyIndices = findQueueFamilies(m_gpu);
 	createProps.swapchainSupportDetails = querySwapchainSupport(m_gpu);
@@ -427,7 +474,7 @@ void Renderer::createGraphicsPipeline()
 	createInfo.pDynamicState = &dynamicInfo;
 
 	createInfo.layout = m_pipelineLayout;
-	createInfo.renderPass = m_swapchain->getRenderPass();
+	createInfo.renderPass = m_renderPass;
 	createInfo.subpass = 0;
 
 	if (vkCreateGraphicsPipelines(m_device, VK_NULL_HANDLE, 1, &createInfo, nullptr, &m_graphicsPipeline))
@@ -474,7 +521,7 @@ void Renderer::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t image
 	auto clearColor = VkClearValue{ 0.0f, 0.0f, 0.0f, 1.0f };
 	auto renderPassInfo = VkRenderPassBeginInfo{};
 	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-	renderPassInfo.renderPass = m_swapchain->getRenderPass();
+	renderPassInfo.renderPass = m_renderPass;
 	renderPassInfo.framebuffer = m_swapchain->getFramebuffer(imageIndex);
 	renderPassInfo.renderArea.offset = { 0, 0 };
 	renderPassInfo.renderArea.extent = m_swapchain->getExtent();
