@@ -207,14 +207,8 @@ void Renderer::createSwapchain()
 	glfwGetFramebufferSize(m_window, &width, &height);
 	auto extent = VkExtent2D{ static_cast<uint32_t>(width), static_cast<uint32_t>(height) };
 	auto createProps = SwapchainProperties{};
-	createProps.gpu = m_device->getGpu();
-	createProps.device = m_device->getDevice();
-	createProps.surface = m_device->getSurface();
 	createProps.renderPass = m_renderPass;
-	createProps.extent = extent;
-	createProps.queueFamilyIndices = m_device->findQueueFamilies(m_device->getGpu());
-	createProps.swapchainSupportDetails = m_device->querySwapchainSupport(m_device->getGpu());
-	m_swapchain.reset(new Swapchain{createProps});
+	m_swapchain.reset(new Swapchain{*m_device, createProps});
 }
 
 void Renderer::createDescriptorSetLayout()

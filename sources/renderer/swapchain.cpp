@@ -3,12 +3,10 @@
 #include <stdexcept>
 #include <algorithm>
 
-Swapchain::Swapchain(SwapchainProperties properties)
-	: m_gpu{ properties.gpu }, m_device{ properties.device },
-	m_renderPass{ properties.renderPass }, m_surface {properties.surface }, m_extent{ properties.extent }, 
-	m_queueFamilyIndices{properties.queueFamilyIndices}, m_swapchainSupportDetails{properties.swapchainSupportDetails}
+Swapchain::Swapchain(Device& device, SwapchainProperties properties)
+	: m_device{device}, m_renderPass{ properties.renderPass }
 {
-	vkGetDeviceQueue(m_device, m_queueFamilyIndices.present.value(), 0, &m_presentQueue);
+	vkGetDeviceQueue(m_device.getDevice(), m_device.findQueueFamilies(m_device.getGpu()).present.value(), 0, &m_presentQueue);
 	createSwapchain();
 	createImageViews();
 	createFramebuffers();
@@ -17,15 +15,15 @@ Swapchain::Swapchain(SwapchainProperties properties)
 Swapchain::~Swapchain()
 {
 	for (auto framebuffer : m_swapchainFramebuffers)
-		vkDestroyFramebuffer(m_device, framebuffer, nullptr);
+		vkDestroyFramebuffer(m_device.getDevice(), framebuffer, nullptr);
 	for (auto view : m_swapchainImageViews)
-		vkDestroyImageView(m_device, view, nullptr);
-	vkDestroySwapchainKHR(m_device, m_swapchain, nullptr);
+		vkDestroyImageView(m_device.getDevice(), view, nullptr);
+	vkDestroySwapchainKHR(m_device.getDevice(), m_swapchain, nullptr);
 }
 
 void Swapchain::createSwapchain()
 {
-	auto swapchainDetails = m_swapchainSupportDetails;
+	auto swapchainDetails = m_device.querySwapchainSupport(m_device.getGpu());
 	auto surfaceFormat = chooseSwapchainSurfaceFormat(swapchainDetails.formats);
 	auto presentMode = chooseSwapchainPresentMode(swapchainDetails.presentModes);
 	auto extent = chooseSwapchainExtent(swapchainDetails.capabilities);
@@ -36,7 +34,7 @@ void Swapchain::createSwapchain()
 
 	auto createInfo = VkSwapchainCreateInfoKHR{};
 	createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-	createInfo.surface = m_surface;
+	createInfo.surface = m_device.getSurface();
 	createInfo.minImageCount = imageCount;
 	createInfo.imageFormat = surfaceFormat.format;
 	createInfo.imageColorSpace = surfaceFormat.colorSpace;
@@ -44,7 +42,7 @@ void Swapchain::createSwapchain()
 	createInfo.imageArrayLayers = 1;
 	createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-	auto indices = m_queueFamilyIndices;
+	auto indices = m_device.findQueueFamilies(m_device.getGpu());
 	if (indices.graphics != indices.present)
 	{
 		auto queueFamilyIndices = { indices.graphics.value(), indices.present.value() };
@@ -61,12 +59,12 @@ void Swapchain::createSwapchain()
 	createInfo.clipped = VK_TRUE;
 	createInfo.oldSwapchain = VK_NULL_HANDLE;
 
-	if (vkCreateSwapchainKHR(m_device, &createInfo, nullptr, &m_swapchain) != VK_SUCCESS)
+	if (vkCreateSwapchainKHR(m_device.getDevice(), &createInfo, nullptr, &m_swapchain) != VK_SUCCESS)
 		throw std::runtime_error{ "failed to create vulkan swapchain" };
 
-	vkGetSwapchainImagesKHR(m_device, m_swapchain, &imageCount, nullptr);
+	vkGetSwapchainImagesKHR(m_device.getDevice(), m_swapchain, &imageCount, nullptr);
 	m_swapchainImages.resize(imageCount);
-	vkGetSwapchainImagesKHR(m_device, m_swapchain, &imageCount, m_swapchainImages.data());
+	vkGetSwapchainImagesKHR(m_device.getDevice(), m_swapchain, &imageCount, m_swapchainImages.data());
 	m_swapchainFormat = surfaceFormat.format;
 	m_swapchainExtent = extent;
 }
@@ -94,15 +92,15 @@ VkPresentModeKHR Swapchain::chooseSwapchainPresentMode(const std::vector<VkPrese
 
 VkExtent2D Swapchain::chooseSwapchainExtent(const VkSurfaceCapabilitiesKHR& capabilities)
 {
-	if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max())
+	//if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max())
 		return capabilities.currentExtent;
-	else
-	{
-		auto actualExtent = m_extent;
-		actualExtent.width = std::clamp(actualExtent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
-		actualExtent.height = std::clamp(actualExtent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
-		return actualExtent;
-	}
+	//else
+	//{
+		//auto actualExtent = m_device.querySwapchainSupport(m_device.getGpu()).capabilities.currentExtent;
+		//actualExtent.width = std::clamp(actualExtent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
+		//actualExtent.height = std::clamp(actualExtent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
+		//return actualExtent;
+	//}
 }
 
 void Swapchain::createImageViews()
@@ -124,7 +122,7 @@ void Swapchain::createImageViews()
 		createInfo.subresourceRange.levelCount = 1;
 		createInfo.subresourceRange.baseArrayLayer = 0;
 		createInfo.subresourceRange.layerCount = 1;
-		if (vkCreateImageView(m_device, &createInfo, nullptr, &m_swapchainImageViews[i]))
+		if (vkCreateImageView(m_device.getDevice(), &createInfo, nullptr, &m_swapchainImageViews[i]))
 			throw std::runtime_error{ "failed to create swapchain image view" };
 	}
 }
@@ -145,7 +143,7 @@ void Swapchain::createFramebuffers()
 		createInfo.height = m_swapchainExtent.height;
 		createInfo.layers = 1;
 
-		if (vkCreateFramebuffer(m_device, &createInfo, nullptr, &m_swapchainFramebuffers[i]) != VK_SUCCESS)
+		if (vkCreateFramebuffer(m_device.getDevice(), &createInfo, nullptr, &m_swapchainFramebuffers[i]) != VK_SUCCESS)
 			throw std::runtime_error{ "failed to create framebuffer" };
 	}
 }
@@ -174,11 +172,11 @@ uint32_t Swapchain::beginFrame(VkFence inFlightFence, VkSemaphore imageAvailable
 {
 	currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 
-	vkWaitForFences(m_device, 1, &inFlightFence, VK_TRUE, UINT64_MAX);
-	vkResetFences(m_device, 1, &inFlightFence);
+	vkWaitForFences(m_device.getDevice(), 1, &inFlightFence, VK_TRUE, UINT64_MAX);
+	vkResetFences(m_device.getDevice(), 1, &inFlightFence);
 
 	auto imageIndex = uint32_t{};
-	vkAcquireNextImageKHR(m_device, m_swapchain, UINT64_MAX, imageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
+	vkAcquireNextImageKHR(m_device.getDevice(), m_swapchain, UINT64_MAX, imageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
 	return imageIndex;
 }
 

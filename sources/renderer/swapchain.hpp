@@ -1,7 +1,7 @@
 #pragma once
 
 #include "renderer/types.hpp"
-#include "renderer/context.hpp"
+#include "renderer/device.hpp"
 
 #include <vulkan/vulkan.h>
 
@@ -10,19 +10,13 @@
 
 struct SwapchainProperties
 {
-	VkPhysicalDevice gpu;
-	VkDevice device;
 	VkRenderPass renderPass;
-	VkSurfaceKHR surface;
-	VkExtent2D extent;
-	QueueFamilyIndices queueFamilyIndices;
-	SwapchainSupportDetails swapchainSupportDetails;
 };
 
 class Swapchain
 {
 public:
-	Swapchain(SwapchainProperties properties);
+	Swapchain(Device& device, SwapchainProperties properties);
 	~Swapchain();
 
 	VkExtent2D getExtent();
@@ -48,17 +42,12 @@ private:
 	const int MAX_FRAMES_IN_FLIGHT = 2;
 	VkFormat m_swapchainFormat;
 	VkExtent2D m_swapchainExtent;
-	VkExtent2D m_extent;
 	uint32_t currentFrame{};
 
 private:
-	const VkPhysicalDevice m_gpu;
-	const VkDevice m_device;
 	const VkRenderPass m_renderPass;
-	const VkSurfaceKHR m_surface;
-	const QueueFamilyIndices m_queueFamilyIndices;
-	const SwapchainSupportDetails m_swapchainSupportDetails;
-	
+	Device& m_device;
+
 	VkQueue m_presentQueue;
 	VkSwapchainKHR m_swapchain;
 
