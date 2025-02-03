@@ -50,7 +50,6 @@ private:
 
 	GLFWwindow* m_window;
 
-	//VkSurfaceKHR m_surface;
 	VkRenderPass m_renderPass;
 	VkDescriptorSetLayout m_descriptorLayout;
 	VkDescriptorPool m_descriptorPool;

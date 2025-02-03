@@ -15,6 +15,7 @@ public:
 	VkPhysicalDevice getGpu();
 	VkDevice getDevice();
 	VkQueue getGraphicsQueue();
+	VkQueue getPresentQueue();
 
 private:
 	void pickGpu();
@@ -27,4 +28,5 @@ private:
 	VkPhysicalDevice m_gpu;
 	VkDevice m_device;
 	VkQueue m_graphicsQueue;
+	VkQueue m_presentQueue;
 };

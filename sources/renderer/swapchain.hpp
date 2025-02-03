@@ -50,7 +50,6 @@ private:
 	const VkRenderPass m_renderPass;
 	Device& m_device;
 
-	VkQueue m_presentQueue;
 	VkSwapchainKHR m_swapchain;
 
 	std::vector<VkImage> m_swapchainImages;

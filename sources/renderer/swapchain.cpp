@@ -6,7 +6,6 @@
 Swapchain::Swapchain(Device& device, SwapchainProperties properties)
 	: m_device{device}, m_renderPass{ properties.renderPass }
 {
-	vkGetDeviceQueue(m_device.getDevice(), m_device.findQueueFamilies(m_device.getGpu()).present.value(), 0, &m_presentQueue);
 	createSwapchain();
 	createImageViews();
 	createFramebuffers();
@@ -212,5 +211,5 @@ void Swapchain::endFrame(uint32_t imageIndex, VkSemaphore renderFinishedSemaphor
 	presentInfo.pSwapchains = &m_swapchain;
 	presentInfo.swapchainCount = 1;
 	presentInfo.pImageIndices = &imageIndex;
-	vkQueuePresentKHR(m_presentQueue, &presentInfo);
+	vkQueuePresentKHR(m_device.getPresentQueue(), &presentInfo);
 }

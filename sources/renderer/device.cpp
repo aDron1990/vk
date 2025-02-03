@@ -168,6 +168,7 @@ void Device::createDevice()
 		throw std::runtime_error{ "failed to create vulkan device" };
 
 	vkGetDeviceQueue(m_device, indices.graphics.value(), 0, &m_graphicsQueue);
+	vkGetDeviceQueue(m_device, indices.present.value(), 0, &m_presentQueue);
 }
 
 VkSurfaceKHR Device::getSurface()
@@ -188,4 +189,9 @@ VkDevice Device::getDevice()
 VkQueue Device::getGraphicsQueue()
 {
 	return m_graphicsQueue;
+}
+
+VkQueue Device::getPresentQueue()
+{
+	return m_presentQueue;
 }
