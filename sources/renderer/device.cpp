@@ -307,6 +307,20 @@ void Device::copyBufferToImage(VkBuffer srcBuffer, VkImage dstImage, uint32_t wi
 	endSingleTimeCommands(commandBuffer);
 }
 
+std::vector<VkCommandBuffer> Device::allocateCommandBuffers(uint32_t count)
+{
+	auto commandBuffers = std::vector<VkCommandBuffer>(count);
+	auto allocInfo = VkCommandBufferAllocateInfo{};
+	allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+	allocInfo.commandPool = m_commandPool;
+	allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+	allocInfo.commandBufferCount = count;
+	if (vkAllocateCommandBuffers(m_device, &allocInfo, commandBuffers.data()) != VK_SUCCESS)
+		throw std::runtime_error{ "failed to allocate vulkan command buffers" };
+
+	return commandBuffers;
+}
+
 VkCommandBuffer Device::beginSingleTimeCommands()
 {
 	VkCommandBuffer commandBuffer;

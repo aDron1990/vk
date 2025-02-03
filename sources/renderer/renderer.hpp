@@ -2,7 +2,7 @@
 
 #include "renderer/config.hpp"
 #include "renderer/context.hpp"
-#include "renderer/device.hpp"	
+#include "renderer/device.hpp"
 #include "renderer/swapchain.hpp"
 
 #include <vulkan/vulkan.h>
@@ -23,7 +23,6 @@ public:
 private:
 	void createContext();
 	void createDevice();
-	void createCommandPool();
 	void createSyncObjects();
 	void createCommandBuffers();
 	void createRenderPass();
@@ -49,8 +48,6 @@ private:
 	void createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
 	void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
 	void copyBufferToImage(VkBuffer srcBuffer, VkImage dstImage, uint32_t width, uint32_t height);
-	VkCommandBuffer beginSingleTimeCommands();
-	void endSingleTimeCommands(VkCommandBuffer commandBuffer);
 	void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
 	VkImageView createImageView(VkImage image, VkFormat format);
 
@@ -66,7 +63,6 @@ private:
 	std::vector<VkDescriptorSet> m_descriptorSets;
 	VkPipelineLayout m_pipelineLayout;
 	VkPipeline m_graphicsPipeline;
-	VkCommandPool m_commandPool;
 	std::vector<VkCommandBuffer> m_commandBuffers;
 	std::vector<VkSemaphore> m_imageAvailableSemaphores;
 	std::vector<VkSemaphore> m_renderFinishedSemaphores;

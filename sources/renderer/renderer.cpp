@@ -28,7 +28,6 @@ Renderer::Renderer(GLFWwindow* window) : m_window{window}
 {
 	createContext();
 	createDevice();
-	createCommandPool();
 	createSyncObjects();
 	createCommandBuffers();
 	createRenderPass();
@@ -54,7 +53,6 @@ Renderer::~Renderer()
 		vkDestroySemaphore(m_device->getDevice(), m_renderFinishedSemaphores[i], nullptr);
 		vkDestroyFence(m_device->getDevice(), m_inFlightFences[i], nullptr);
 	}
-	vkDestroyCommandPool(m_device->getDevice(), m_commandPool, nullptr);
 	vkDestroyPipeline(m_device->getDevice(), m_graphicsPipeline, nullptr);
 	vkDestroyPipelineLayout(m_device->getDevice(), m_pipelineLayout, nullptr);
 	m_swapchain.reset();
@@ -488,19 +486,6 @@ VkShaderModule Renderer::createShaderModule(const std::vector<char>& code)
 	return shaderModule;
 }
 
-void Renderer::createCommandPool()
-{
-	auto queueFamilyIndices = m_device->findQueueFamilies(m_device->getGpu());
-
-	auto createInfo = VkCommandPoolCreateInfo{};
-	createInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-	createInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-	createInfo.queueFamilyIndex = queueFamilyIndices.graphics.value();
-
-	if (vkCreateCommandPool(m_device->getDevice(), &createInfo, nullptr, &m_commandPool) != VK_SUCCESS)
-		throw std::runtime_error{ "failed to create vulkan command pool" };
-}
-
 void Renderer::createSyncObjects()
 {
 	auto semaphoreInfo = VkSemaphoreCreateInfo{};
@@ -524,14 +509,7 @@ void Renderer::createSyncObjects()
 
 void Renderer::createCommandBuffers()
 {
-	m_commandBuffers.resize(MAX_FRAMES_IN_FLIGHT);
-	auto allocInfo = VkCommandBufferAllocateInfo{};
-	allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-	allocInfo.commandPool = m_commandPool;
-	allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-	allocInfo.commandBufferCount = MAX_FRAMES_IN_FLIGHT;
-	if (vkAllocateCommandBuffers(m_device->getDevice(), &allocInfo, m_commandBuffers.data()) != VK_SUCCESS)
-		throw std::runtime_error{ "failed to allocate vulkan command buffers" };
+	m_commandBuffers = m_device->allocateCommandBuffers(MAX_FRAMES_IN_FLIGHT);
 }
 
 void Renderer::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& memory)
@@ -591,7 +569,7 @@ void Renderer::createImage(uint32_t width, uint32_t height, VkFormat format, VkI
 
 void Renderer::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size)
 {
-	auto commandBuffer = beginSingleTimeCommands();
+	auto commandBuffer = m_device->beginSingleTimeCommands();
 
 	auto copyRegion = VkBufferCopy{};
 	copyRegion.srcOffset = 0;
@@ -599,12 +577,12 @@ void Renderer::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize s
 	copyRegion.size = size;
 	vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
 
-	endSingleTimeCommands(commandBuffer);
+	m_device->endSingleTimeCommands(commandBuffer);
 }
 
 void Renderer::copyBufferToImage(VkBuffer srcBuffer, VkImage dstImage, uint32_t width, uint32_t height)
 {
-	auto commandBuffer = beginSingleTimeCommands();
+	auto commandBuffer = m_device->beginSingleTimeCommands();
 	
 	auto region = VkBufferImageCopy{};
 	region.bufferOffset = 0;
@@ -622,45 +600,12 @@ void Renderer::copyBufferToImage(VkBuffer srcBuffer, VkImage dstImage, uint32_t 
 	};
 	vkCmdCopyBufferToImage(commandBuffer, srcBuffer, dstImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 
-	endSingleTimeCommands(commandBuffer);
-}
-
-VkCommandBuffer Renderer::beginSingleTimeCommands() 
-{
-	VkCommandBuffer commandBuffer;
-
-	VkCommandBufferAllocateInfo allocInfo{};
-	allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-	allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-	allocInfo.commandPool = m_commandPool;
-	allocInfo.commandBufferCount = 1;
-	vkAllocateCommandBuffers(m_device->getDevice(), &allocInfo, &commandBuffer);
-
-	VkCommandBufferBeginInfo beginInfo{};
-	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-	vkBeginCommandBuffer(commandBuffer, &beginInfo);
-
-	return commandBuffer;
-}
-
-void Renderer::endSingleTimeCommands(VkCommandBuffer commandBuffer)
-{
-	vkEndCommandBuffer(commandBuffer);
-
-	VkSubmitInfo submitInfo{};
-	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-	submitInfo.commandBufferCount = 1;
-	submitInfo.pCommandBuffers = &commandBuffer;
-	vkQueueSubmit(m_device->getGraphicsQueue(), 1, &submitInfo, VK_NULL_HANDLE);
-
-	vkQueueWaitIdle(m_device->getGraphicsQueue());
-	vkFreeCommandBuffers(m_device->getDevice(), m_commandPool, 1, &commandBuffer);
+	m_device->endSingleTimeCommands(commandBuffer);
 }
 
 void Renderer::transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout)
 {
-	auto commandBuffer = beginSingleTimeCommands();
+	auto commandBuffer = m_device->beginSingleTimeCommands();
 	VkPipelineStageFlags sourceStage;
 	VkPipelineStageFlags destinationStage;
 
@@ -704,7 +649,7 @@ void Renderer::transitionImageLayout(VkImage image, VkFormat format, VkImageLayo
 		1, &barrier
 	);
 
-	endSingleTimeCommands(commandBuffer);
+	m_device->endSingleTimeCommands(commandBuffer);
 }
 
 VkImageView Renderer::createImageView(VkImage image, VkFormat format)
