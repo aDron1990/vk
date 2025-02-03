@@ -14,11 +14,25 @@ Swapchain::Swapchain(Device& device, SwapchainProperties properties)
 
 Swapchain::~Swapchain()
 {
+	clear();
+}
+
+void Swapchain::clear()
+{
 	for (auto framebuffer : m_swapchainFramebuffers)
 		vkDestroyFramebuffer(m_device.getDevice(), framebuffer, nullptr);
 	for (auto view : m_swapchainImageViews)
 		vkDestroyImageView(m_device.getDevice(), view, nullptr);
 	vkDestroySwapchainKHR(m_device.getDevice(), m_swapchain, nullptr);
+}
+
+void Swapchain::recreate()
+{
+	vkDeviceWaitIdle(m_device.getDevice());
+	clear();
+	createSwapchain();
+	createImageViews();
+	createFramebuffers();
 }
 
 void Swapchain::createSwapchain()
@@ -173,10 +187,18 @@ uint32_t Swapchain::beginFrame(VkFence inFlightFence, VkSemaphore imageAvailable
 	currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 
 	vkWaitForFences(m_device.getDevice(), 1, &inFlightFence, VK_TRUE, UINT64_MAX);
-	vkResetFences(m_device.getDevice(), 1, &inFlightFence);
 
 	auto imageIndex = uint32_t{};
-	vkAcquireNextImageKHR(m_device.getDevice(), m_swapchain, UINT64_MAX, imageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
+	auto result = vkAcquireNextImageKHR(m_device.getDevice(), m_swapchain, UINT64_MAX, imageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
+	if (result == VK_ERROR_OUT_OF_DATE_KHR) 
+	{
+		recreate();
+		return UINT32_MAX;
+	}
+	else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR)
+		throw std::runtime_error("failed to acquire swap chain image!");
+
+	vkResetFences(m_device.getDevice(), 1, &inFlightFence);
 	return imageIndex;
 }
 

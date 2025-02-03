@@ -17,7 +17,7 @@ GlfwWindow::GlfwWindow(int widht, int height, std::string_view title) : m_window
 		throw std::runtime_error{ "Failed to init GLFW" };
 
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-	glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+	//glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 	auto* window = glfwCreateWindow(widht, height, title.data(), nullptr, nullptr);
 	if (window == nullptr)
 		throw std::runtime_error{ "Failed to create window" };

@@ -562,6 +562,7 @@ void Renderer::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t image
 void Renderer::draw()
 {
 	auto imageIndex = m_swapchain->beginFrame(m_inFlightFences[currentFrame], m_imageAvailableSemaphores[currentFrame]);
+	if (imageIndex == UINT32_MAX) return;
 	auto commandBuffer = m_commandBuffers[currentFrame];
 
 	vkResetCommandBuffer(commandBuffer, 0);

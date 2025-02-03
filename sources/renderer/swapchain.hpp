@@ -27,8 +27,10 @@ public:
 
 	uint32_t beginFrame(VkFence inFlightFence, VkSemaphore imageAvailableSemaphore);
 	void endFrame(uint32_t imageIndex, VkSemaphore renderFinishedSemaphore);
+	void recreate();
 
 private:
+	void clear();
 	void createSwapchain();
 	void createImageViews();
 	void createFramebuffers();
