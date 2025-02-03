@@ -56,11 +56,7 @@ Renderer::~Renderer()
 	vkDestroyPipeline(m_device->getDevice(), m_graphicsPipeline, nullptr);
 	vkDestroyPipelineLayout(m_device->getDevice(), m_pipelineLayout, nullptr);
 	m_swapchain.reset();
-	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
-	{
-		vkDestroyBuffer(m_device->getDevice(), m_uniformBuffers[i], nullptr);
-		vkFreeMemory(m_device->getDevice(), m_uniformBuffersMemory[i], nullptr);
-	}
+	m_uniformBuffers.clear();
 	vkDestroySampler(m_device->getDevice(), m_textureSampler, nullptr);
 	vkDestroyImageView(m_device->getDevice(), m_textureImageView, nullptr);
 	vkDestroyImage(m_device->getDevice(), m_textureImage, nullptr);
@@ -225,17 +221,16 @@ void Renderer::createUniformBuffers()
 {
 	auto size = VkDeviceSize{ sizeof(UniformBufferObject) };
 
-	m_uniformBuffers.resize(MAX_FRAMES_IN_FLIGHT);
-	m_uniformBuffersMemory.resize(MAX_FRAMES_IN_FLIGHT);
+	m_uniformBuffers.reserve(MAX_FRAMES_IN_FLIGHT);
 	m_uniformBuffersMapped.resize(MAX_FRAMES_IN_FLIGHT);
 
 	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
 	{
-		m_device->createBuffer(size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
-			m_uniformBuffers[i], m_uniformBuffersMemory[i]);
-		if (vkMapMemory(m_device->getDevice(), m_uniformBuffersMemory[i], 0, size, 0, &m_uniformBuffersMapped[i]) != VK_SUCCESS)
-			throw std::runtime_error{ "failed to map uniform buffer" };
+		m_uniformBuffers.emplace_back(std::ref(*m_device), size, 
+			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
+		);
+		m_uniformBuffersMapped[i] = m_uniformBuffers[i].map();
 	}
 }
 
@@ -304,7 +299,7 @@ void Renderer::createDescriptorSets()
 	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
 	{
 		auto bufferInfo = VkDescriptorBufferInfo{};
-		bufferInfo.buffer = m_uniformBuffers[i];
+		bufferInfo.buffer = m_uniformBuffers[i].getBuffer();
 		bufferInfo.offset = 0;
 		bufferInfo.range = sizeof(UniformBufferObject);
 

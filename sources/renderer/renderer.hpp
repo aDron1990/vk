@@ -66,8 +66,8 @@ private:
 	VkDeviceMemory m_textureImageMemory;
 	std::unique_ptr<Buffer> m_vertexBuffer;
 	std::unique_ptr<Buffer> m_indexBuffer;
-	std::vector<VkBuffer> m_uniformBuffers;
-	std::vector<VkDeviceMemory> m_uniformBuffersMemory;
+
+	std::vector<Buffer> m_uniformBuffers;
 	std::vector<void*> m_uniformBuffersMapped;
 
 	std::unique_ptr<Context> m_context;

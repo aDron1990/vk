@@ -275,12 +275,12 @@ VkImageView Device::createImageView(VkImage image, VkFormat format)
 void Device::copyBuffer(Buffer& srcBuffer, Buffer& dstBuffer)
 {
 	auto commandBuffer = beginSingleTimeCommands();
-
+	
 	auto copyRegion = VkBufferCopy{};
 	copyRegion.srcOffset = 0;
 	copyRegion.dstOffset = 0;
 	copyRegion.size = srcBuffer.getSize();
-	vkCmdCopyBuffer(commandBuffer, srcBuffer.getBuffer(), dstBuffer.getBuffer(), 1, &copyRegion);
+	vkCmdCopyBuffer(commandBuffer, srcBuffer.getBuffer(), dstBuffer.getBuffer(), 1, &copyRegion); 
 
 	endSingleTimeCommands(commandBuffer);
 }
