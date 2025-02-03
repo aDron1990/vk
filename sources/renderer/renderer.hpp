@@ -4,6 +4,7 @@
 #include "renderer/context.hpp"
 #include "renderer/device.hpp"
 #include "renderer/swapchain.hpp"
+#include "renderer/buffer.hpp"
 
 #include <vulkan/vulkan.h>
 #include <GLFW/glfw3.h>
@@ -63,8 +64,9 @@ private:
 	VkImageView m_textureImageView;
 	VkSampler m_textureSampler;
 	VkDeviceMemory m_textureImageMemory;
-	VkBuffer m_vertexBuffer;
-	VkDeviceMemory m_vertexBufferMemory;
+	std::unique_ptr<Buffer> m_vertexBuffer;
+	//VkBuffer m_vertexBuffer;
+	//VkDeviceMemory m_vertexBufferMemory;
 	VkBuffer m_indexBuffer;
 	VkDeviceMemory m_indexBufferMemory;
 	std::vector<VkBuffer> m_uniformBuffers;
