@@ -106,15 +106,16 @@ VkPresentModeKHR Swapchain::chooseSwapchainPresentMode(const std::vector<VkPrese
 
 VkExtent2D Swapchain::chooseSwapchainExtent(const VkSurfaceCapabilitiesKHR& capabilities)
 {
-	//if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max())
+	if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max())
 		return capabilities.currentExtent;
-	//else
-	//{
+	else
+	{
+		throw; // TODO getting framebuffer size from window
 		//auto actualExtent = m_device.querySwapchainSupport(m_device.getGpu()).capabilities.currentExtent;
 		//actualExtent.width = std::clamp(actualExtent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
 		//actualExtent.height = std::clamp(actualExtent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
 		//return actualExtent;
-	//}
+	}
 }
 
 void Swapchain::createImageViews()
