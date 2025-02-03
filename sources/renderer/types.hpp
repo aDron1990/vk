@@ -4,6 +4,7 @@
 
 #include <functional>
 #include <optional>
+#include <array>
 
 struct QueueFamilyIndices
 {
@@ -19,3 +20,12 @@ struct SwapchainSupportDetails
 };
 
 using FindQueueFamilyFunc = std::function<QueueFamilyIndices(VkPhysicalDevice gpu)>;
+
+struct Vertex
+{
+	glm::vec2 pos;
+	glm::vec3 color;
+
+	static constexpr VkVertexInputBindingDescription getBindDesc();
+	static constexpr std::array<VkVertexInputAttributeDescription, 2> getAttrDesc();
+};
