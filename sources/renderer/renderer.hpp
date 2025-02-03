@@ -44,7 +44,6 @@ private:
 	void updateUniformBuffer();
 
 private:
-	
 	uint32_t currentFrame{};
 	GLFWwindow* m_window;
 
@@ -56,13 +55,17 @@ private:
 	VkSampler m_textureSampler;
 	VkDeviceMemory m_textureImageMemory;
 
-	std::vector<Buffer> m_uniformBuffers;
-	std::vector<void*> m_uniformBuffersMapped;
-	std::vector<VkDescriptorSet> m_descriptorSets;
-	std::vector<VkCommandBuffer> m_commandBuffers;
-	std::vector<VkSemaphore> m_imageAvailableSemaphores;
-	std::vector<VkSemaphore> m_renderFinishedSemaphores;
-	std::vector<VkFence> m_inFlightFences;
+	struct FrameData
+	{
+		std::unique_ptr<Buffer> uniformBuffer;
+		void* uniformBufferMapped;
+		VkDescriptorSet descriptorSet;
+		VkCommandBuffer commandBuffer;
+		VkSemaphore imageAvailableSemaphore;
+		VkSemaphore renderFinishedSemaphore;
+		VkFence inFlightFence;
+	};
+	std::array<FrameData, MAX_FRAMES_IN_FLIGHT> m_frameDatas;
 
 	std::unique_ptr<Context> m_context;
 	std::unique_ptr<Device> m_device;

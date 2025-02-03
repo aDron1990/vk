@@ -46,15 +46,15 @@ Renderer::Renderer(GLFWwindow* window) : m_window{window}
 Renderer::~Renderer()
 {
 	vkDeviceWaitIdle(m_device->getDevice());
-	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
-	{
-		vkDestroySemaphore(m_device->getDevice(), m_imageAvailableSemaphores[i], nullptr);
-		vkDestroySemaphore(m_device->getDevice(), m_renderFinishedSemaphores[i], nullptr);
-		vkDestroyFence(m_device->getDevice(), m_inFlightFences[i], nullptr);
-	}
 	m_pipeline.reset();
 	m_swapchain.reset();
-	m_uniformBuffers.clear();
+	for (auto& frameData : m_frameDatas)
+	{
+		vkDestroySemaphore(m_device->getDevice(), frameData.imageAvailableSemaphore, nullptr);
+		vkDestroySemaphore(m_device->getDevice(), frameData.renderFinishedSemaphore, nullptr);
+		vkDestroyFence(m_device->getDevice(), frameData.inFlightFence, nullptr);
+		frameData.uniformBuffer.reset();
+	}
 	vkDestroySampler(m_device->getDevice(), m_textureSampler, nullptr);
 	vkDestroyImageView(m_device->getDevice(), m_textureImageView, nullptr);
 	vkDestroyImage(m_device->getDevice(), m_textureImage, nullptr);
@@ -218,16 +218,13 @@ void Renderer::createUniformBuffers()
 {
 	auto size = VkDeviceSize{ sizeof(UniformBufferObject) };
 
-	m_uniformBuffers.reserve(MAX_FRAMES_IN_FLIGHT);
-	m_uniformBuffersMapped.resize(MAX_FRAMES_IN_FLIGHT);
-
-	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+	for (auto& frameData : m_frameDatas)
 	{
-		m_uniformBuffers.emplace_back(std::ref(*m_device), size, 
+		frameData.uniformBuffer.reset(new Buffer{ *m_device, size,
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
-		);
-		m_uniformBuffersMapped[i] = m_uniformBuffers[i].map();
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT 
+		});
+		frameData.uniformBufferMapped = frameData.uniformBuffer->map();
 	}
 }
 
@@ -266,11 +263,12 @@ void Renderer::createDescriptorSetLayout()
 
 void Renderer::createDescriptorSets()
 {
-	m_descriptorSets = m_device->allocateDescriptorSets(m_descriptorLayout, MAX_FRAMES_IN_FLIGHT);
-	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+	for (auto& frameData : m_frameDatas)
 	{
+		frameData.descriptorSet = m_device->allocateDescriptorSets(m_descriptorLayout, 1).back();
+
 		auto bufferInfo = VkDescriptorBufferInfo{};
-		bufferInfo.buffer = m_uniformBuffers[i].getBuffer();
+		bufferInfo.buffer = frameData.uniformBuffer->getBuffer();
 		bufferInfo.offset = 0;
 		bufferInfo.range = sizeof(UniformBufferObject);
 
@@ -281,7 +279,7 @@ void Renderer::createDescriptorSets()
 
 		auto descriptorWrites = std::vector<VkWriteDescriptorSet>(2);
 		descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		descriptorWrites[0].dstSet = m_descriptorSets[i];
+		descriptorWrites[0].dstSet = frameData.descriptorSet;
 		descriptorWrites[0].dstBinding = 0;
 		descriptorWrites[0].dstArrayElement = 0;
 		descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -289,7 +287,7 @@ void Renderer::createDescriptorSets()
 		descriptorWrites[0].descriptorCount = 1;
 
 		descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		descriptorWrites[1].dstSet = m_descriptorSets[i];
+		descriptorWrites[1].dstSet = frameData.descriptorSet;
 		descriptorWrites[1].dstBinding = 1;
 		descriptorWrites[1].dstArrayElement = 0;
 		descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -318,21 +316,21 @@ void Renderer::createSyncObjects()
 	fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
 	fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
-	m_imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
-	m_renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
-	m_inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
-	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+	for (auto& frameData : m_frameDatas)
 	{
-		if (vkCreateSemaphore(m_device->getDevice(), &semaphoreInfo, nullptr, &m_imageAvailableSemaphores[i]) != VK_SUCCESS ||
-			vkCreateSemaphore(m_device->getDevice(), &semaphoreInfo, nullptr, &m_renderFinishedSemaphores[i]) != VK_SUCCESS ||
-			vkCreateFence(m_device->getDevice(), &fenceInfo, nullptr, &m_inFlightFences[i]) != VK_SUCCESS)
+		if (vkCreateSemaphore(m_device->getDevice(), &semaphoreInfo, nullptr, &frameData.imageAvailableSemaphore) != VK_SUCCESS ||
+			vkCreateSemaphore(m_device->getDevice(), &semaphoreInfo, nullptr, &frameData.renderFinishedSemaphore) != VK_SUCCESS ||
+			vkCreateFence(m_device->getDevice(), &fenceInfo, nullptr, &frameData.inFlightFence) != VK_SUCCESS)
 			throw std::runtime_error{ "failed to create vulkan sync objects" };
 	}
 }
 
 void Renderer::createCommandBuffers()
 {
-	m_commandBuffers = m_device->allocateCommandBuffers(MAX_FRAMES_IN_FLIGHT);
+	for (auto& frameData : m_frameDatas)
+	{
+		frameData.commandBuffer = m_device->allocateCommandBuffers(1).back();
+	}
 }
 
 void Renderer::updateUniformBuffer()
@@ -347,7 +345,7 @@ void Renderer::updateUniformBuffer()
 	ubo.proj = glm::perspective(glm::radians(45.0f), 800 / (float)600, 0.1f, 10.0f);
 	ubo.proj[1][1] *= -1;
 
-	memcpy(m_uniformBuffersMapped[currentFrame], &ubo, sizeof(ubo)); 
+	memcpy(m_frameDatas[currentFrame].uniformBufferMapped, &ubo, sizeof(ubo));
 }
 
 void Renderer::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex)
@@ -361,7 +359,7 @@ void Renderer::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t image
 	auto renderPassInfo = VkRenderPassBeginInfo{};
 	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 	renderPassInfo.renderPass = m_renderPass;
-	renderPassInfo.framebuffer = m_swapchain->getFramebuffer(imageIndex);
+	renderPassInfo.framebuffer = m_swapchain->getFramebuffer	(imageIndex);
 	renderPassInfo.renderArea.offset = { 0, 0 };
 	renderPassInfo.renderArea.extent = m_swapchain->getExtent();
 	renderPassInfo.pClearValues = &clearColor;
@@ -388,7 +386,7 @@ void Renderer::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t image
 	auto buffer = m_vertexBuffer->getBuffer();
 	vkCmdBindVertexBuffers(commandBuffer, 0, 1, &buffer, offsets);
 	vkCmdBindIndexBuffer(commandBuffer, m_indexBuffer->getBuffer(), 0, VK_INDEX_TYPE_UINT16);
-	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline->getLayout(), 0, 1, &m_descriptorSets[currentFrame], 0, nullptr);
+	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline->getLayout(), 0, 1, &m_frameDatas[currentFrame].descriptorSet, 0, nullptr);
 
 	vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
 
@@ -399,9 +397,9 @@ void Renderer::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t image
 
 void Renderer::draw()
 {
-	auto imageIndex = m_swapchain->beginFrame(m_inFlightFences[currentFrame], m_imageAvailableSemaphores[currentFrame]);
+	auto imageIndex = m_swapchain->beginFrame(m_frameDatas[currentFrame].inFlightFence, m_frameDatas[currentFrame].imageAvailableSemaphore);
 	if (imageIndex == UINT32_MAX) return;
-	auto commandBuffer = m_commandBuffers[currentFrame];
+	auto commandBuffer = m_frameDatas[currentFrame].commandBuffer;
 
 	vkResetCommandBuffer(commandBuffer, 0);
 
@@ -411,8 +409,8 @@ void Renderer::draw()
 
 	std::initializer_list<VkPipelineStageFlags> waitStages = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
 	auto submitInfo = VkSubmitInfo{};
-	auto signalSemaphores = { m_renderFinishedSemaphores[currentFrame] };
-	auto waitSemaphores = { m_imageAvailableSemaphores[currentFrame] };
+	auto signalSemaphores = { m_frameDatas[currentFrame].renderFinishedSemaphore };
+	auto waitSemaphores = { m_frameDatas[currentFrame].imageAvailableSemaphore };
 	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 	submitInfo.pWaitSemaphores = waitSemaphores.begin();
 	submitInfo.waitSemaphoreCount = waitSemaphores.size();
@@ -421,9 +419,9 @@ void Renderer::draw()
 	submitInfo.commandBufferCount = 1;
 	submitInfo.pSignalSemaphores = signalSemaphores.begin();
 	submitInfo.signalSemaphoreCount = signalSemaphores.size();
-	if (vkQueueSubmit(m_device->getGraphicsQueue(), 1, &submitInfo, m_inFlightFences[currentFrame]) != VK_SUCCESS)
+	if (vkQueueSubmit(m_device->getGraphicsQueue(), 1, &submitInfo, m_frameDatas[currentFrame].inFlightFence) != VK_SUCCESS)
 		throw std::runtime_error{ "failed to submit draw command buffer" };
 
-	m_swapchain->endFrame(imageIndex, m_renderFinishedSemaphores[currentFrame]);
+	m_swapchain->endFrame(imageIndex, m_frameDatas[currentFrame].renderFinishedSemaphore);
 	currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 }
