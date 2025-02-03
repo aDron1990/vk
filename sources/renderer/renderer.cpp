@@ -625,21 +625,6 @@ void Renderer::copyBufferToImage(VkBuffer srcBuffer, VkImage dstImage, uint32_t 
 	endSingleTimeCommands(commandBuffer);
 }
 
-void Renderer::updateUniformBuffer()
-{
-	static auto startTime = std::chrono::high_resolution_clock::now();
-	auto currentTime = std::chrono::high_resolution_clock::now();
-	auto time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
-
-	auto ubo = UniformBufferObject{};
-	ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-	ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-	ubo.proj = glm::perspective(glm::radians(45.0f), 800 / (float)600, 0.1f, 10.0f);
-	ubo.proj[1][1] *= -1;
-
-	memcpy(m_uniformBuffersMapped[currentFrame], &ubo, sizeof(ubo));
-}
-
 VkCommandBuffer Renderer::beginSingleTimeCommands() 
 {
 	VkCommandBuffer commandBuffer;
@@ -739,6 +724,21 @@ VkImageView Renderer::createImageView(VkImage image, VkFormat format)
 		throw std::runtime_error{ "failed to create image view" };
 
 	return imageView;
+}
+
+void Renderer::updateUniformBuffer()
+{
+	static auto startTime = std::chrono::high_resolution_clock::now();
+	auto currentTime = std::chrono::high_resolution_clock::now();
+	auto time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+
+	auto ubo = UniformBufferObject{};
+	ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	ubo.proj = glm::perspective(glm::radians(45.0f), 800 / (float)600, 0.1f, 10.0f);
+	ubo.proj[1][1] *= -1;
+
+	memcpy(m_uniformBuffersMapped[currentFrame], &ubo, sizeof(ubo));
 }
 
 void Renderer::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex)
