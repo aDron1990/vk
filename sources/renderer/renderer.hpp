@@ -2,6 +2,7 @@
 
 #include "renderer/config.hpp"
 #include "renderer/context.hpp"
+#include "renderer/device.hpp"	
 #include "renderer/swapchain.hpp"
 
 #include <vulkan/vulkan.h>
@@ -21,8 +22,6 @@ public:
 
 private:
 	void createContext();
-	void createSurface();
-	void pickGpu();
 	void createDevice();
 	void createCommandPool();
 	void createSyncObjects();
@@ -38,10 +37,6 @@ private:
 	void createGraphicsPipeline();
 
 private:
-	bool isGpuSuitable(VkPhysicalDevice gpu);
-	bool checkGpuExtensionsSupport(VkPhysicalDevice gpu);
-	QueueFamilyIndices findQueueFamilies(VkPhysicalDevice gpu);
-	SwapchainSupportDetails querySwapchainSupport(VkPhysicalDevice gpu);
 	VkShaderModule createShaderModule(const std::vector<char>& code);
 	void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
 	uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
@@ -55,10 +50,7 @@ private:
 
 	GLFWwindow* m_window;
 
-	VkSurfaceKHR m_surface;
-	VkPhysicalDevice m_gpu;
-	VkDevice m_device;
-	VkQueue m_graphicsQueue;
+	//VkSurfaceKHR m_surface;
 	VkRenderPass m_renderPass;
 	VkDescriptorSetLayout m_descriptorLayout;
 	VkDescriptorPool m_descriptorPool;
@@ -79,6 +71,7 @@ private:
 	std::vector<void*> m_uniformBuffersMapped;
 
 	std::unique_ptr<Context> m_context;
+	std::unique_ptr<Device> m_device;
 	std::unique_ptr<Swapchain> m_swapchain;
 };
 

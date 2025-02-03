@@ -25,8 +25,6 @@ const std::vector<uint16_t> indices = {
 Renderer::Renderer(GLFWwindow* window) : m_window{window}
 {
 	createContext();
-	createSurface();
-	pickGpu();
 	createDevice();
 	createCommandPool();
 	createSyncObjects();
@@ -44,31 +42,30 @@ Renderer::Renderer(GLFWwindow* window) : m_window{window}
 
 Renderer::~Renderer()
 {
-	vkDeviceWaitIdle(m_device);
+	vkDeviceWaitIdle(m_device->getDevice());
 	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
 	{
-		vkDestroySemaphore(m_device, m_imageAvailableSemaphores[i], nullptr);
-		vkDestroySemaphore(m_device, m_renderFinishedSemaphores[i], nullptr);
-		vkDestroyFence(m_device, m_inFlightFences[i], nullptr);
+		vkDestroySemaphore(m_device->getDevice(), m_imageAvailableSemaphores[i], nullptr);
+		vkDestroySemaphore(m_device->getDevice(), m_renderFinishedSemaphores[i], nullptr);
+		vkDestroyFence(m_device->getDevice(), m_inFlightFences[i], nullptr);
 	}
-	vkDestroyCommandPool(m_device, m_commandPool, nullptr);
-	vkDestroyPipeline(m_device, m_graphicsPipeline, nullptr);
-	vkDestroyPipelineLayout(m_device, m_pipelineLayout, nullptr);
+	vkDestroyCommandPool(m_device->getDevice(), m_commandPool, nullptr);
+	vkDestroyPipeline(m_device->getDevice(), m_graphicsPipeline, nullptr);
+	vkDestroyPipelineLayout(m_device->getDevice(), m_pipelineLayout, nullptr);
 	m_swapchain.reset();
 	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
 	{
-		vkDestroyBuffer(m_device, m_uniformBuffers[i], nullptr);
-		vkFreeMemory(m_device, m_uniformBuffersMemory[i], nullptr);
+		vkDestroyBuffer(m_device->getDevice(), m_uniformBuffers[i], nullptr);
+		vkFreeMemory(m_device->getDevice(), m_uniformBuffersMemory[i], nullptr);
 	}
-	vkDestroyDescriptorPool(m_device, m_descriptorPool, nullptr);
-	vkDestroyDescriptorSetLayout(m_device, m_descriptorLayout, nullptr);
-	vkDestroyBuffer(m_device, m_vertexBuffer, nullptr);
-	vkFreeMemory(m_device, m_vertexBufferMemory, nullptr);
-	vkDestroyBuffer(m_device, m_indexBuffer, nullptr);
-	vkFreeMemory(m_device, m_indexBufferMemory, nullptr);
-	vkDestroyRenderPass(m_device, m_renderPass, nullptr);
-	vkDestroyDevice(m_device, nullptr);
-	vkDestroySurfaceKHR(m_context->getInstance(), m_surface, nullptr);
+	vkDestroyDescriptorPool(m_device->getDevice(), m_descriptorPool, nullptr);
+	vkDestroyDescriptorSetLayout(m_device->getDevice(), m_descriptorLayout, nullptr);
+	vkDestroyBuffer(m_device->getDevice(), m_vertexBuffer, nullptr);
+	vkFreeMemory(m_device->getDevice(), m_vertexBufferMemory, nullptr);
+	vkDestroyBuffer(m_device->getDevice(), m_indexBuffer, nullptr);
+	vkFreeMemory(m_device->getDevice(), m_indexBufferMemory, nullptr);
+	vkDestroyRenderPass(m_device->getDevice(), m_renderPass, nullptr);
+	m_device.reset();
 	m_context.reset();
 }
 
@@ -77,175 +74,18 @@ void Renderer::createContext()
 	m_context.reset(new Context{});
 }
 
-void Renderer::createSurface()
-{
-	if (glfwCreateWindowSurface(m_context->getInstance(), m_window, nullptr, &m_surface) != VK_SUCCESS)
-		throw std::runtime_error{ "failed to create vulkan surface" };
-}
-
-void Renderer::pickGpu()
-{
-	auto gpuCount = uint32_t{};
-	vkEnumeratePhysicalDevices(m_context->getInstance(), &gpuCount, nullptr);
-	auto gpus = std::vector<VkPhysicalDevice>(gpuCount);
-	vkEnumeratePhysicalDevices(m_context->getInstance(), &gpuCount, gpus.data());
-	for (const auto& gpu : gpus)
-	{
-		if (isGpuSuitable(gpu))
-		{
-			m_gpu = gpu;
-			break;
-		}
-	}
-
-	if (m_gpu == VK_NULL_HANDLE)
-		throw std::runtime_error{ "failed to pick gpu" };
-}
-
-bool Renderer::isGpuSuitable(VkPhysicalDevice gpu)
-{
-	auto indices = findQueueFamilies(gpu);
-	auto gpuProperties = VkPhysicalDeviceProperties{};
-	auto gpuFeatures = VkPhysicalDeviceFeatures{};
-	auto extensionsSupport = checkGpuExtensionsSupport(gpu);
-	vkGetPhysicalDeviceProperties(gpu, &gpuProperties);
-	vkGetPhysicalDeviceFeatures(gpu, &gpuFeatures);
-	if (gpuProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU &&
-		gpuFeatures.geometryShader)
-	{
-		std::println("GPU: {}", gpuProperties.deviceName);
-		auto swapchainAdequate = false;
-		if (extensionsSupport)
-		{
-			auto swapchainSupport = querySwapchainSupport(gpu);
-			swapchainAdequate = !swapchainSupport.formats.empty() && !swapchainSupport.presentModes.empty();
-		}
-		return true && indices.graphics.has_value() && indices.present.has_value() && extensionsSupport && swapchainAdequate;
-	}
-	return false;
-}
-
-bool Renderer::checkGpuExtensionsSupport(VkPhysicalDevice gpu)
-{
-	auto extensionCount = uint32_t{};
-	vkEnumerateDeviceExtensionProperties(gpu, nullptr, &extensionCount, nullptr);
-	auto availableExtensions = std::vector<VkExtensionProperties>(extensionCount);
-	vkEnumerateDeviceExtensionProperties(gpu, nullptr, &extensionCount, availableExtensions.data());
-
-	auto requiredExtensions = std::set<std::string>(DEVICE_EXTENSIONS.begin(), DEVICE_EXTENSIONS.end());
-	for (const auto& extension : availableExtensions)
-	{
-		requiredExtensions.erase(extension.extensionName);
-	}
-
-	return requiredExtensions.empty();
-}
-
-QueueFamilyIndices Renderer::findQueueFamilies(VkPhysicalDevice gpu)
-{
-	auto indices = QueueFamilyIndices{};
-	
-	auto queueFamilyCount = uint32_t{};
-	vkGetPhysicalDeviceQueueFamilyProperties(gpu, &queueFamilyCount, nullptr);
-	auto queueFamilies = std::vector<VkQueueFamilyProperties>(queueFamilyCount);
-	vkGetPhysicalDeviceQueueFamilyProperties(gpu, &queueFamilyCount, queueFamilies.data());
-
-	auto i = int{};
-	for (const auto& queueFamily : queueFamilies)
-	{
-		if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT)
-		{
-			indices.graphics = i;
-			break;
-		}
-		i++;
-	}
-
-	i = int{};
-	for (const auto& queueFamily : queueFamilies)
-	{
-		auto presentSupport = VkBool32{};
-		vkGetPhysicalDeviceSurfaceSupportKHR(gpu, i, m_surface, &presentSupport);
-		if (presentSupport)
-		{
-			indices.present = i;
-			break;
-		}
-		i++;
-	}
-
-	return indices;
-}
-
-SwapchainSupportDetails Renderer::querySwapchainSupport(VkPhysicalDevice gpu)
-{
-	auto details = SwapchainSupportDetails{};
-
-	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(gpu, m_surface, &details.capabilities);
-
-	auto formatCount = uint32_t{};
-	vkGetPhysicalDeviceSurfaceFormatsKHR(gpu, m_surface, &formatCount, nullptr);
-	if (formatCount != 0)
-	{
-		details.formats.resize(formatCount);
-		vkGetPhysicalDeviceSurfaceFormatsKHR(gpu, m_surface, &formatCount, details.formats.data());
-	}
-
-	auto presentModeCount = uint32_t{};
-	vkGetPhysicalDeviceSurfacePresentModesKHR(gpu, m_surface, &presentModeCount, nullptr);
-	if (presentModeCount != 0)
-	{
-		details.presentModes.resize(presentModeCount);
-		vkGetPhysicalDeviceSurfacePresentModesKHR(gpu, m_surface, &presentModeCount, details.presentModes.data());
-	}
-
-	return details;
-}
-
 void Renderer::createDevice()
 {
-	auto indices = findQueueFamilies(m_gpu);
-	auto uniqueQueueFamilies = std::set<uint32_t>{indices.graphics.value(), indices.present.value() };
-	auto queueCreateInfos = std::vector<VkDeviceQueueCreateInfo>{};
-	queueCreateInfos.reserve(2);
+	auto surface = VkSurfaceKHR{};
+	if (glfwCreateWindowSurface(m_context->getInstance(), m_window, nullptr, &surface) != VK_SUCCESS)
+		throw std::runtime_error{ "failed to create vulkan surface" };
 
-	for (auto& queueFamily : uniqueQueueFamilies)
-
-	{
-		auto queueCreateInfo = VkDeviceQueueCreateInfo{};
-		auto queuePriority = 1.0f;
-		queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-		queueCreateInfo.queueFamilyIndex = queueFamily;
-		queueCreateInfo.pQueuePriorities = &queuePriority;
-		queueCreateInfo.queueCount = 1;
-		queueCreateInfos.push_back(queueCreateInfo);
-	}
-	
-	auto deviceFeatures = VkPhysicalDeviceFeatures{};
-
-	auto createInfo = VkDeviceCreateInfo{};
-	createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-	createInfo.pQueueCreateInfos = queueCreateInfos.data();
-	createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
-	createInfo.pEnabledFeatures = &deviceFeatures;
-	createInfo.ppEnabledExtensionNames = DEVICE_EXTENSIONS.data();
-	createInfo.enabledExtensionCount = static_cast<uint32_t>(DEVICE_EXTENSIONS.size());
-	if (USE_VALIDATION_LAYERS)
-	{
-		createInfo.ppEnabledLayerNames = VALIDATION_LAYER_NAMES.data();
-		createInfo.enabledLayerCount = static_cast<uint32_t>(VALIDATION_LAYER_NAMES.size());
-	}
-	else
-		createInfo.enabledLayerCount = 0;
-	if (vkCreateDevice(m_gpu, &createInfo, nullptr, &m_device) != VK_SUCCESS)
-		throw std::runtime_error{ "failed to create vulkan device" };
-
-	vkGetDeviceQueue(m_device, indices.graphics.value(), 0, &m_graphicsQueue);
+	m_device.reset(new Device{*m_context, surface});
 }
 
 void Renderer::createRenderPass()
 {
-	auto details = querySwapchainSupport(m_gpu);
+	auto details = m_device->querySwapchainSupport(m_device->getGpu());
 	auto format = Swapchain::chooseSwapchainSurfaceFormat(details.formats);
 	auto colorAttachment = VkAttachmentDescription{};
 	colorAttachment.format = format.format;
@@ -283,7 +123,7 @@ void Renderer::createRenderPass()
 	createInfo.pDependencies = &dependency;
 	createInfo.dependencyCount = 1;
 
-	if (vkCreateRenderPass(m_device, &createInfo, nullptr, &m_renderPass) != VK_SUCCESS)
+	if (vkCreateRenderPass(m_device->getDevice(), &createInfo, nullptr, &m_renderPass) != VK_SUCCESS)
 		throw std::runtime_error{ "failed to create vulkan render pass" };
 }
 
@@ -296,17 +136,17 @@ void Renderer::createVertexBuffer()
 	createBuffer(size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
 
 	void* data{};
-	auto a = vkMapMemory(m_device, stagingBufferMemory, 0, size, 0, &data);
+	auto a = vkMapMemory(m_device->getDevice(), stagingBufferMemory, 0, size, 0, &data);
 	memcpy(data, vertices.data(), static_cast<size_t>(size));
-	vkUnmapMemory(m_device, stagingBufferMemory);
+	vkUnmapMemory(m_device->getDevice(), stagingBufferMemory);
 
 	createBuffer(size, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, 
 		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_vertexBuffer, m_vertexBufferMemory);
 
 	copyBuffer(stagingBuffer, m_vertexBuffer, size);
 
-	vkDestroyBuffer(m_device, stagingBuffer, nullptr);
-	vkFreeMemory(m_device, stagingBufferMemory, nullptr);
+	vkDestroyBuffer(m_device->getDevice(), stagingBuffer, nullptr);
+	vkFreeMemory(m_device->getDevice(), stagingBufferMemory, nullptr);
 }
 
 void Renderer::createIndexBuffer()
@@ -318,17 +158,17 @@ void Renderer::createIndexBuffer()
 	createBuffer(size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
 
 	void* data{};
-	auto a = vkMapMemory(m_device, stagingBufferMemory, 0, size, 0, &data);
+	auto a = vkMapMemory(m_device->getDevice(), stagingBufferMemory, 0, size, 0, &data);
 	memcpy(data, indices.data(), static_cast<size_t>(size));
-	vkUnmapMemory(m_device, stagingBufferMemory);
+	vkUnmapMemory(m_device->getDevice(), stagingBufferMemory);
 
 	createBuffer(size, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
 		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_indexBuffer, m_indexBufferMemory);
 
 	copyBuffer(stagingBuffer, m_indexBuffer, size);
 
-	vkDestroyBuffer(m_device, stagingBuffer, nullptr);
-	vkFreeMemory(m_device, stagingBufferMemory, nullptr);
+	vkDestroyBuffer(m_device->getDevice(), stagingBuffer, nullptr);
+	vkFreeMemory(m_device->getDevice(), stagingBufferMemory, nullptr);
 }
 
 void Renderer::createUniformBuffers()
@@ -344,7 +184,7 @@ void Renderer::createUniformBuffers()
 		createBuffer(size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, 
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
 			m_uniformBuffers[i], m_uniformBuffersMemory[i]);
-		if (vkMapMemory(m_device, m_uniformBuffersMemory[i], 0, size, 0, &m_uniformBuffersMapped[i]) != VK_SUCCESS)
+		if (vkMapMemory(m_device->getDevice(), m_uniformBuffersMemory[i], 0, size, 0, &m_uniformBuffersMapped[i]) != VK_SUCCESS)
 			throw std::runtime_error{ "failed to map uniform buffer" };
 	}
 }
@@ -352,7 +192,7 @@ void Renderer::createUniformBuffers()
 uint32_t Renderer::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties)
 {
 	auto memProps = VkPhysicalDeviceMemoryProperties{};
-	vkGetPhysicalDeviceMemoryProperties(m_gpu, &memProps);
+	vkGetPhysicalDeviceMemoryProperties(m_device->getGpu(), &memProps);
 	for (uint32_t i = 0; i < memProps.memoryTypeCount; i++)
 	{
 		if ((typeFilter & (1 << i)) && (memProps.memoryTypes[i].propertyFlags & properties) == properties)
@@ -367,13 +207,13 @@ void Renderer::createSwapchain()
 	glfwGetFramebufferSize(m_window, &width, &height);
 	auto extent = VkExtent2D{ static_cast<uint32_t>(width), static_cast<uint32_t>(height) };
 	auto createProps = SwapchainProperties{};
-	createProps.gpu = m_gpu;
-	createProps.device = m_device;
-	createProps.surface = m_surface;
+	createProps.gpu = m_device->getGpu();
+	createProps.device = m_device->getDevice();
+	createProps.surface = m_device->getSurface();
 	createProps.renderPass = m_renderPass;
 	createProps.extent = extent;
-	createProps.queueFamilyIndices = findQueueFamilies(m_gpu);
-	createProps.swapchainSupportDetails = querySwapchainSupport(m_gpu);
+	createProps.queueFamilyIndices = m_device->findQueueFamilies(m_device->getGpu());
+	createProps.swapchainSupportDetails = m_device->querySwapchainSupport(m_device->getGpu());
 	m_swapchain.reset(new Swapchain{createProps});
 }
 
@@ -389,7 +229,7 @@ void Renderer::createDescriptorSetLayout()
 	createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
 	createInfo.pBindings = &uboBind;
 	createInfo.bindingCount = 1;
-	if (vkCreateDescriptorSetLayout(m_device, &createInfo, nullptr, &m_descriptorLayout) != VK_SUCCESS)
+	if (vkCreateDescriptorSetLayout(m_device->getDevice(), &createInfo, nullptr, &m_descriptorLayout) != VK_SUCCESS)
 		throw std::runtime_error{ "failed to create descriptor set layout" };
 }
 
@@ -404,7 +244,7 @@ void Renderer::createDescriptorPool()
 	createInfo.pPoolSizes = &poolSize;
 	createInfo.poolSizeCount = 1;
 	createInfo.maxSets = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
-	if (vkCreateDescriptorPool(m_device, &createInfo, nullptr, &m_descriptorPool) != VK_SUCCESS)
+	if (vkCreateDescriptorPool(m_device->getDevice(), &createInfo, nullptr, &m_descriptorPool) != VK_SUCCESS)
 		throw std::runtime_error{ "failed to create descriptor pool" };
 }
 
@@ -417,7 +257,7 @@ void Renderer::createDescriptorSets()
 	allocInfo.descriptorPool = m_descriptorPool;
 	allocInfo.pSetLayouts = layouts.data();
 	allocInfo.descriptorSetCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
-	if (vkAllocateDescriptorSets(m_device, &allocInfo, m_descriptorSets.data()) != VK_SUCCESS)
+	if (vkAllocateDescriptorSets(m_device->getDevice(), &allocInfo, m_descriptorSets.data()) != VK_SUCCESS)
 		throw std::runtime_error{ "failed to allocate descriptor sets" };
 
 	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
@@ -435,7 +275,7 @@ void Renderer::createDescriptorSets()
 		descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		descriptorWrite.pBufferInfo = &bufferInfo;
 		descriptorWrite.descriptorCount = 1;
-		vkUpdateDescriptorSets(m_device, 1, &descriptorWrite, 0, nullptr);
+		vkUpdateDescriptorSets(m_device->getDevice(), 1, &descriptorWrite, 0, nullptr);
 	}
 }
 
@@ -519,7 +359,7 @@ void Renderer::createGraphicsPipeline()
 	pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 	pipelineLayoutInfo.pSetLayouts = &m_descriptorLayout;
 	pipelineLayoutInfo.setLayoutCount = 1;
-	if (vkCreatePipelineLayout(m_device, &pipelineLayoutInfo, nullptr, &m_pipelineLayout) != VK_SUCCESS)
+	if (vkCreatePipelineLayout(m_device->getDevice(), &pipelineLayoutInfo, nullptr, &m_pipelineLayout) != VK_SUCCESS)
 		throw std::runtime_error{ "failed to create vulkan pipeline layout" };
 
 	auto createInfo = VkGraphicsPipelineCreateInfo{};
@@ -537,11 +377,11 @@ void Renderer::createGraphicsPipeline()
 	createInfo.layout = m_pipelineLayout;
 	createInfo.renderPass = m_renderPass;
 	createInfo.subpass = 0;
-	if (vkCreateGraphicsPipelines(m_device, VK_NULL_HANDLE, 1, &createInfo, nullptr, &m_graphicsPipeline))
+	if (vkCreateGraphicsPipelines(m_device->getDevice(), VK_NULL_HANDLE, 1, &createInfo, nullptr, &m_graphicsPipeline))
 		throw std::runtime_error{ "failed to create vulkan pipeline" };
 
-	vkDestroyShaderModule(m_device, vertexModule, nullptr);
-	vkDestroyShaderModule(m_device, fragmentModule, nullptr);
+	vkDestroyShaderModule(m_device->getDevice(), vertexModule, nullptr);
+	vkDestroyShaderModule(m_device->getDevice(), fragmentModule, nullptr);
 }
 
 VkShaderModule Renderer::createShaderModule(const std::vector<char>& code)
@@ -552,7 +392,7 @@ VkShaderModule Renderer::createShaderModule(const std::vector<char>& code)
 	createInfo.codeSize = code.size();
 
 	auto shaderModule = VkShaderModule{};
-	if (vkCreateShaderModule(m_device, &createInfo, nullptr, &shaderModule) != VK_SUCCESS)
+	if (vkCreateShaderModule(m_device->getDevice(), &createInfo, nullptr, &shaderModule) != VK_SUCCESS)
 		throw std::runtime_error{ "failed to create shader module" };
 	
 	return shaderModule;
@@ -560,14 +400,14 @@ VkShaderModule Renderer::createShaderModule(const std::vector<char>& code)
 
 void Renderer::createCommandPool()
 {
-	auto queueFamilyIndices = findQueueFamilies(m_gpu);
+	auto queueFamilyIndices = m_device->findQueueFamilies(m_device->getGpu());
 
 	auto createInfo = VkCommandPoolCreateInfo{};
 	createInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
 	createInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 	createInfo.queueFamilyIndex = queueFamilyIndices.graphics.value();
 
-	if (vkCreateCommandPool(m_device, &createInfo, nullptr, &m_commandPool) != VK_SUCCESS)
+	if (vkCreateCommandPool(m_device->getDevice(), &createInfo, nullptr, &m_commandPool) != VK_SUCCESS)
 		throw std::runtime_error{ "failed to create vulkan command pool" };
 }
 
@@ -585,9 +425,9 @@ void Renderer::createSyncObjects()
 	m_inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
 	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
 	{
-		if (vkCreateSemaphore(m_device, &semaphoreInfo, nullptr, &m_imageAvailableSemaphores[i]) != VK_SUCCESS ||
-			vkCreateSemaphore(m_device, &semaphoreInfo, nullptr, &m_renderFinishedSemaphores[i]) != VK_SUCCESS ||
-			vkCreateFence(m_device, &fenceInfo, nullptr, &m_inFlightFences[i]) != VK_SUCCESS)
+		if (vkCreateSemaphore(m_device->getDevice(), &semaphoreInfo, nullptr, &m_imageAvailableSemaphores[i]) != VK_SUCCESS ||
+			vkCreateSemaphore(m_device->getDevice(), &semaphoreInfo, nullptr, &m_renderFinishedSemaphores[i]) != VK_SUCCESS ||
+			vkCreateFence(m_device->getDevice(), &fenceInfo, nullptr, &m_inFlightFences[i]) != VK_SUCCESS)
 			throw std::runtime_error{ "failed to create vulkan sync objects" };
 	}
 }
@@ -600,7 +440,7 @@ void Renderer::createCommandBuffers()
 	allocInfo.commandPool = m_commandPool;
 	allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 	allocInfo.commandBufferCount = MAX_FRAMES_IN_FLIGHT;
-	if (vkAllocateCommandBuffers(m_device, &allocInfo, m_commandBuffers.data()) != VK_SUCCESS)
+	if (vkAllocateCommandBuffers(m_device->getDevice(), &allocInfo, m_commandBuffers.data()) != VK_SUCCESS)
 		throw std::runtime_error{ "failed to allocate vulkan command buffers" };
 }
 
@@ -611,20 +451,20 @@ void Renderer::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemor
 	createInfo.size = size;
 	createInfo.usage = usage;
 	createInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-	if (vkCreateBuffer(m_device, &createInfo, nullptr, &buffer) != VK_SUCCESS)
+	if (vkCreateBuffer(m_device->getDevice(), &createInfo, nullptr, &buffer) != VK_SUCCESS)
 		throw std::runtime_error{ "failed to create vertex buffer" };
 
 	auto memReq = VkMemoryRequirements{};
-	vkGetBufferMemoryRequirements(m_device, buffer, &memReq);
+	vkGetBufferMemoryRequirements(m_device->getDevice(), buffer, &memReq);
 
 	auto allocInfo = VkMemoryAllocateInfo{};
 	allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 	allocInfo.allocationSize = memReq.size;
 	allocInfo.memoryTypeIndex = findMemoryType(memReq.memoryTypeBits, properties);
-	if (vkAllocateMemory(m_device, &allocInfo, nullptr, &memory) != VK_SUCCESS)
+	if (vkAllocateMemory(m_device->getDevice(), &allocInfo, nullptr, &memory) != VK_SUCCESS)
 		throw std::runtime_error{ "failed to allocate vertex buffer memory" };
 
-	vkBindBufferMemory(m_device, buffer, memory, 0);
+	vkBindBufferMemory(m_device->getDevice(), buffer, memory, 0);
 }
 
 void Renderer::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size)
@@ -635,7 +475,7 @@ void Renderer::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize s
 	allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 	allocInfo.commandPool = m_commandPool;
 	allocInfo.commandBufferCount = 1;
-	if (vkAllocateCommandBuffers(m_device, &allocInfo, &commandBuffer) != VK_SUCCESS)
+	if (vkAllocateCommandBuffers(m_device->getDevice(), &allocInfo, &commandBuffer) != VK_SUCCESS)
 		throw std::runtime_error{ "failed to allocate command buffer" };
 
 	auto beginInfo = VkCommandBufferBeginInfo{};
@@ -657,11 +497,11 @@ void Renderer::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize s
 	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 	submitInfo.pCommandBuffers = &commandBuffer;
 	submitInfo.commandBufferCount = 1;
-	if (vkQueueSubmit(m_graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE) != VK_SUCCESS)
+	if (vkQueueSubmit(m_device->getGraphicsQueue(), 1, &submitInfo, VK_NULL_HANDLE) != VK_SUCCESS)
 		throw std::runtime_error{ "failed to submit command buffer" };
 
-	vkQueueWaitIdle(m_graphicsQueue);
-	vkFreeCommandBuffers(m_device, m_commandPool, 1, &commandBuffer);
+	vkQueueWaitIdle(m_device->getGraphicsQueue());
+	vkFreeCommandBuffers(m_device->getDevice(), m_commandPool, 1, &commandBuffer);
 }
 
 void Renderer::updateUniformBuffer()
@@ -747,7 +587,7 @@ void Renderer::draw()
 	submitInfo.commandBufferCount = 1;
 	submitInfo.pSignalSemaphores = signalSemaphores.begin();
 	submitInfo.signalSemaphoreCount = signalSemaphores.size();
-	if (vkQueueSubmit(m_graphicsQueue, 1, &submitInfo, m_inFlightFences[currentFrame]) != VK_SUCCESS)
+	if (vkQueueSubmit(m_device->getGraphicsQueue(), 1, &submitInfo, m_inFlightFences[currentFrame]) != VK_SUCCESS)
 		throw std::runtime_error{ "failed to submit draw command buffer" };
 
 	m_swapchain->endFrame(imageIndex, m_renderFinishedSemaphores[currentFrame]);
