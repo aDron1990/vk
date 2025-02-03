@@ -1,5 +1,7 @@
 #pragma once
 
+#include "renderer/config.hpp"
+
 #include <vulkan/vulkan.h>
 
 #include <vector>
@@ -26,21 +28,6 @@ private:
 		VkDebugUtilsMessageTypeFlagsEXT messageType,
 		const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
 		void* pUserData);
-
-private:
-#ifdef _DEBUG
-	const bool USE_VALIDATION_LAYERS = true;
-#else
-	const bool USE_VALIDATION_LAYERS = false;
-#endif
-	const std::vector<const char*> VALIDATION_LAYER_NAMES =
-	{
-		"VK_LAYER_KHRONOS_validation"
-	};
-	const std::vector<const char*> DEVICE_EXTENSIONS =
-	{
-		VK_KHR_SWAPCHAIN_EXTENSION_NAME
-	};
 
 private:
 	VkInstance m_instance;

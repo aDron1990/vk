@@ -1,5 +1,7 @@
 #pragma once
 
+#include "renderer/config.hpp"
+#include "renderer/context.hpp"
 #include "renderer/swapchain.hpp"
 
 #include <vulkan/vulkan.h>
@@ -18,7 +20,7 @@ public:
 	void draw();
 
 private:
-	void createInstance();
+	void createContext();
 	void createSurface();
 	void pickGpu();
 	void createDevice();
@@ -36,12 +38,6 @@ private:
 	void createGraphicsPipeline();
 
 private:
-	bool checkValidationLayerSupport();
-	void setupDebugMessenger();
-	std::vector<const char*> getReqiuredExtensions();
-	void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
-	static VkResult createDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger);
-	static void destroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator);
 	bool isGpuSuitable(VkPhysicalDevice gpu);
 	bool checkGpuExtensionsSupport(VkPhysicalDevice gpu);
 	QueueFamilyIndices findQueueFamilies(VkPhysicalDevice gpu);
@@ -54,36 +50,11 @@ private:
 	void updateUniformBuffer();
 
 private:
-	static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
-		VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-		VkDebugUtilsMessageTypeFlagsEXT messageType,
-		const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
-		void* pUserData);
-
-private:
-#ifdef _DEBUG
-	const bool USE_VALIDATION_LAYERS = true;
-#else
-	const bool USE_VALIDATION_LAYERS = false;
-#endif
-
 	const int MAX_FRAMES_IN_FLIGHT = 2;
 	uint32_t currentFrame{};
 
-	const std::vector<const char*> VALIDATION_LAYER_NAMES = 
-	{
-		"VK_LAYER_KHRONOS_validation"
-	};
-
-	const std::vector<const char*> DEVICE_EXTENSIONS = 
-	{
-		VK_KHR_SWAPCHAIN_EXTENSION_NAME
-	};
-
 	GLFWwindow* m_window;
 
-	VkInstance m_instance;
-	VkDebugUtilsMessengerEXT m_debugMessenger;
 	VkSurfaceKHR m_surface;
 	VkPhysicalDevice m_gpu;
 	VkDevice m_device;
@@ -107,6 +78,7 @@ private:
 	std::vector<VkDeviceMemory> m_uniformBuffersMemory;
 	std::vector<void*> m_uniformBuffersMapped;
 
+	std::unique_ptr<Context> m_context;
 	std::unique_ptr<Swapchain> m_swapchain;
 };
 

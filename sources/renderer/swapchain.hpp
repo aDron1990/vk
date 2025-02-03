@@ -1,6 +1,7 @@
 #pragma once
 
 #include "renderer/types.hpp"
+#include "renderer/context.hpp"
 
 #include <vulkan/vulkan.h>
 
@@ -9,7 +10,6 @@
 
 struct SwapchainProperties
 {
-	VkInstance instance;
 	VkPhysicalDevice gpu;
 	VkDevice device;
 	VkRenderPass renderPass;
@@ -52,7 +52,6 @@ private:
 	uint32_t currentFrame{};
 
 private:
-	const VkInstance m_instance;
 	const VkPhysicalDevice m_gpu;
 	const VkDevice m_device;
 	const VkRenderPass m_renderPass;

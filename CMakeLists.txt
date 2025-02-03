@@ -14,6 +14,7 @@ add_executable(vk
 	"sources/window/glfw_window.hpp"
 	"sources/window/glfw_window.cpp"
 
+	"sources/renderer/config.hpp"
 	"sources/renderer/types.hpp"
 	"sources/renderer/types.cpp"
 	"sources/renderer/renderer.hpp"
