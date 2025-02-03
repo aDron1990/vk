@@ -32,6 +32,8 @@ private:
 	void pickGpu();
 	void createDevice();
 	void createCommandPool();
+	void createSyncObjects();
+	void createCommandBuffers();
 	void createRenderPass();
 	void createVertexBuffer();
 	void createIndexBuffer();
@@ -70,6 +72,7 @@ private:
 #endif
 
 	const int MAX_FRAMES_IN_FLIGHT = 2;
+	uint32_t currentFrame{};
 
 	const std::vector<const char*> VALIDATION_LAYER_NAMES = 
 	{
@@ -93,6 +96,10 @@ private:
 	VkPipelineLayout m_pipelineLayout;
 	VkPipeline m_graphicsPipeline;
 	VkCommandPool m_commandPool;
+	std::vector<VkCommandBuffer> m_commandBuffers;
+	std::vector<VkSemaphore> m_imageAvailableSemaphores;
+	std::vector<VkSemaphore> m_renderFinishedSemaphores;
+	std::vector<VkFence> m_inFlightFences;
 	VkBuffer m_vertexBuffer;
 	VkDeviceMemory m_vertexBufferMemory;
 	VkBuffer m_indexBuffer;

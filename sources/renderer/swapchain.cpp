@@ -4,7 +4,7 @@
 #include <algorithm>
 
 Swapchain::Swapchain(SwapchainProperties properties)
-	: m_instance{ properties.instance }, m_gpu{ properties.gpu }, m_device{ properties.device }, m_commandPool{ properties.commandPool }, 
+	: m_instance{ properties.instance }, m_gpu{ properties.gpu }, m_device{ properties.device }, 
 	m_renderPass{ properties.renderPass }, m_surface {properties.surface }, m_extent{ properties.extent }, 
 	m_queueFamilyIndices{properties.queueFamilyIndices}, m_swapchainSupportDetails{properties.swapchainSupportDetails}
 {
@@ -12,18 +12,10 @@ Swapchain::Swapchain(SwapchainProperties properties)
 	createSwapchain();
 	createImageViews();
 	createFramebuffers();
-	createSyncObjects();
-	createCommandBuffers();
 }
 
 Swapchain::~Swapchain()
 {
-	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
-	{
-		vkDestroySemaphore(m_device, m_imageAvailableSemaphores[i], nullptr);
-		vkDestroySemaphore(m_device, m_renderFinishedSemaphores[i], nullptr);
-		vkDestroyFence(m_device, m_inFlightFences[i], nullptr);
-	}
 	for (auto framebuffer : m_swapchainFramebuffers)
 		vkDestroyFramebuffer(m_device, framebuffer, nullptr);
 	for (auto view : m_swapchainImageViews)
@@ -158,39 +150,6 @@ void Swapchain::createFramebuffers()
 	}
 }
 
-void Swapchain::createSyncObjects()
-{
-	auto semaphoreInfo = VkSemaphoreCreateInfo{};
-	semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-
-	auto fenceInfo = VkFenceCreateInfo{};
-	fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-	fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-
-	m_imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
-	m_renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
-	m_inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
-	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
-	{
-		if (vkCreateSemaphore(m_device, &semaphoreInfo, nullptr, &m_imageAvailableSemaphores[i]) != VK_SUCCESS ||
-			vkCreateSemaphore(m_device, &semaphoreInfo, nullptr, &m_renderFinishedSemaphores[i]) != VK_SUCCESS ||
-			vkCreateFence(m_device, &fenceInfo, nullptr, &m_inFlightFences[i]) != VK_SUCCESS)
-			throw std::runtime_error{ "failed to create vulkan sync objects" };
-	}
-}
-
-void Swapchain::createCommandBuffers()
-{
-	m_commandBuffers.resize(MAX_FRAMES_IN_FLIGHT);
-	auto allocInfo = VkCommandBufferAllocateInfo{};
-	allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-	allocInfo.commandPool = m_commandPool;
-	allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-	allocInfo.commandBufferCount = MAX_FRAMES_IN_FLIGHT;
-	if (vkAllocateCommandBuffers(m_device, &allocInfo, m_commandBuffers.data()) != VK_SUCCESS)
-		throw std::runtime_error{ "failed to allocate vulkan command buffers" };
-}
-
 VkExtent2D Swapchain::getExtent()
 {
 	return m_swapchainExtent;
@@ -201,29 +160,9 @@ VkFormat Swapchain::getFormat()
 	return m_swapchainFormat;
 }
 
-VkSemaphore Swapchain::getImageAvailableSemaphore()
-{
-	return m_imageAvailableSemaphores[currentFrame];
-}
-
-VkSemaphore Swapchain::getRenderFinishedSemaphore()
-{
-	return m_renderFinishedSemaphores[currentFrame];
-}
-
-VkFence Swapchain::getInFlightFence()
-{
-	return m_inFlightFences[currentFrame];
-}
-
 VkFramebuffer Swapchain::getFramebuffer(uint32_t index)
 {
 	return m_swapchainFramebuffers[index];
-}
-
-VkCommandBuffer Swapchain::getCommandBuffer()
-{
-	return m_commandBuffers[currentFrame];
 }
 
 uint32_t Swapchain::getCurrentFrame()
@@ -231,23 +170,23 @@ uint32_t Swapchain::getCurrentFrame()
 	return currentFrame;
 }
 
-uint32_t Swapchain::beginFrame()
+uint32_t Swapchain::beginFrame(VkFence inFlightFence, VkSemaphore imageAvailableSemaphore)
 {
 	currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 
-	vkWaitForFences(m_device, 1, &m_inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
-	vkResetFences(m_device, 1, &m_inFlightFences[currentFrame]);
+	vkWaitForFences(m_device, 1, &inFlightFence, VK_TRUE, UINT64_MAX);
+	vkResetFences(m_device, 1, &inFlightFence);
 
 	auto imageIndex = uint32_t{};
-	vkAcquireNextImageKHR(m_device, m_swapchain, UINT64_MAX, m_imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
+	vkAcquireNextImageKHR(m_device, m_swapchain, UINT64_MAX, imageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
 	return imageIndex;
 }
 
-void Swapchain::endFrame(uint32_t imageIndex)
+void Swapchain::endFrame(uint32_t imageIndex, VkSemaphore renderFinishedSemaphore)
 {
 	auto presentInfo = VkPresentInfoKHR{};
 	presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-	presentInfo.pWaitSemaphores = &m_renderFinishedSemaphores[currentFrame];
+	presentInfo.pWaitSemaphores = &renderFinishedSemaphore;
 	presentInfo.waitSemaphoreCount = 1;
 	presentInfo.pSwapchains = &m_swapchain;
 	presentInfo.swapchainCount = 1;

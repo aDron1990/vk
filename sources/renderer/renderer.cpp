@@ -54,6 +54,8 @@ Renderer::Renderer(GLFWwindow* window) : m_window{window}
 	pickGpu();
 	createDevice();
 	createCommandPool();
+	createSyncObjects();
+	createCommandBuffers();
 	createRenderPass();
 	createVertexBuffer();
 	createIndexBuffer();
@@ -64,6 +66,12 @@ Renderer::Renderer(GLFWwindow* window) : m_window{window}
 Renderer::~Renderer()
 {
 	vkDeviceWaitIdle(m_device);
+	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+	{
+		vkDestroySemaphore(m_device, m_imageAvailableSemaphores[i], nullptr);
+		vkDestroySemaphore(m_device, m_renderFinishedSemaphores[i], nullptr);
+		vkDestroyFence(m_device, m_inFlightFences[i], nullptr);
+	}
 	vkDestroyCommandPool(m_device, m_commandPool, nullptr);
 	vkDestroyPipeline(m_device, m_graphicsPipeline, nullptr);
 	vkDestroyPipelineLayout(m_device, m_pipelineLayout, nullptr);
@@ -472,7 +480,6 @@ void Renderer::createSwapchain()
 	createProps.instance = m_instance;
 	createProps.gpu = m_gpu;
 	createProps.device = m_device;
-	createProps.commandPool = m_commandPool;
 	createProps.surface = m_surface;
 	createProps.renderPass = m_renderPass;
 	createProps.extent = extent;
@@ -614,6 +621,39 @@ void Renderer::createCommandPool()
 		throw std::runtime_error{ "failed to create vulkan command pool" };
 }
 
+void Renderer::createSyncObjects()
+{
+	auto semaphoreInfo = VkSemaphoreCreateInfo{};
+	semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+	auto fenceInfo = VkFenceCreateInfo{};
+	fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+	fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+
+	m_imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
+	m_renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
+	m_inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
+	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+	{
+		if (vkCreateSemaphore(m_device, &semaphoreInfo, nullptr, &m_imageAvailableSemaphores[i]) != VK_SUCCESS ||
+			vkCreateSemaphore(m_device, &semaphoreInfo, nullptr, &m_renderFinishedSemaphores[i]) != VK_SUCCESS ||
+			vkCreateFence(m_device, &fenceInfo, nullptr, &m_inFlightFences[i]) != VK_SUCCESS)
+			throw std::runtime_error{ "failed to create vulkan sync objects" };
+	}
+}
+
+void Renderer::createCommandBuffers()
+{
+	m_commandBuffers.resize(MAX_FRAMES_IN_FLIGHT);
+	auto allocInfo = VkCommandBufferAllocateInfo{};
+	allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+	allocInfo.commandPool = m_commandPool;
+	allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+	allocInfo.commandBufferCount = MAX_FRAMES_IN_FLIGHT;
+	if (vkAllocateCommandBuffers(m_device, &allocInfo, m_commandBuffers.data()) != VK_SUCCESS)
+		throw std::runtime_error{ "failed to allocate vulkan command buffers" };
+}
+
 void Renderer::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& memory)
 {
 	auto createInfo = VkBufferCreateInfo{};
@@ -721,16 +761,16 @@ void Renderer::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t image
 
 void Renderer::draw()
 {
-	auto imageIndex = m_swapchain->beginFrame();
-	auto commandBuffer = m_swapchain->getCommandBuffer();
+	auto imageIndex = m_swapchain->beginFrame(m_inFlightFences[currentFrame], m_imageAvailableSemaphores[currentFrame]);
+	auto commandBuffer = m_commandBuffers[currentFrame];
 
 	vkResetCommandBuffer(commandBuffer, 0);
 	recordCommandBuffer(commandBuffer, imageIndex);
 
 	std::initializer_list<VkPipelineStageFlags> waitStages = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
 	auto submitInfo = VkSubmitInfo{};
-	auto signalSemaphores = { m_swapchain->getRenderFinishedSemaphore() };
-	auto waitSemaphores = { m_swapchain->getImageAvailableSemaphore()};
+	auto signalSemaphores = { m_renderFinishedSemaphores[currentFrame] };
+	auto waitSemaphores = { m_imageAvailableSemaphores[currentFrame] };
 	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 	submitInfo.pWaitSemaphores = waitSemaphores.begin();
 	submitInfo.waitSemaphoreCount = waitSemaphores.size();
@@ -739,8 +779,9 @@ void Renderer::draw()
 	submitInfo.commandBufferCount = 1;
 	submitInfo.pSignalSemaphores = signalSemaphores.begin();
 	submitInfo.signalSemaphoreCount = signalSemaphores.size();
-	if (vkQueueSubmit(m_graphicsQueue, 1, &submitInfo, m_swapchain->getInFlightFence()) != VK_SUCCESS)
+	if (vkQueueSubmit(m_graphicsQueue, 1, &submitInfo, m_inFlightFences[currentFrame]) != VK_SUCCESS)
 		throw std::runtime_error{ "failed to submit draw command buffer" };
 
-	m_swapchain->endFrame(imageIndex);
+	m_swapchain->endFrame(imageIndex, m_renderFinishedSemaphores[currentFrame]);
+	currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 }

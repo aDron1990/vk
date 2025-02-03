@@ -12,7 +12,6 @@ struct SwapchainProperties
 	VkInstance instance;
 	VkPhysicalDevice gpu;
 	VkDevice device;
-	VkCommandPool commandPool;
 	VkRenderPass renderPass;
 	VkSurfaceKHR surface;
 	VkExtent2D extent;
@@ -28,23 +27,17 @@ public:
 
 	VkExtent2D getExtent();
 	VkFormat getFormat();
-	VkSemaphore getImageAvailableSemaphore();
-	VkSemaphore getRenderFinishedSemaphore();
-	VkCommandBuffer getCommandBuffer();
-	VkFence getInFlightFence();
 	VkFramebuffer getFramebuffer(uint32_t index);
 
 	uint32_t getCurrentFrame();
 
-	uint32_t beginFrame();
-	void endFrame(uint32_t imageIndex);
+	uint32_t beginFrame(VkFence inFlightFence, VkSemaphore imageAvailableSemaphore);
+	void endFrame(uint32_t imageIndex, VkSemaphore renderFinishedSemaphore);
 
 private:
 	void createSwapchain();
 	void createImageViews();
 	void createFramebuffers();
-	void createSyncObjects();
-	void createCommandBuffers();
 
 public:
 	static VkSurfaceFormatKHR chooseSwapchainSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
@@ -62,7 +55,6 @@ private:
 	const VkInstance m_instance;
 	const VkPhysicalDevice m_gpu;
 	const VkDevice m_device;
-	const VkCommandPool m_commandPool;
 	const VkRenderPass m_renderPass;
 	const VkSurfaceKHR m_surface;
 	const QueueFamilyIndices m_queueFamilyIndices;
@@ -70,11 +62,6 @@ private:
 	
 	VkQueue m_presentQueue;
 	VkSwapchainKHR m_swapchain;
-
-	std::vector<VkCommandBuffer> m_commandBuffers;
-	std::vector<VkSemaphore> m_imageAvailableSemaphores;
-	std::vector<VkSemaphore> m_renderFinishedSemaphores;
-	std::vector<VkFence> m_inFlightFences;
 
 	std::vector<VkImage> m_swapchainImages;
 	std::vector<VkImageView> m_swapchainImageViews;
