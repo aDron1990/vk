@@ -4,6 +4,7 @@
 #include "renderer/context.hpp"
 #include "renderer/device.hpp"
 #include "renderer/swapchain.hpp"
+#include "renderer/pipeline.hpp"
 #include "renderer/buffer.hpp"
 
 #include <vulkan/vulkan.h>
@@ -41,35 +42,33 @@ private:
 private:
 	void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
 	void updateUniformBuffer();
-	VkShaderModule createShaderModule(const std::vector<char>& code);
 
 private:
 	
 	uint32_t currentFrame{};
-
 	GLFWwindow* m_window;
 
 	VkRenderPass m_renderPass;
 	VkDescriptorSetLayout m_descriptorLayout;
-	std::vector<VkDescriptorSet> m_descriptorSets;
-	VkPipelineLayout m_pipelineLayout;
-	VkPipeline m_graphicsPipeline;
-	std::vector<VkCommandBuffer> m_commandBuffers;
-	std::vector<VkSemaphore> m_imageAvailableSemaphores;
-	std::vector<VkSemaphore> m_renderFinishedSemaphores;
-	std::vector<VkFence> m_inFlightFences;
+
 	VkImage m_textureImage;
 	VkImageView m_textureImageView;
 	VkSampler m_textureSampler;
 	VkDeviceMemory m_textureImageMemory;
-	std::unique_ptr<Buffer> m_vertexBuffer;
-	std::unique_ptr<Buffer> m_indexBuffer;
 
 	std::vector<Buffer> m_uniformBuffers;
 	std::vector<void*> m_uniformBuffersMapped;
+	std::vector<VkDescriptorSet> m_descriptorSets;
+	std::vector<VkCommandBuffer> m_commandBuffers;
+	std::vector<VkSemaphore> m_imageAvailableSemaphores;
+	std::vector<VkSemaphore> m_renderFinishedSemaphores;
+	std::vector<VkFence> m_inFlightFences;
 
 	std::unique_ptr<Context> m_context;
 	std::unique_ptr<Device> m_device;
 	std::unique_ptr<Swapchain> m_swapchain;
+	std::unique_ptr<Pipeline> m_pipeline;
+	std::unique_ptr<Buffer> m_vertexBuffer;
+	std::unique_ptr<Buffer> m_indexBuffer;
 };
 

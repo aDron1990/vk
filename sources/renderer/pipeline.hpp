@@ -12,16 +12,25 @@ struct PipelineInfo
 {
 	std::string vertexPath;
 	std::string fragmentPath;
+	VkDescriptorSetLayout descriptorSetLayout;
+	VkRenderPass renderPass;
 };
 
 class Pipeline
 {
 public:
 	Pipeline(Device& device, PipelineInfo& info);
+	~Pipeline();
+	void bind(VkCommandBuffer commandBuffer);
+	VkPipelineLayout getLayout();
+
+private:
+	void createGraphicsPipeline();
+	VkShaderModule createShaderModule(const std::vector<char>& code);
 
 private:
 	Device& m_device;
 	PipelineInfo m_info;
-	VkDescriptorSetLayout m_descriptorSetLayout;
-	std::vector<VkDescriptorSet> m_decsriptorSets;
+	VkPipelineLayout m_pipelineLayout;
+	VkPipeline m_pipeline;
 };
