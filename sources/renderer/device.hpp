@@ -2,6 +2,7 @@
 
 #include "renderer/types.hpp"
 #include "renderer/context.hpp"
+#include "renderer/buffer.hpp"
 
 class Device
 {
@@ -13,8 +14,8 @@ public:
 	void createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
 	VkImageView createImageView(VkImage image, VkFormat format);
 
-	void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
-	void copyBufferToImage(VkBuffer srcBuffer, VkImage dstImage, uint32_t width, uint32_t height);
+	void copyBuffer(Buffer& srcBuffer, Buffer& dstBuffer);
+	void copyBufferToImage(Buffer& srcBuffer, VkImage dstImage, uint32_t width, uint32_t height);
 	void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
 
 	std::vector<VkCommandBuffer> allocateCommandBuffers(uint32_t count);

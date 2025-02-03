@@ -272,20 +272,20 @@ VkImageView Device::createImageView(VkImage image, VkFormat format)
 	return imageView;
 }
 
-void Device::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size)
+void Device::copyBuffer(Buffer& srcBuffer, Buffer& dstBuffer)
 {
 	auto commandBuffer = beginSingleTimeCommands();
 
 	auto copyRegion = VkBufferCopy{};
 	copyRegion.srcOffset = 0;
 	copyRegion.dstOffset = 0;
-	copyRegion.size = size;
-	vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
+	copyRegion.size = srcBuffer.getSize();
+	vkCmdCopyBuffer(commandBuffer, srcBuffer.getBuffer(), dstBuffer.getBuffer(), 1, &copyRegion);
 
 	endSingleTimeCommands(commandBuffer);
 }
 
-void Device::copyBufferToImage(VkBuffer srcBuffer, VkImage dstImage, uint32_t width, uint32_t height)
+void Device::copyBufferToImage(Buffer& srcBuffer, VkImage dstImage, uint32_t width, uint32_t height)
 {
 	auto commandBuffer = beginSingleTimeCommands();
 
@@ -303,7 +303,7 @@ void Device::copyBufferToImage(VkBuffer srcBuffer, VkImage dstImage, uint32_t wi
 		height,
 		1
 	};
-	vkCmdCopyBufferToImage(commandBuffer, srcBuffer, dstImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+	vkCmdCopyBufferToImage(commandBuffer, srcBuffer.getBuffer(), dstImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 
 	endSingleTimeCommands(commandBuffer);
 }
