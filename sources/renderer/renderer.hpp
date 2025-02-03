@@ -28,6 +28,8 @@ private:
 	void createCommandBuffers();
 	void createRenderPass();
 	void createTextureImage();
+	void createTextureImageView();
+	void createTextureSampler();
 	void createVertexBuffer();
 	void createIndexBuffer();
 	void createUniformBuffers();
@@ -49,6 +51,7 @@ private:
 	VkCommandBuffer beginSingleTimeCommands();
 	void endSingleTimeCommands(VkCommandBuffer commandBuffer);
 	void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
+	VkImageView createImageView(VkImage image, VkFormat format);
 
 private:
 	const int MAX_FRAMES_IN_FLIGHT = 2;
@@ -68,6 +71,8 @@ private:
 	std::vector<VkSemaphore> m_renderFinishedSemaphores;
 	std::vector<VkFence> m_inFlightFences;
 	VkImage m_textureImage;
+	VkImageView m_textureImageView;
+	VkSampler m_textureSampler;
 	VkDeviceMemory m_textureImageMemory;
 	VkBuffer m_vertexBuffer;
 	VkDeviceMemory m_vertexBufferMemory;

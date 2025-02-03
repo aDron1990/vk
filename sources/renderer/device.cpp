@@ -54,7 +54,7 @@ bool Device::isGpuSuitable(VkPhysicalDevice gpu)
 			auto swapchainSupport = querySwapchainSupport(gpu);
 			swapchainAdequate = !swapchainSupport.formats.empty() && !swapchainSupport.presentModes.empty();
 		}
-		return true && indices.graphics.has_value() && indices.present.has_value() && extensionsSupport && swapchainAdequate;
+		return true && indices.graphics.has_value() && indices.present.has_value() && extensionsSupport && swapchainAdequate && gpuFeatures.samplerAnisotropy;
 	}
 
 	return false;
@@ -150,6 +150,8 @@ void Device::createDevice()
 	}
 
 	auto deviceFeatures = VkPhysicalDeviceFeatures{};
+	deviceFeatures.samplerAnisotropy = VK_TRUE;
+
 	auto createInfo = VkDeviceCreateInfo{};
 	createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 	createInfo.pQueueCreateInfos = queueCreateInfos.data();

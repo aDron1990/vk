@@ -33,6 +33,8 @@ Renderer::Renderer(GLFWwindow* window) : m_window{window}
 	createCommandBuffers();
 	createRenderPass();
 	createTextureImage();
+	createTextureImageView();
+	createTextureSampler();
 	createVertexBuffer();
 	createIndexBuffer();
 	createUniformBuffers();
@@ -61,6 +63,8 @@ Renderer::~Renderer()
 		vkDestroyBuffer(m_device->getDevice(), m_uniformBuffers[i], nullptr);
 		vkFreeMemory(m_device->getDevice(), m_uniformBuffersMemory[i], nullptr);
 	}
+	vkDestroySampler(m_device->getDevice(), m_textureSampler, nullptr);
+	vkDestroyImageView(m_device->getDevice(), m_textureImageView, nullptr);
 	vkDestroyImage(m_device->getDevice(), m_textureImage, nullptr);
 	vkFreeMemory(m_device->getDevice(), m_textureImageMemory, nullptr);
 	vkDestroyDescriptorPool(m_device->getDevice(), m_descriptorPool, nullptr);
@@ -164,6 +168,37 @@ void Renderer::createTextureImage()
 
 	vkDestroyBuffer(m_device->getDevice(), stagingBuffer, nullptr);
 	vkFreeMemory(m_device->getDevice(), stagingBufferMemory, nullptr);
+}
+
+void Renderer::createTextureImageView()
+{
+	m_textureImageView = createImageView(m_textureImage, VK_FORMAT_R8G8B8A8_SRGB);
+}
+
+void Renderer::createTextureSampler()
+{
+	auto gpuProps = VkPhysicalDeviceProperties{};
+	vkGetPhysicalDeviceProperties(m_device->getGpu(), &gpuProps);
+
+	auto createInfo = VkSamplerCreateInfo{};
+	createInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+	createInfo.magFilter = VK_FILTER_LINEAR;
+	createInfo.minFilter = VK_FILTER_LINEAR;
+	createInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+	createInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+	createInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+	createInfo.anisotropyEnable = VK_TRUE;
+	createInfo.maxAnisotropy = gpuProps.limits.maxSamplerAnisotropy;
+	createInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+	createInfo.unnormalizedCoordinates = VK_FALSE;
+	createInfo.compareEnable = VK_FALSE;
+	createInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+	createInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+	createInfo.mipLodBias = 0.0f;
+	createInfo.minLod = 0.0f;
+	createInfo.maxLod = 0.0f;
+	if (vkCreateSampler(m_device->getDevice(), &createInfo, nullptr, &m_textureSampler) != VK_SUCCESS)
+		throw std::runtime_error("failed to create texture sampler!");
 }
 
 void Renderer::createVertexBuffer()
@@ -663,6 +698,25 @@ void Renderer::transitionImageLayout(VkImage image, VkFormat format, VkImageLayo
 	);
 
 	endSingleTimeCommands(commandBuffer);
+}
+
+VkImageView Renderer::createImageView(VkImage image, VkFormat format)
+{
+	auto imageView = VkImageView{};
+	auto createInfo = VkImageViewCreateInfo{};
+	createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+	createInfo.image = image;
+	createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+	createInfo.format = format;
+	createInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	createInfo.subresourceRange.baseMipLevel = 0;
+	createInfo.subresourceRange.levelCount = 1;
+	createInfo.subresourceRange.baseArrayLayer = 0;
+	createInfo.subresourceRange.layerCount = 1;
+	if (vkCreateImageView(m_device->getDevice(), &createInfo, nullptr, &imageView) != VK_SUCCESS)
+		throw std::runtime_error{ "failed to create image view" };
+
+	return imageView;
 }
 
 void Renderer::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex)
