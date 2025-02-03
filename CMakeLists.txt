@@ -2,9 +2,10 @@ cmake_minimum_required(VERSION 3.20)
 
 project(vk)
 
-find_package(glfw3 CONFIG REQUIRED)
 find_package(Vulkan REQUIRED)
+find_package(glfw3 CONFIG REQUIRED)
 find_package(glm CONFIG REQUIRED)
+find_package(Stb REQUIRED)
 
 add_executable(vk 
 	"sources/main.cpp"
@@ -30,7 +31,7 @@ add_executable(vk
 set_property(TARGET vk PROPERTY CXX_STANDARD 23)
 set_property(TARGET vk PROPERTY CXX_STANDARD_REQUIRED true)
 
-target_include_directories(vk PRIVATE "sources/")
+target_include_directories(vk PRIVATE "sources/" ${Stb_INCLUDE_DIR})
 
 target_link_libraries(vk PRIVATE
 	glfw
