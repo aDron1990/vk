@@ -14,6 +14,7 @@ Device::Device(Context& context, VkSurfaceKHR surface) : m_context{context}, m_s
 
 Device::~Device()
 {
+	vkDestroyCommandPool(m_device, m_commandPool, nullptr);
 	vkDestroyDevice(m_device, nullptr);
 	vkDestroySurfaceKHR(m_context.getInstance(), m_surface, nullptr);
 }
