@@ -10,10 +10,12 @@ Device::Device(Context& context, VkSurfaceKHR surface) : m_context{context}, m_s
 	pickGpu();
 	createDevice();
 	createCommandPool();
+	createDescriptorPool();
 }
 
 Device::~Device()
 {
+	vkDestroyDescriptorPool(m_device, m_descriptorPool, nullptr);
 	vkDestroyCommandPool(m_device, m_commandPool, nullptr);
 	vkDestroyDevice(m_device, nullptr);
 	vkDestroySurfaceKHR(m_context.getInstance(), m_surface, nullptr);
@@ -198,6 +200,23 @@ void Device::createCommandPool()
 		throw std::runtime_error{ "failed to create vulkan command pool" };
 }
 
+void Device::createDescriptorPool()
+{
+	auto poolSizes = std::vector<VkDescriptorPoolSize>(2);
+	poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	poolSizes[0].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+	poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	poolSizes[1].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+
+	auto createInfo = VkDescriptorPoolCreateInfo{};
+	createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+	createInfo.pPoolSizes = poolSizes.data();
+	createInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
+	createInfo.maxSets = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+	if (vkCreateDescriptorPool(m_device, &createInfo, nullptr, &m_descriptorPool) != VK_SUCCESS)
+		throw std::runtime_error{ "failed to create descriptor pool" };
+}
+
 void Device::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& memory)
 {
 	auto createInfo = VkBufferCreateInfo{};
@@ -320,6 +339,21 @@ std::vector<VkCommandBuffer> Device::allocateCommandBuffers(uint32_t count)
 		throw std::runtime_error{ "failed to allocate vulkan command buffers" };
 
 	return commandBuffers;
+}
+
+std::vector<VkDescriptorSet> Device::allocateDescriptorSets(VkDescriptorSetLayout layout, uint32_t count)
+{
+	auto descriptorSets = std::vector<VkDescriptorSet>(count);
+	auto layouts = std::vector<VkDescriptorSetLayout>(count, layout);
+	auto allocInfo = VkDescriptorSetAllocateInfo{};
+	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+	allocInfo.descriptorPool = m_descriptorPool;
+	allocInfo.pSetLayouts = layouts.data();
+	allocInfo.descriptorSetCount = static_cast<uint32_t>(count);
+	if (vkAllocateDescriptorSets(m_device, &allocInfo, descriptorSets.data()) != VK_SUCCESS)
+		throw std::runtime_error{ "failed to allocate descriptor sets" };
+
+	return descriptorSets;
 }
 
 VkCommandBuffer Device::beginSingleTimeCommands()

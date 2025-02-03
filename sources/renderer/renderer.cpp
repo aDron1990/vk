@@ -38,7 +38,6 @@ Renderer::Renderer(GLFWwindow* window) : m_window{window}
 	createIndexBuffer();
 	createUniformBuffers();
 	createDescriptorSetLayout();
-	createDescriptorPool();
 	createDescriptorSets();
 	createSwapchain();
 	createGraphicsPipeline();
@@ -61,7 +60,6 @@ Renderer::~Renderer()
 	vkDestroyImageView(m_device->getDevice(), m_textureImageView, nullptr);
 	vkDestroyImage(m_device->getDevice(), m_textureImage, nullptr);
 	vkFreeMemory(m_device->getDevice(), m_textureImageMemory, nullptr);
-	vkDestroyDescriptorPool(m_device->getDevice(), m_descriptorPool, nullptr);
 	vkDestroyDescriptorSetLayout(m_device->getDevice(), m_descriptorLayout, nullptr);
 	m_vertexBuffer.reset();
 	m_indexBuffer.reset();
@@ -267,35 +265,9 @@ void Renderer::createDescriptorSetLayout()
 		throw std::runtime_error{ "failed to create descriptor set layout" };
 }
 
-void Renderer::createDescriptorPool()
-{
-	auto poolSizes = std::vector<VkDescriptorPoolSize>(2);
-	poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	poolSizes[0].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
-	poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	poolSizes[1].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
-
-	auto createInfo = VkDescriptorPoolCreateInfo{};
-	createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-	createInfo.pPoolSizes = poolSizes.data();
-	createInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
-	createInfo.maxSets = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
-	if (vkCreateDescriptorPool(m_device->getDevice(), &createInfo, nullptr, &m_descriptorPool) != VK_SUCCESS)
-		throw std::runtime_error{ "failed to create descriptor pool" };
-}
-
 void Renderer::createDescriptorSets()
 {
-	m_descriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
-	auto layouts = std::vector<VkDescriptorSetLayout>(MAX_FRAMES_IN_FLIGHT, m_descriptorLayout);
-	auto allocInfo = VkDescriptorSetAllocateInfo{};
-	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-	allocInfo.descriptorPool = m_descriptorPool;
-	allocInfo.pSetLayouts = layouts.data();
-	allocInfo.descriptorSetCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
-	if (vkAllocateDescriptorSets(m_device->getDevice(), &allocInfo, m_descriptorSets.data()) != VK_SUCCESS)
-		throw std::runtime_error{ "failed to allocate descriptor sets" };
-
+	m_descriptorSets = m_device->allocateDescriptorSets(m_descriptorLayout, MAX_FRAMES_IN_FLIGHT);
 	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
 	{
 		auto bufferInfo = VkDescriptorBufferInfo{};

@@ -33,10 +33,9 @@ private:
 	void createVertexBuffer();
 	void createIndexBuffer();
 	void createUniformBuffers();
-	void createDescriptorPool();
+	void createDescriptorSetLayout();
 	void createDescriptorSets();
 	void createSwapchain();
-	void createDescriptorSetLayout();
 	void createGraphicsPipeline();
 
 private:
@@ -45,14 +44,13 @@ private:
 	VkShaderModule createShaderModule(const std::vector<char>& code);
 
 private:
-	const int MAX_FRAMES_IN_FLIGHT = 2;
+	
 	uint32_t currentFrame{};
 
 	GLFWwindow* m_window;
 
 	VkRenderPass m_renderPass;
 	VkDescriptorSetLayout m_descriptorLayout;
-	VkDescriptorPool m_descriptorPool;
 	std::vector<VkDescriptorSet> m_descriptorSets;
 	VkPipelineLayout m_pipelineLayout;
 	VkPipeline m_graphicsPipeline;

@@ -26,6 +26,8 @@ add_executable(vk
 	"sources/renderer/device.cpp"
 	"sources/renderer/swapchain.hpp"
 	"sources/renderer/swapchain.cpp"
+	"sources/renderer/pipeline.hpp"
+	"sources/renderer/pipeline.cpp"
 	"sources/renderer/buffer.hpp"
 	"sources/renderer/buffer.cpp"
 )
