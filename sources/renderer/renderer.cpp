@@ -523,6 +523,7 @@ void Renderer::createDescriptorPool()
 	if (vkCreateDescriptorPool(m_device, &createInfo, nullptr, &m_descriptorPool) != VK_SUCCESS)
 		throw std::runtime_error{ "failed to create descriptor pool" };
 }
+
 void Renderer::createDescriptorSets()
 {
 	m_descriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
