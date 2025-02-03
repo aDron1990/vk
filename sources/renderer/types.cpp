@@ -1,6 +1,6 @@
 #include "renderer/types.hpp"
 
-constexpr VkVertexInputBindingDescription Vertex::getBindDesc()
+VkVertexInputBindingDescription Vertex::getBindDesc()
 {
 	auto bindDesc = VkVertexInputBindingDescription{};
 	bindDesc.binding = 0;
@@ -9,7 +9,7 @@ constexpr VkVertexInputBindingDescription Vertex::getBindDesc()
 	return bindDesc;
 }
 
-constexpr std::array<VkVertexInputAttributeDescription, 2> Vertex::getAttrDesc()
+std::array<VkVertexInputAttributeDescription, 2> Vertex::getAttrDesc()
 {
 	auto attrDesc = std::array<VkVertexInputAttributeDescription, 2>{};
 

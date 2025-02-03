@@ -28,7 +28,9 @@ private:
 	void createRenderPass();
 	void createVertexBuffer();
 	void createIndexBuffer();
+	void createUniformBuffers();
 	void createSwapchain();
+	void createDescriptorSetLayout();
 	void createGraphicsPipeline();
 
 private:
@@ -47,6 +49,7 @@ private:
 	uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
 	void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& memory);
 	void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
+	void updateUniformBuffer();
 
 private:
 	static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
@@ -84,6 +87,7 @@ private:
 	VkDevice m_device;
 	VkQueue m_graphicsQueue;
 	VkRenderPass m_renderPass;
+	VkDescriptorSetLayout m_descriptorLayout;
 	VkPipelineLayout m_pipelineLayout;
 	VkPipeline m_graphicsPipeline;
 	VkCommandPool m_commandPool;
@@ -95,6 +99,9 @@ private:
 	VkDeviceMemory m_vertexBufferMemory;
 	VkBuffer m_indexBuffer;
 	VkDeviceMemory m_indexBufferMemory;
+	std::vector<VkBuffer> m_uniformBuffers;
+	std::vector<VkDeviceMemory> m_uniformBuffersMemory;
+	std::vector<void*> m_uniformBuffersMapped;
 
 	std::unique_ptr<Swapchain> m_swapchain;
 };

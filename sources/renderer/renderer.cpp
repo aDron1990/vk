@@ -1,6 +1,8 @@
 #include "renderer/renderer.hpp"
 #include "load_file.hpp"
 
+#include <glm/gtc/matrix_transform.hpp>
+
 #include <stdexcept>
 #include <print>
 #include <set>
@@ -33,7 +35,9 @@ Renderer::Renderer(GLFWwindow* window) : m_window{window}
 	createRenderPass();
 	createVertexBuffer();
 	createIndexBuffer();
+	createUniformBuffers();
 	createSwapchain();
+	createDescriptorSetLayout();
 	createGraphicsPipeline();
 }
 
@@ -50,6 +54,12 @@ Renderer::~Renderer()
 	vkDestroyPipeline(m_device, m_graphicsPipeline, nullptr);
 	vkDestroyPipelineLayout(m_device, m_pipelineLayout, nullptr);
 	m_swapchain.reset();
+	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+	{
+		vkDestroyBuffer(m_device, m_uniformBuffers[i], nullptr);
+		vkFreeMemory(m_device, m_uniformBuffersMemory[i], nullptr);
+	}
+	vkDestroyDescriptorSetLayout(m_device, m_descriptorLayout, nullptr);
 	vkDestroyBuffer(m_device, m_vertexBuffer, nullptr);
 	vkFreeMemory(m_device, m_vertexBufferMemory, nullptr);
 	vkDestroyBuffer(m_device, m_indexBuffer, nullptr);
@@ -433,6 +443,24 @@ void Renderer::createIndexBuffer()
 	vkFreeMemory(m_device, stagingBufferMemory, nullptr);
 }
 
+void Renderer::createUniformBuffers()
+{
+	auto size = VkDeviceSize{ sizeof(UniformBufferObject) };
+
+	m_uniformBuffers.resize(MAX_FRAMES_IN_FLIGHT);
+	m_uniformBuffersMemory.resize(MAX_FRAMES_IN_FLIGHT);
+	m_uniformBuffersMapped.resize(MAX_FRAMES_IN_FLIGHT);
+
+	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+	{
+		createBuffer(size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, 
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
+			m_uniformBuffers[i], m_uniformBuffersMemory[i]);
+		if (vkMapMemory(m_device, m_uniformBuffersMemory[i], 0, size, 0, &m_uniformBuffersMapped[i]) != VK_SUCCESS)
+			throw std::runtime_error{ "failed to map uniform buffer" };
+	}
+}
+
 uint32_t Renderer::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties)
 {
 	auto memProps = VkPhysicalDeviceMemoryProperties{};
@@ -460,6 +488,22 @@ void Renderer::createSwapchain()
 	createProps.queueFamilyIndices = findQueueFamilies(m_gpu);
 	createProps.swapchainSupportDetails = querySwapchainSupport(m_gpu);
 	m_swapchain.reset(new Swapchain{createProps});
+}
+
+void Renderer::createDescriptorSetLayout()
+{
+	auto uboBind = VkDescriptorSetLayoutBinding{};
+	uboBind.binding = 0;
+	uboBind.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	uboBind.descriptorCount = 1;
+	uboBind.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+
+	auto createInfo = VkDescriptorSetLayoutCreateInfo{};
+	createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+	createInfo.pBindings = &uboBind;
+	createInfo.bindingCount = 1;
+	if (vkCreateDescriptorSetLayout(m_device, &createInfo, nullptr, &m_descriptorLayout) != VK_SUCCESS)
+		throw std::runtime_error{ "failed to create descriptor set layout" };
 }
 
 void Renderer::createGraphicsPipeline()
@@ -495,8 +539,8 @@ void Renderer::createGraphicsPipeline()
 	viewportState.viewportCount = 1;
 	viewportState.scissorCount = 1;
 
-	constexpr auto bindDesc = Vertex::getBindDesc();
-	constexpr auto attrDesc = Vertex::getAttrDesc();
+	auto bindDesc = Vertex::getBindDesc();
+	auto attrDesc = Vertex::getAttrDesc();
 
 	auto vertexInputInfo = VkPipelineVertexInputStateCreateInfo{};
 	vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
@@ -540,7 +584,8 @@ void Renderer::createGraphicsPipeline()
 
 	auto pipelineLayoutInfo = VkPipelineLayoutCreateInfo{};
 	pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-
+	pipelineLayoutInfo.pSetLayouts = &m_descriptorLayout;
+	pipelineLayoutInfo.setLayoutCount = 1;
 	if (vkCreatePipelineLayout(m_device, &pipelineLayoutInfo, nullptr, &m_pipelineLayout) != VK_SUCCESS)
 		throw std::runtime_error{ "failed to create vulkan pipeline layout" };
 
@@ -556,11 +601,9 @@ void Renderer::createGraphicsPipeline()
 	createInfo.pDepthStencilState = nullptr;
 	createInfo.pColorBlendState = &blending;
 	createInfo.pDynamicState = &dynamicInfo;
-
 	createInfo.layout = m_pipelineLayout;
 	createInfo.renderPass = m_renderPass;
 	createInfo.subpass = 0;
-
 	if (vkCreateGraphicsPipelines(m_device, VK_NULL_HANDLE, 1, &createInfo, nullptr, &m_graphicsPipeline))
 		throw std::runtime_error{ "failed to create vulkan pipeline" };
 
@@ -688,6 +731,21 @@ void Renderer::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize s
 	vkFreeCommandBuffers(m_device, m_commandPool, 1, &commandBuffer);
 }
 
+void Renderer::updateUniformBuffer()
+{
+	static auto startTime = std::chrono::high_resolution_clock::now();
+	auto currentTime = std::chrono::high_resolution_clock::now();
+	auto time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+
+	auto ubo = UniformBufferObject{};
+	ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	ubo.proj = glm::perspective(glm::radians(45.0f), 800 / (float)600, 0.1f, 10.0f);
+	ubo.proj[1][1] *= -1;
+
+	memcpy(m_uniformBuffersMapped[currentFrame], &ubo, sizeof(ubo));
+}
+
 void Renderer::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex)
 {
 	auto beginInfo = VkCommandBufferBeginInfo{};
@@ -740,6 +798,8 @@ void Renderer::draw()
 
 	vkResetCommandBuffer(commandBuffer, 0);
 	recordCommandBuffer(commandBuffer, imageIndex);
+
+	updateUniformBuffer();
 
 	std::initializer_list<VkPipelineStageFlags> waitStages = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
 	auto submitInfo = VkSubmitInfo{};
