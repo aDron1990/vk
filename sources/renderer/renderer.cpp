@@ -555,7 +555,6 @@ void Renderer::createDescriptorSets()
 	}
 }
 
-
 void Renderer::createGraphicsPipeline()
 {
 	auto vertexCode = loadFile("../../resources/shaders/shader.vert.spv");
