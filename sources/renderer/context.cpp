@@ -134,3 +134,8 @@ void Context::destroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMes
 	auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
 	if (func != nullptr) func(instance, debugMessenger, pAllocator);
 }
+
+VkInstance Context::getInstance()
+{
+	return m_instance;
+}
