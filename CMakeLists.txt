@@ -30,6 +30,8 @@ add_executable(vk
 	"sources/renderer/pipeline.cpp"
 	"sources/renderer/buffer.hpp"
 	"sources/renderer/buffer.cpp"
+	"sources/renderer/uniform_buffer.hpp"
+	
 )
 
 set_property(TARGET vk PROPERTY CXX_STANDARD 23)

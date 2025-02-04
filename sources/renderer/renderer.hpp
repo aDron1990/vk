@@ -6,6 +6,7 @@
 #include "renderer/swapchain.hpp"
 #include "renderer/pipeline.hpp"
 #include "renderer/buffer.hpp"
+#include "renderer/uniform_buffer.hpp"
 
 #include <vulkan/vulkan.h>
 #include <GLFW/glfw3.h>
@@ -57,8 +58,6 @@ private:
 
 	struct FrameData
 	{
-		std::unique_ptr<Buffer> uniformBuffer;
-		void* uniformBufferMapped;
 		VkDescriptorSet descriptorSet;
 		VkCommandBuffer commandBuffer;
 		VkSemaphore imageAvailableSemaphore;
@@ -69,6 +68,7 @@ private:
 
 	std::unique_ptr<Context> m_context;
 	std::unique_ptr<Device> m_device;
+	std::unique_ptr<UniformBuffer<UniformBufferObject>> m_uniformBuffer;
 	std::unique_ptr<Swapchain> m_swapchain;
 	std::unique_ptr<Pipeline> m_pipeline;
 	std::unique_ptr<Buffer> m_vertexBuffer;

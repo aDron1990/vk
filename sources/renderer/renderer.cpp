@@ -41,6 +41,8 @@ Renderer::Renderer(GLFWwindow* window) : m_window{window}
 	createDescriptorSets();
 	createSwapchain();
 	createGraphicsPipeline();
+
+	auto ubo = UniformBuffer<UniformBufferObject>{*m_device};
 }
 
 Renderer::~Renderer()
@@ -53,8 +55,8 @@ Renderer::~Renderer()
 		vkDestroySemaphore(m_device->getDevice(), frameData.imageAvailableSemaphore, nullptr);
 		vkDestroySemaphore(m_device->getDevice(), frameData.renderFinishedSemaphore, nullptr);
 		vkDestroyFence(m_device->getDevice(), frameData.inFlightFence, nullptr);
-		frameData.uniformBuffer.reset();
 	}
+	m_uniformBuffer.reset();
 	vkDestroySampler(m_device->getDevice(), m_textureSampler, nullptr);
 	vkDestroyImageView(m_device->getDevice(), m_textureImageView, nullptr);
 	vkDestroyImage(m_device->getDevice(), m_textureImage, nullptr);
@@ -216,16 +218,7 @@ void Renderer::createIndexBuffer()
 
 void Renderer::createUniformBuffers()
 {
-	auto size = VkDeviceSize{ sizeof(UniformBufferObject) };
-
-	for (auto& frameData : m_frameDatas)
-	{
-		frameData.uniformBuffer.reset(new Buffer{ *m_device, size,
-			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT 
-		});
-		frameData.uniformBufferMapped = frameData.uniformBuffer->map();
-	}
+	m_uniformBuffer.reset(new UniformBuffer<UniformBufferObject>{ *m_device });
 }
 
 void Renderer::createSwapchain()
@@ -263,12 +256,12 @@ void Renderer::createDescriptorSetLayout()
 
 void Renderer::createDescriptorSets()
 {
-	for (auto& frameData : m_frameDatas)
+	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
 	{
-		frameData.descriptorSet = m_device->allocateDescriptorSets(m_descriptorLayout, 1).back();
+		m_frameDatas[i].descriptorSet = m_device->allocateDescriptorSets(m_descriptorLayout, 1).back();
 
 		auto bufferInfo = VkDescriptorBufferInfo{};
-		bufferInfo.buffer = frameData.uniformBuffer->getBuffer();
+		bufferInfo.buffer = m_uniformBuffer->getBuffer(i).getBuffer();
 		bufferInfo.offset = 0;
 		bufferInfo.range = sizeof(UniformBufferObject);
 
@@ -279,7 +272,7 @@ void Renderer::createDescriptorSets()
 
 		auto descriptorWrites = std::vector<VkWriteDescriptorSet>(2);
 		descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		descriptorWrites[0].dstSet = frameData.descriptorSet;
+		descriptorWrites[0].dstSet = m_frameDatas[i].descriptorSet;
 		descriptorWrites[0].dstBinding = 0;
 		descriptorWrites[0].dstArrayElement = 0;
 		descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -287,7 +280,7 @@ void Renderer::createDescriptorSets()
 		descriptorWrites[0].descriptorCount = 1;
 
 		descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		descriptorWrites[1].dstSet = frameData.descriptorSet;
+		descriptorWrites[1].dstSet = m_frameDatas[i].descriptorSet;
 		descriptorWrites[1].dstBinding = 1;
 		descriptorWrites[1].dstArrayElement = 0;
 		descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -345,7 +338,7 @@ void Renderer::updateUniformBuffer()
 	ubo.proj = glm::perspective(glm::radians(45.0f), 800 / (float)600, 0.1f, 10.0f);
 	ubo.proj[1][1] *= -1;
 
-	memcpy(m_frameDatas[currentFrame].uniformBufferMapped, &ubo, sizeof(ubo));
+	memcpy(m_uniformBuffer->getBufferPtr(currentFrame), &ubo, sizeof(ubo));
 }
 
 void Renderer::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex)
