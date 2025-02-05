@@ -31,6 +31,7 @@ private:
 	void createCommandBuffers();
 	void createRenderPass();
 	void createTexture();
+	void loadModel();
 	void createVertexBuffer();
 	void createIndexBuffer();
 	void createSwapchain();

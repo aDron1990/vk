@@ -1,6 +1,8 @@
 #include "renderer/renderer.hpp"
 #include "load_file.hpp"
 
+#define TINYOBJLOADER_IMPLEMENTATION
+#include <tiny_obj_loader.h>
 #include <glm/gtc/matrix_transform.hpp>
 
 #include <stdexcept>
@@ -10,23 +12,11 @@
 #include <algorithm>
 #include <limits>
 #include <cstdint>
+#include <unordered_map>
 
-const std::vector<Vertex> vertices = {
-	{{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
-	{{0.5f, -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
-	{{0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
-	{{-0.5f, 0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}},
-
-	{{-0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
-	{{0.5f, -0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
-	{{0.5f, 0.5f, -0.5f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
-	{{-0.5f, 0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}}
-};
-
-const std::vector<uint16_t> indices = {
-	0, 1, 2, 2, 3, 0,
-	4, 5, 6, 6, 7, 4
-};
+std::vector<Vertex> vertices;
+std::vector<uint32_t> indices;
+const std::string MODEL_PATH = "../../resources/models/viking_room.obj";
 
 Renderer::Renderer(GLFWwindow* window) : m_window{window}
 {
@@ -36,11 +26,11 @@ Renderer::Renderer(GLFWwindow* window) : m_window{window}
 	createCommandBuffers();
 	createRenderPass();
 	createTexture();
+	loadModel();
 	createVertexBuffer();
 	createIndexBuffer();
 	createSwapchain();
 	createGraphicsPipeline();
-
 	auto ubo = UniformBuffer<UniformBufferObject>{*m_device};
 }
 
@@ -139,7 +129,45 @@ void Renderer::createRenderPass()
 
 void Renderer::createTexture()
 {
-	m_texture.reset(new Texture{ *m_device, "../../resources/textures/statue.jpg" });
+	m_texture.reset(new Texture{ *m_device, "../../resources/textures/viking_room.png" });
+}
+
+void Renderer::loadModel()
+{
+	tinyobj::attrib_t attrib;
+	std::vector<tinyobj::shape_t> shapes;
+	std::vector<tinyobj::material_t> materials;
+	std::string warn, err;
+
+	if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, "../../resources/models/viking_room.obj"))
+		throw std::runtime_error(warn + err);
+
+	std::unordered_map<Vertex, uint32_t> uniqueVertices{};
+	for (const auto& shape : shapes) {
+		for (const auto& index : shape.mesh.indices) {
+			Vertex vertex{};
+
+			vertex.pos = {
+				attrib.vertices[3 * index.vertex_index + 0],
+				attrib.vertices[3 * index.vertex_index + 1],
+				attrib.vertices[3 * index.vertex_index + 2]
+			};
+
+			vertex.texCoord = {
+				attrib.texcoords[2 * index.texcoord_index + 0],
+				1.0f - attrib.texcoords[2 * index.texcoord_index + 1]
+			};
+
+			vertex.color = { 1.0f, 1.0f, 1.0f };
+
+			if (uniqueVertices.count(vertex) == 0) 
+			{
+				uniqueVertices[vertex] = static_cast<uint32_t>(vertices.size());
+				vertices.push_back(vertex);
+			}
+			indices.push_back(uniqueVertices[vertex]);
+		}
+	}
 }
 
 void Renderer::createVertexBuffer()
@@ -260,7 +288,7 @@ void Renderer::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t image
 	VkDeviceSize offsets[] = {0};
 	auto buffer = m_vertexBuffer->getBuffer();
 	vkCmdBindVertexBuffers(commandBuffer, 0, 1, &buffer, offsets);
-	vkCmdBindIndexBuffer(commandBuffer, m_indexBuffer->getBuffer(), 0, VK_INDEX_TYPE_UINT16);
+	vkCmdBindIndexBuffer(commandBuffer, m_indexBuffer->getBuffer(), 0, VK_INDEX_TYPE_UINT32);
 
 	vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
 
