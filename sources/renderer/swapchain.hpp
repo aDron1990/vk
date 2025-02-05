@@ -34,6 +34,7 @@ private:
 	void createSwapchain();
 	void createImageViews();
 	void createFramebuffers();
+	void createDepthResources();
 
 public:
 	static VkSurfaceFormatKHR chooseSwapchainSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
@@ -51,6 +52,9 @@ private:
 	Device& m_device;
 
 	VkSwapchainKHR m_swapchain;
+	VkImage m_depthImage;
+	VkDeviceMemory m_depthImageMemory;
+	VkImageView m_depthImageView;
 
 	std::vector<VkImage> m_swapchainImages;
 	std::vector<VkImageView> m_swapchainImageViews;

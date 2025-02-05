@@ -48,7 +48,7 @@ void Texture::createImage(const std::string& imagePath)
 
 void Texture::createImageView()
 {
-	m_imageView = m_device.createImageView(m_image, VK_FORMAT_R8G8B8A8_SRGB);
+	m_imageView = m_device.createImageView(m_image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
 }
 
 void Texture::createImageSampler()

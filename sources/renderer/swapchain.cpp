@@ -8,6 +8,7 @@ Swapchain::Swapchain(Device& device, SwapchainProperties properties)
 {
 	createSwapchain();
 	createImageViews();
+	createDepthResources();
 	createFramebuffers();
 }
 
@@ -18,6 +19,9 @@ Swapchain::~Swapchain()
 
 void Swapchain::clear()
 {
+	vkDestroyImageView(m_device.getDevice(), m_depthImageView, nullptr);
+	vkDestroyImage(m_device.getDevice(), m_depthImage, nullptr);
+	vkFreeMemory(m_device.getDevice(), m_depthImageMemory, nullptr);
 	for (auto framebuffer : m_swapchainFramebuffers)
 		vkDestroyFramebuffer(m_device.getDevice(), framebuffer, nullptr);
 	for (auto view : m_swapchainImageViews)
@@ -31,6 +35,7 @@ void Swapchain::recreate()
 	clear();
 	createSwapchain();
 	createImageViews();
+	createDepthResources();
 	createFramebuffers();
 }
 
@@ -82,6 +87,45 @@ void Swapchain::createSwapchain()
 	m_swapchainExtent = extent;
 }
 
+void Swapchain::createImageViews()
+{
+	m_swapchainImageViews.resize(m_swapchainImages.size());
+	for (int i = 0; i < m_swapchainImages.size(); i++)
+	{
+		m_swapchainImageViews[i] = m_device.createImageView(m_swapchainImages[i], m_swapchainFormat, VK_IMAGE_ASPECT_COLOR_BIT);
+	}
+}
+
+void Swapchain::createFramebuffers()
+{
+	m_swapchainFramebuffers.resize(m_swapchainImages.size());
+	for (int i = 0; i < m_swapchainImages.size(); i++)
+	{
+		auto attachments = { m_swapchainImageViews[i], m_depthImageView };
+
+		auto createInfo = VkFramebufferCreateInfo{};
+		createInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+		createInfo.renderPass = m_renderPass;
+		createInfo.pAttachments = attachments.begin();
+		createInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
+		createInfo.width = m_swapchainExtent.width;
+		createInfo.height = m_swapchainExtent.height;
+		createInfo.layers = 1;
+
+		if (vkCreateFramebuffer(m_device.getDevice(), &createInfo, nullptr, &m_swapchainFramebuffers[i]) != VK_SUCCESS)
+			throw std::runtime_error{ "failed to create framebuffer" };
+	}
+}
+
+void Swapchain::createDepthResources()
+{
+	auto depthFormat = m_device.findDepthFormat();
+	m_device.createImage(m_swapchainExtent.width, m_swapchainExtent.height, depthFormat, VK_IMAGE_TILING_OPTIMAL, 
+		VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_depthImage, m_depthImageMemory);
+	m_depthImageView = m_device.createImageView(m_depthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
+	m_device.transitionImageLayout(m_depthImage, depthFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+}
+
 VkSurfaceFormatKHR Swapchain::chooseSwapchainSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats)
 {
 	for (const auto& format : availableFormats)
@@ -114,51 +158,6 @@ VkExtent2D Swapchain::chooseSwapchainExtent(const VkSurfaceCapabilitiesKHR& capa
 		//actualExtent.width = std::clamp(actualExtent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
 		//actualExtent.height = std::clamp(actualExtent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
 		//return actualExtent;
-	}
-}
-
-void Swapchain::createImageViews()
-{
-	m_swapchainImageViews.resize(m_swapchainImages.size());
-	for (int i = 0; i < m_swapchainImages.size(); i++)
-	{
-		auto createInfo = VkImageViewCreateInfo{};
-		createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-		createInfo.image = m_swapchainImages[i];
-		createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-		createInfo.format = m_swapchainFormat;
-		createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
-		createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
-		createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
-		createInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
-		createInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		createInfo.subresourceRange.baseMipLevel = 0;
-		createInfo.subresourceRange.levelCount = 1;
-		createInfo.subresourceRange.baseArrayLayer = 0;
-		createInfo.subresourceRange.layerCount = 1;
-		if (vkCreateImageView(m_device.getDevice(), &createInfo, nullptr, &m_swapchainImageViews[i]))
-			throw std::runtime_error{ "failed to create swapchain image view" };
-	}
-}
-
-void Swapchain::createFramebuffers()
-{
-	m_swapchainFramebuffers.resize(m_swapchainImages.size());
-	for (int i = 0; i < m_swapchainImages.size(); i++)
-	{
-		auto attachments = { m_swapchainImageViews[i] };
-
-		auto createInfo = VkFramebufferCreateInfo{};
-		createInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-		createInfo.renderPass = m_renderPass;
-		createInfo.pAttachments = attachments.begin();
-		createInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
-		createInfo.width = m_swapchainExtent.width;
-		createInfo.height = m_swapchainExtent.height;
-		createInfo.layers = 1;
-
-		if (vkCreateFramebuffer(m_device.getDevice(), &createInfo, nullptr, &m_swapchainFramebuffers[i]) != VK_SUCCESS)
-			throw std::runtime_error{ "failed to create framebuffer" };
 	}
 }
 

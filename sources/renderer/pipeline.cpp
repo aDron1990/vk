@@ -121,6 +121,12 @@ void Pipeline::createPipeline()
 	blending.attachmentCount = 1;
 	blending.pAttachments = &blendingAttachment;
 
+	auto depthStencil = VkPipelineDepthStencilStateCreateInfo{};
+	depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+	depthStencil.depthTestEnable = VK_TRUE;
+	depthStencil.depthWriteEnable = VK_TRUE;
+	depthStencil.depthCompareOp = VK_COMPARE_OP_LESS;
+
 	auto pipelineLayoutInfo = VkPipelineLayoutCreateInfo{};
 	pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 	pipelineLayoutInfo.pSetLayouts = &m_descriptorSetLayout;
@@ -140,6 +146,7 @@ void Pipeline::createPipeline()
 	createInfo.pDepthStencilState = nullptr;
 	createInfo.pColorBlendState = &blending;
 	createInfo.pDynamicState = &dynamicInfo;
+	createInfo.pDepthStencilState = &depthStencil;
 	createInfo.layout = m_layout;
 	createInfo.renderPass = m_info.renderPass;
 	createInfo.subpass = 0;
