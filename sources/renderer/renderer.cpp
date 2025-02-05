@@ -41,18 +41,18 @@ Renderer::Renderer(GLFWwindow* window) : m_window{window}
 Renderer::~Renderer()
 {
 	vkDeviceWaitIdle(m_device->getDevice());
-	m_pipeline.reset();
-	m_swapchain.reset();
 	for (auto& frameData : m_frameDatas)
 	{
 		vkDestroySemaphore(m_device->getDevice(), frameData.imageAvailableSemaphore, nullptr);
 		vkDestroySemaphore(m_device->getDevice(), frameData.renderFinishedSemaphore, nullptr);
 		vkDestroyFence(m_device->getDevice(), frameData.inFlightFence, nullptr);
 	}
+	vkDestroyRenderPass(m_device->getDevice(), m_renderPass, nullptr);
+	m_pipeline.reset();
+	m_swapchain.reset();
 	m_texture.reset();
 	m_vertexBuffer.reset();
 	m_indexBuffer.reset();
-	vkDestroyRenderPass(m_device->getDevice(), m_renderPass, nullptr);
 	m_device.reset();
 	m_context.reset();
 }
