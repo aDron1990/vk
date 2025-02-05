@@ -20,7 +20,6 @@ public:
 	void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
 
 	std::vector<VkCommandBuffer> allocateCommandBuffers(uint32_t count);
-	std::vector<VkDescriptorSet> allocateDescriptorSets(VkDescriptorSetLayout layout, uint32_t count);
 
 	VkCommandBuffer beginSingleTimeCommands();
 	void endSingleTimeCommands(VkCommandBuffer commandBuffer);
@@ -43,7 +42,6 @@ private:
 	bool isGpuSuitable(VkPhysicalDevice gpu);
 	void createDevice();
 	void createCommandPool();
-	void createDescriptorPool();
 
 private:
 	Context& m_context;
@@ -53,5 +51,4 @@ private:
 	VkQueue m_graphicsQueue;
 	VkQueue m_presentQueue;
 	VkCommandPool m_commandPool;
-	VkDescriptorPool m_descriptorPool;
 };

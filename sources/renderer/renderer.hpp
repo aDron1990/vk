@@ -33,26 +33,20 @@ private:
 	void createTexture();
 	void createVertexBuffer();
 	void createIndexBuffer();
-	void createUniformBuffers();
-	void createDescriptorSetLayout();
-	void createDescriptorSets();
 	void createSwapchain();
 	void createGraphicsPipeline();
 
 private:
 	void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
-	void updateUniformBuffer();
 
 private:
 	uint32_t currentFrame{};
 	GLFWwindow* m_window;
 
 	VkRenderPass m_renderPass;
-	VkDescriptorSetLayout m_descriptorLayout;
 
 	struct FrameData
 	{
-		VkDescriptorSet descriptorSet;
 		VkCommandBuffer commandBuffer;
 		VkSemaphore imageAvailableSemaphore;
 		VkSemaphore renderFinishedSemaphore;
@@ -62,11 +56,9 @@ private:
 
 	std::unique_ptr<Context> m_context;
 	std::unique_ptr<Device> m_device;
-	std::unique_ptr<UniformBuffer<UniformBufferObject>> m_uniformBuffer;
 	std::unique_ptr<Texture> m_texture;
 	std::unique_ptr<Swapchain> m_swapchain;
 	std::unique_ptr<Pipeline> m_pipeline;
 	std::unique_ptr<Buffer> m_vertexBuffer;
 	std::unique_ptr<Buffer> m_indexBuffer;
 };
-

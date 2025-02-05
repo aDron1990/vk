@@ -32,9 +32,6 @@ Renderer::Renderer(GLFWwindow* window) : m_window{window}
 	createTexture();
 	createVertexBuffer();
 	createIndexBuffer();
-	createUniformBuffers();
-	createDescriptorSetLayout();
-	createDescriptorSets();
 	createSwapchain();
 	createGraphicsPipeline();
 
@@ -52,9 +49,7 @@ Renderer::~Renderer()
 		vkDestroySemaphore(m_device->getDevice(), frameData.renderFinishedSemaphore, nullptr);
 		vkDestroyFence(m_device->getDevice(), frameData.inFlightFence, nullptr);
 	}
-	m_uniformBuffer.reset();
 	m_texture.reset();
-	vkDestroyDescriptorSetLayout(m_device->getDevice(), m_descriptorLayout, nullptr);
 	m_vertexBuffer.reset();
 	m_indexBuffer.reset();
 	vkDestroyRenderPass(m_device->getDevice(), m_renderPass, nullptr);
@@ -157,11 +152,6 @@ void Renderer::createIndexBuffer()
 	m_device->copyBuffer(stagingBuffer, *m_indexBuffer);
 }
 
-void Renderer::createUniformBuffers()
-{
-	m_uniformBuffer.reset(new UniformBuffer<UniformBufferObject>{ *m_device });
-}
-
 void Renderer::createSwapchain()
 {
 	int width, height;
@@ -172,72 +162,12 @@ void Renderer::createSwapchain()
 	m_swapchain.reset(new Swapchain{*m_device, createProps});
 }
 
-void Renderer::createDescriptorSetLayout()
-{
-	auto uboBind = VkDescriptorSetLayoutBinding{};
-	uboBind.binding = 0;
-	uboBind.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	uboBind.descriptorCount = 1;
-	uboBind.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-
-	auto samplerBind = VkDescriptorSetLayoutBinding{};
-	samplerBind.binding = 1;
-	samplerBind.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	samplerBind.descriptorCount = 1;
-	samplerBind.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-
-	auto bindings = {uboBind, samplerBind};
-	auto createInfo = VkDescriptorSetLayoutCreateInfo{};
-	createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-	createInfo.pBindings = bindings.begin();
-	createInfo.bindingCount = static_cast<uint32_t>(bindings.size());
-	if (vkCreateDescriptorSetLayout(m_device->getDevice(), &createInfo, nullptr, &m_descriptorLayout) != VK_SUCCESS)
-		throw std::runtime_error{ "failed to create descriptor set layout" };
-}
-
-void Renderer::createDescriptorSets()
-{
-	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
-	{
-		m_frameDatas[i].descriptorSet = m_device->allocateDescriptorSets(m_descriptorLayout, 1).back();
-
-		auto bufferInfo = VkDescriptorBufferInfo{};
-		bufferInfo.buffer = m_uniformBuffer->getBuffer(i).getBuffer();
-		bufferInfo.offset = 0;
-		bufferInfo.range = sizeof(UniformBufferObject);
-
-		auto imageInfo = VkDescriptorImageInfo{};
-		imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		imageInfo.imageView = m_texture->getImageView();
-		imageInfo.sampler = m_texture->getSampler();
-
-		auto descriptorWrites = std::vector<VkWriteDescriptorSet>(2);
-		descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		descriptorWrites[0].dstSet = m_frameDatas[i].descriptorSet;
-		descriptorWrites[0].dstBinding = 0;
-		descriptorWrites[0].dstArrayElement = 0;
-		descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		descriptorWrites[0].pBufferInfo = &bufferInfo;
-		descriptorWrites[0].descriptorCount = 1;
-
-		descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		descriptorWrites[1].dstSet = m_frameDatas[i].descriptorSet;
-		descriptorWrites[1].dstBinding = 1;
-		descriptorWrites[1].dstArrayElement = 0;
-		descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		descriptorWrites[1].pImageInfo = &imageInfo;
-		descriptorWrites[1].descriptorCount = 1;
-		vkUpdateDescriptorSets(m_device->getDevice(), static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
-	}
-}
-
 void Renderer::createGraphicsPipeline()
 {
-	auto pipelineInfo = PipelineInfo{};
+	auto pipelineInfo = PipelineInfo{.texture = *m_texture};
 	pipelineInfo.vertexPath = "../../resources/shaders/shader.vert.spv";
 	pipelineInfo.fragmentPath = "../../resources/shaders/shader.frag.spv";
 	pipelineInfo.renderPass = m_renderPass;
-	pipelineInfo.descriptorSetLayout = m_descriptorLayout;
 	m_pipeline.reset(new Pipeline{ *m_device, pipelineInfo });
 }
 
@@ -267,21 +197,6 @@ void Renderer::createCommandBuffers()
 	}
 }
 
-void Renderer::updateUniformBuffer()
-{
-	static auto startTime = std::chrono::high_resolution_clock::now();
-	auto currentTime = std::chrono::high_resolution_clock::now();
-	auto time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
-
-	auto ubo = UniformBufferObject{};
-	ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-	ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-	ubo.proj = glm::perspective(glm::radians(45.0f), 800 / (float)600, 0.1f, 10.0f);
-	ubo.proj[1][1] *= -1;
-
-	memcpy(m_uniformBuffer->getBufferPtr(currentFrame), &ubo, sizeof(ubo));
-}
-
 void Renderer::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex)
 {
 	auto beginInfo = VkCommandBufferBeginInfo{};
@@ -300,7 +215,7 @@ void Renderer::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t image
 	renderPassInfo.clearValueCount = 1;
 	vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-	m_pipeline->bind(commandBuffer);
+	m_pipeline->bind(commandBuffer, currentFrame);
 
 	auto viewport = VkViewport{};
 	viewport.x = 0.0f;
@@ -320,7 +235,6 @@ void Renderer::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t image
 	auto buffer = m_vertexBuffer->getBuffer();
 	vkCmdBindVertexBuffers(commandBuffer, 0, 1, &buffer, offsets);
 	vkCmdBindIndexBuffer(commandBuffer, m_indexBuffer->getBuffer(), 0, VK_INDEX_TYPE_UINT16);
-	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline->getLayout(), 0, 1, &m_frameDatas[currentFrame].descriptorSet, 0, nullptr);
 
 	vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
 
@@ -339,7 +253,7 @@ void Renderer::draw()
 
 	recordCommandBuffer(commandBuffer, imageIndex);
 
-	updateUniformBuffer();
+	m_pipeline->updateBuffer(currentFrame);
 
 	std::initializer_list<VkPipelineStageFlags> waitStages = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
 	auto submitInfo = VkSubmitInfo{};
