@@ -7,6 +7,7 @@
 #include "renderer/pipeline.hpp"
 #include "renderer/buffer.hpp"
 #include "renderer/uniform_buffer.hpp"
+#include "renderer/texture.hpp"
 
 #include <vulkan/vulkan.h>
 #include <GLFW/glfw3.h>
@@ -29,9 +30,7 @@ private:
 	void createSyncObjects();
 	void createCommandBuffers();
 	void createRenderPass();
-	void createTextureImage();
-	void createTextureImageView();
-	void createTextureSampler();
+	void createTexture();
 	void createVertexBuffer();
 	void createIndexBuffer();
 	void createUniformBuffers();
@@ -51,11 +50,6 @@ private:
 	VkRenderPass m_renderPass;
 	VkDescriptorSetLayout m_descriptorLayout;
 
-	VkImage m_textureImage;
-	VkImageView m_textureImageView;
-	VkSampler m_textureSampler;
-	VkDeviceMemory m_textureImageMemory;
-
 	struct FrameData
 	{
 		VkDescriptorSet descriptorSet;
@@ -69,6 +63,7 @@ private:
 	std::unique_ptr<Context> m_context;
 	std::unique_ptr<Device> m_device;
 	std::unique_ptr<UniformBuffer<UniformBufferObject>> m_uniformBuffer;
+	std::unique_ptr<Texture> m_texture;
 	std::unique_ptr<Swapchain> m_swapchain;
 	std::unique_ptr<Pipeline> m_pipeline;
 	std::unique_ptr<Buffer> m_vertexBuffer;

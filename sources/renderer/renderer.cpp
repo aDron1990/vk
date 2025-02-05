@@ -1,8 +1,6 @@
 #include "renderer/renderer.hpp"
 #include "load_file.hpp"
 
-#define STB_IMAGE_IMPLEMENTATION
-#include <stb_image.h>
 #include <glm/gtc/matrix_transform.hpp>
 
 #include <stdexcept>
@@ -31,9 +29,7 @@ Renderer::Renderer(GLFWwindow* window) : m_window{window}
 	createSyncObjects();
 	createCommandBuffers();
 	createRenderPass();
-	createTextureImage();
-	createTextureImageView();
-	createTextureSampler();
+	createTexture();
 	createVertexBuffer();
 	createIndexBuffer();
 	createUniformBuffers();
@@ -57,10 +53,7 @@ Renderer::~Renderer()
 		vkDestroyFence(m_device->getDevice(), frameData.inFlightFence, nullptr);
 	}
 	m_uniformBuffer.reset();
-	vkDestroySampler(m_device->getDevice(), m_textureSampler, nullptr);
-	vkDestroyImageView(m_device->getDevice(), m_textureImageView, nullptr);
-	vkDestroyImage(m_device->getDevice(), m_textureImage, nullptr);
-	vkFreeMemory(m_device->getDevice(), m_textureImageMemory, nullptr);
+	m_texture.reset();
 	vkDestroyDescriptorSetLayout(m_device->getDevice(), m_descriptorLayout, nullptr);
 	m_vertexBuffer.reset();
 	m_indexBuffer.reset();
@@ -127,61 +120,9 @@ void Renderer::createRenderPass()
 		throw std::runtime_error{ "failed to create vulkan render pass" };
 }
 
-void Renderer::createTextureImage()
+void Renderer::createTexture()
 {
-	int width, height, channels;
-	auto* pixels = stbi_load("../../resources/textures/statue.jpg", &width, &height, &channels, STBI_rgb_alpha);
-	VkDeviceSize size = width * height * 4;
-	if (pixels == nullptr)
-		throw std::runtime_error{ "failed to load image" };
-
-	auto stagingBuffer = Buffer{*m_device, size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT 
-	};
-	auto* data = stagingBuffer.map();
-	memcpy(data, pixels, static_cast<size_t>(size));
-	stagingBuffer.unmap();
-	stbi_image_free(pixels);
-
-	m_device->createImage(width, height, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL,
-		VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, 
-		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_textureImage, m_textureImageMemory
-	);
-
-	m_device->transitionImageLayout(m_textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-	m_device->copyBufferToImage(stagingBuffer, m_textureImage, static_cast<uint32_t>(width), static_cast<uint32_t>(height));
-	m_device->transitionImageLayout(m_textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-}
-
-void Renderer::createTextureImageView()
-{
-	m_textureImageView = m_device->createImageView(m_textureImage, VK_FORMAT_R8G8B8A8_SRGB);
-}
-
-void Renderer::createTextureSampler()
-{
-	auto gpuProps = VkPhysicalDeviceProperties{};
-	vkGetPhysicalDeviceProperties(m_device->getGpu(), &gpuProps);
-
-	auto createInfo = VkSamplerCreateInfo{};
-	createInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-	createInfo.magFilter = VK_FILTER_LINEAR;
-	createInfo.minFilter = VK_FILTER_LINEAR;
-	createInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-	createInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-	createInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-	createInfo.anisotropyEnable = VK_TRUE;
-	createInfo.maxAnisotropy = gpuProps.limits.maxSamplerAnisotropy;
-	createInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
-	createInfo.unnormalizedCoordinates = VK_FALSE;
-	createInfo.compareEnable = VK_FALSE;
-	createInfo.compareOp = VK_COMPARE_OP_ALWAYS;
-	createInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-	createInfo.mipLodBias = 0.0f;
-	createInfo.minLod = 0.0f;
-	createInfo.maxLod = 0.0f;
-	if (vkCreateSampler(m_device->getDevice(), &createInfo, nullptr, &m_textureSampler) != VK_SUCCESS)
-		throw std::runtime_error("failed to create texture sampler!");
+	m_texture.reset(new Texture{ *m_device, "../../resources/textures/statue.jpg" });
 }
 
 void Renderer::createVertexBuffer()
@@ -267,8 +208,8 @@ void Renderer::createDescriptorSets()
 
 		auto imageInfo = VkDescriptorImageInfo{};
 		imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		imageInfo.imageView = m_textureImageView;
-		imageInfo.sampler = m_textureSampler;
+		imageInfo.imageView = m_texture->getImageView();
+		imageInfo.sampler = m_texture->getSampler();
 
 		auto descriptorWrites = std::vector<VkWriteDescriptorSet>(2);
 		descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;

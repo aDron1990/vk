@@ -31,7 +31,8 @@ add_executable(vk
 	"sources/renderer/buffer.hpp"
 	"sources/renderer/buffer.cpp"
 	"sources/renderer/uniform_buffer.hpp"
-	
+	"sources/renderer/texture.hpp"
+	"sources/renderer/texture.cpp"
 )
 
 set_property(TARGET vk PROPERTY CXX_STANDARD 23)
