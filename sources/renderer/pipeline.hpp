@@ -22,16 +22,15 @@ class Pipeline
 {
 public:
 	Pipeline(Device& device, PipelineInfo& info);
-	~Pipeline();
+	virtual ~Pipeline();
 	void bind(VkCommandBuffer commandBuffer, uint32_t currentFrame);
-	void updateBuffer(uint32_t currentFrame);
 	VkPipelineLayout getLayout();
 	
+protected:
+	void createPipeline(VkDescriptorSetLayout descriptorSetLayout);
+	virtual void bindDescriptorSets(VkCommandBuffer commandBuffer, uint32_t currentFrame) = 0;
+
 private:
-	void createPipeline();
-	void createDescriptorSetLayout();
-	void createDescriptorPool();
-	void createDescriptorSets();
 	VkShaderModule createShaderModule(const std::vector<char>& code);
 
 private:
@@ -39,10 +38,4 @@ private:
 	PipelineInfo m_info;
 	VkPipelineLayout m_layout;
 	VkPipeline m_pipeline;
-	VkDescriptorPool m_descriptorPool;
-	VkDescriptorSetLayout m_descriptorSetLayout;
-	std::array<VkDescriptorSet, MAX_FRAMES_IN_FLIGHT> m_descriptorSets;
-
-	UniformBuffer<UniformBufferObject> m_uniformBuffer;
-	Texture& m_texture;
 };

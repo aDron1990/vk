@@ -218,7 +218,7 @@ void Renderer::createGraphicsPipeline()
 	pipelineInfo.vertexPath = "../../resources/shaders/shader.vert.spv";
 	pipelineInfo.fragmentPath = "../../resources/shaders/shader.frag.spv";
 	pipelineInfo.renderPass = m_renderPass;
-	m_pipeline.reset(new Pipeline{ *m_device, pipelineInfo });
+	m_pipeline.reset(new GraphicsPipeline{ *m_device, pipelineInfo });
 }
 
 void Renderer::createSyncObjects()

@@ -5,6 +5,7 @@
 #include "renderer/device.hpp"
 #include "renderer/swapchain.hpp"
 #include "renderer/pipeline.hpp"
+#include "renderer/graphics_pipeline.hpp"
 #include "renderer/buffer.hpp"
 #include "renderer/uniform_buffer.hpp"
 #include "renderer/texture.hpp"
@@ -59,7 +60,7 @@ private:
 	std::unique_ptr<Device> m_device;
 	std::unique_ptr<Texture> m_texture;
 	std::unique_ptr<Swapchain> m_swapchain;
-	std::unique_ptr<Pipeline> m_pipeline;
+	std::unique_ptr<GraphicsPipeline> m_pipeline;
 	std::unique_ptr<Buffer> m_vertexBuffer;
 	std::unique_ptr<Buffer> m_indexBuffer;
 };
