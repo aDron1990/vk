@@ -6,43 +6,63 @@
 #include <vector>
 #include <array>
 #include <chrono>
+#include <print>
 
 GraphicsPipeline::GraphicsPipeline(Device& device, PipelineInfo& info)
-	: Pipeline{ device, info }, m_device{device}, m_uniformBuffer {device}, m_texture{info.texture}
+	: Pipeline{ device, info }, m_device{ device }, m_uniformBuffer{ device }
 {
-	createDescriptorSetLayout();
-	createPipeline(m_descriptorSetLayout);
+	createDescriptorSetLayouts();
+	createPipeline({ m_uboDescriptorSetLayout, m_textureDescriptorSetLayout });
 	createDescriptorPool();
 	createDescriptorSets();
 }
 
 GraphicsPipeline::~GraphicsPipeline()
 {
-	vkDestroyDescriptorSetLayout(m_device.getDevice(), m_descriptorSetLayout, nullptr);
+	vkDestroyDescriptorSetLayout(m_device.getDevice(), m_uboDescriptorSetLayout, nullptr);
+	vkDestroyDescriptorSetLayout(m_device.getDevice(), m_textureDescriptorSetLayout, nullptr);
 	vkDestroyDescriptorPool(m_device.getDevice(), m_descriptorPool, nullptr);
 }
 
-void GraphicsPipeline::createDescriptorSetLayout()
+void GraphicsPipeline::createDescriptorSetLayouts()
 {
-	auto uboBind = VkDescriptorSetLayoutBinding{};
-	uboBind.binding = 0;
-	uboBind.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	uboBind.descriptorCount = 1;
-	uboBind.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+	{
+		auto uboBind = VkDescriptorSetLayoutBinding{};
+		uboBind.binding = 0;
+		uboBind.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		uboBind.descriptorCount = 1;
+		uboBind.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 
-	auto samplerBind = VkDescriptorSetLayoutBinding{};
-	samplerBind.binding = 1;
-	samplerBind.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	samplerBind.descriptorCount = 1;
-	samplerBind.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+		auto createInfo = VkDescriptorSetLayoutCreateInfo{};
+		createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+		createInfo.pBindings = &uboBind;
+		createInfo.bindingCount = 1;
+		if (vkCreateDescriptorSetLayout(m_device.getDevice(), &createInfo, nullptr, &m_uboDescriptorSetLayout) != VK_SUCCESS)
+			throw std::runtime_error{ "failed to create descriptor set layout" };
+	}
+	{
+		VkDescriptorBindingFlags flags = VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT;
 
-	auto bindings = { uboBind, samplerBind };
-	auto createInfo = VkDescriptorSetLayoutCreateInfo{};
-	createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-	createInfo.pBindings = bindings.begin();
-	createInfo.bindingCount = static_cast<uint32_t>(bindings.size());
-	if (vkCreateDescriptorSetLayout(m_device.getDevice(), &createInfo, nullptr, &m_descriptorSetLayout) != VK_SUCCESS)
-		throw std::runtime_error{ "failed to create descriptor set layout" };
+		auto bindFlags = VkDescriptorSetLayoutBindingFlagsCreateInfo{};
+		bindFlags.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO;
+		bindFlags.pBindingFlags = &flags;
+		bindFlags.bindingCount = 1;
+
+		auto samplerBind = VkDescriptorSetLayoutBinding{};
+		samplerBind.binding = 0;
+		samplerBind.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		samplerBind.descriptorCount = 1;
+		samplerBind.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+		auto createInfo = VkDescriptorSetLayoutCreateInfo{};
+		createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+		createInfo.pBindings = &samplerBind;
+		createInfo.bindingCount = 1;
+		//createInfo.pNext = &bindFlags;
+		//createInfo.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
+		if (vkCreateDescriptorSetLayout(m_device.getDevice(), &createInfo, nullptr, &m_textureDescriptorSetLayout) != VK_SUCCESS)
+			throw std::runtime_error{ "failed to create descriptor set layout" };
+	}
 }
 
 void GraphicsPipeline::createDescriptorPool()
@@ -57,57 +77,80 @@ void GraphicsPipeline::createDescriptorPool()
 	createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
 	createInfo.pPoolSizes = poolSizes.data();
 	createInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
-	createInfo.maxSets = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+	createInfo.maxSets = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT) * 2;
 	if (vkCreateDescriptorPool(m_device.getDevice(), &createInfo, nullptr, &m_descriptorPool) != VK_SUCCESS)
 		throw std::runtime_error{ "failed to create descriptor pool" };
 }
 
 void GraphicsPipeline::createDescriptorSets()
 {
-	auto layouts = std::vector<VkDescriptorSetLayout>(MAX_FRAMES_IN_FLIGHT, m_descriptorSetLayout);
-	auto allocInfo = VkDescriptorSetAllocateInfo{};
-	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-	allocInfo.descriptorPool = m_descriptorPool;
-	allocInfo.pSetLayouts = layouts.data();
-	allocInfo.descriptorSetCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
-	if (vkAllocateDescriptorSets(m_device.getDevice(), &allocInfo, m_descriptorSets.data()) != VK_SUCCESS)
-		throw std::runtime_error{ "failed to allocate descriptor sets" };
+	{
+		auto layouts = std::vector<VkDescriptorSetLayout>(MAX_FRAMES_IN_FLIGHT, m_uboDescriptorSetLayout);
+		auto allocInfo = VkDescriptorSetAllocateInfo{};
+		allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+		allocInfo.descriptorPool = m_descriptorPool;
+		allocInfo.pSetLayouts = layouts.data();
+		allocInfo.descriptorSetCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+		if (vkAllocateDescriptorSets(m_device.getDevice(), &allocInfo, m_uboDescriptorSets.data()) != VK_SUCCESS)
+			throw std::runtime_error{ "failed to allocate descriptor sets" };
 
+		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+		{
+			auto bufferInfo = VkDescriptorBufferInfo{};
+			bufferInfo.buffer = m_uniformBuffer.getBuffer(i).getBuffer();
+			bufferInfo.offset = 0;
+			bufferInfo.range = sizeof(UniformBufferObject);
+
+			auto descriptorWrite = VkWriteDescriptorSet{};
+			descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			descriptorWrite.dstSet = m_uboDescriptorSets[i];
+			descriptorWrite.dstBinding = 0;
+			descriptorWrite.dstArrayElement = 0;
+			descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			descriptorWrite.pBufferInfo = &bufferInfo;
+			descriptorWrite.descriptorCount = 1;
+
+			vkUpdateDescriptorSets(m_device.getDevice(), 1, &descriptorWrite, 0, nullptr);
+		}
+	}
+	{
+		auto layouts = std::vector<VkDescriptorSetLayout>(MAX_FRAMES_IN_FLIGHT, m_textureDescriptorSetLayout);
+		auto allocInfo = VkDescriptorSetAllocateInfo{};
+		allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+		allocInfo.descriptorPool = m_descriptorPool;
+		allocInfo.pSetLayouts = layouts.data();
+		allocInfo.descriptorSetCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+		if (auto result = vkAllocateDescriptorSets(m_device.getDevice(), &allocInfo, m_textureDescriptorSets.data()); result != VK_SUCCESS)
+			throw std::runtime_error{ "failed to allocate descriptor sets" };
+	}
+}
+
+void GraphicsPipeline::bindTexture(Texture& texture)
+{
+	vkDeviceWaitIdle(m_device.getDevice());
 	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
 	{
-		auto bufferInfo = VkDescriptorBufferInfo{};
-		bufferInfo.buffer = m_uniformBuffer.getBuffer(i).getBuffer();
-		bufferInfo.offset = 0;
-		bufferInfo.range = sizeof(UniformBufferObject);
-
 		auto imageInfo = VkDescriptorImageInfo{};
 		imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		imageInfo.imageView = m_texture.getImageView();
-		imageInfo.sampler = m_texture.getSampler();
+		imageInfo.imageView = texture.getImageView();
+		imageInfo.sampler = texture.getSampler();
 
-		auto descriptorWrites = std::array<VkWriteDescriptorSet, 2>{};
-		descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		descriptorWrites[0].dstSet = m_descriptorSets[i];
-		descriptorWrites[0].dstBinding = 0;
-		descriptorWrites[0].dstArrayElement = 0;
-		descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		descriptorWrites[0].pBufferInfo = &bufferInfo;
-		descriptorWrites[0].descriptorCount = 1;
-
-		descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		descriptorWrites[1].dstSet = m_descriptorSets[i];
-		descriptorWrites[1].dstBinding = 1;
-		descriptorWrites[1].dstArrayElement = 0;
-		descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		descriptorWrites[1].pImageInfo = &imageInfo;
-		descriptorWrites[1].descriptorCount = 1;
-		vkUpdateDescriptorSets(m_device.getDevice(), static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
+		auto descriptorWrite = VkWriteDescriptorSet{};
+		descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptorWrite.dstSet = m_textureDescriptorSets[i];
+		descriptorWrite.dstBinding = 0;
+		descriptorWrite.dstArrayElement = 0;
+		descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		descriptorWrite.pImageInfo = &imageInfo;
+		descriptorWrite.descriptorCount = 1;
+		vkUpdateDescriptorSets(m_device.getDevice(), 1, &descriptorWrite, 0, nullptr);
 	}
 }
 
 void GraphicsPipeline::bindDescriptorSets(VkCommandBuffer commandBuffer, uint32_t currentFrame)
 {
-	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, getLayout(), 0, 1, &m_descriptorSets[currentFrame], 0, nullptr);
+	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, getLayout(), 0, 1, &m_uboDescriptorSets[currentFrame], 0, nullptr);
+	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, getLayout(), 1, 1, &m_textureDescriptorSets[currentFrame], 0, nullptr);
 }
 
 void GraphicsPipeline::updateBuffer(uint32_t currentFrame)

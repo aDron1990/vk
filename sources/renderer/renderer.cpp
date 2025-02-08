@@ -32,6 +32,7 @@ Renderer::Renderer(GLFWwindow* window) : m_window{window}
 	createSwapchain();
 	createGraphicsPipeline();
 	auto ubo = UniformBuffer<UniformBufferObject>{*m_device};
+	m_pipeline->bindTexture(*m_texture);
 }
 
 Renderer::~Renderer()
@@ -214,7 +215,7 @@ void Renderer::createSwapchain()
 
 void Renderer::createGraphicsPipeline()
 {
-	auto pipelineInfo = PipelineInfo{.texture = *m_texture};
+	auto pipelineInfo = PipelineInfo{};
 	pipelineInfo.vertexPath = "../../resources/shaders/shader.vert.spv";
 	pipelineInfo.fragmentPath = "../../resources/shaders/shader.frag.spv";
 	pipelineInfo.renderPass = m_renderPass;

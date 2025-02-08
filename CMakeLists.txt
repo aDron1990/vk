@@ -36,6 +36,8 @@ add_executable(vk
 	"sources/renderer/uniform_buffer.hpp"
 	"sources/renderer/texture.hpp"
 	"sources/renderer/texture.cpp"
+	"sources/renderer/mesh.hpp"
+	"sources/renderer/mesh.cpp"
 )
 
 set_property(TARGET vk PROPERTY CXX_STANDARD 23)

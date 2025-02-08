@@ -15,7 +15,6 @@ struct PipelineInfo
 	std::string vertexPath;
 	std::string fragmentPath;
 	VkRenderPass renderPass;
-	Texture& texture;
 };
 
 class Pipeline
@@ -27,7 +26,7 @@ public:
 	VkPipelineLayout getLayout();
 	
 protected:
-	void createPipeline(VkDescriptorSetLayout descriptorSetLayout);
+	void createPipeline(const std::vector<VkDescriptorSetLayout>& descriptorSetLayouts);
 	virtual void bindDescriptorSets(VkCommandBuffer commandBuffer, uint32_t currentFrame) = 0;
 
 private:
