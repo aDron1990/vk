@@ -9,6 +9,7 @@
 #include "renderer/buffer.hpp"
 #include "renderer/uniform_buffer.hpp"
 #include "renderer/texture.hpp"
+#include "renderer/mesh.hpp"
 
 #include <vulkan/vulkan.h>
 #include <GLFW/glfw3.h>
@@ -32,11 +33,9 @@ private:
 	void createCommandBuffers();
 	void createRenderPass();
 	void createTexture();
-	void loadModel();
-	void createVertexBuffer();
-	void createIndexBuffer();
 	void createSwapchain();
 	void createGraphicsPipeline();
+	void createMesh();
 
 private:
 	void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
@@ -61,6 +60,5 @@ private:
 	std::unique_ptr<Texture> m_texture;
 	std::unique_ptr<Swapchain> m_swapchain;
 	std::unique_ptr<GraphicsPipeline> m_pipeline;
-	std::unique_ptr<Buffer> m_vertexBuffer;
-	std::unique_ptr<Buffer> m_indexBuffer;
+	std::unique_ptr<Mesh> m_mesh;
 };

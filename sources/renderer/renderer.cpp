@@ -1,8 +1,6 @@
 #include "renderer/renderer.hpp"
 #include "load_file.hpp"
 
-#define TINYOBJLOADER_IMPLEMENTATION
-#include <tiny_obj_loader.h>
 #include <glm/gtc/matrix_transform.hpp>
 
 #include <stdexcept>
@@ -14,8 +12,6 @@
 #include <cstdint>
 #include <unordered_map>
 
-std::vector<Vertex> vertices;
-std::vector<uint32_t> indices;
 const std::string MODEL_PATH = "../../resources/models/viking_room.obj";
 
 Renderer::Renderer(GLFWwindow* window) : m_window{window}
@@ -26,9 +22,7 @@ Renderer::Renderer(GLFWwindow* window) : m_window{window}
 	createCommandBuffers();
 	createRenderPass();
 	createTexture();
-	loadModel();
-	createVertexBuffer();
-	createIndexBuffer();
+	createMesh();
 	createSwapchain();
 	createGraphicsPipeline();
 	auto ubo = UniformBuffer<UniformBufferObject>{*m_device};
@@ -48,8 +42,7 @@ Renderer::~Renderer()
 	m_pipeline.reset();
 	m_swapchain.reset();
 	m_texture.reset();
-	m_vertexBuffer.reset();
-	m_indexBuffer.reset();
+	m_mesh.reset();
 	m_device.reset();
 	m_context.reset();
 }
@@ -133,74 +126,9 @@ void Renderer::createTexture()
 	m_texture.reset(new Texture{ *m_device, "../../resources/textures/viking_room.png" });
 }
 
-void Renderer::loadModel()
+void Renderer::createMesh()
 {
-	tinyobj::attrib_t attrib;
-	std::vector<tinyobj::shape_t> shapes;
-	std::vector<tinyobj::material_t> materials;
-	std::string warn, err;
-
-	if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, "../../resources/models/viking_room.obj"))
-		throw std::runtime_error(warn + err);
-
-	std::unordered_map<Vertex, uint32_t> uniqueVertices{};
-	for (const auto& shape : shapes) {
-		for (const auto& index : shape.mesh.indices) {
-			Vertex vertex{};
-
-			vertex.pos = {
-				attrib.vertices[3 * index.vertex_index + 0],
-				attrib.vertices[3 * index.vertex_index + 1],
-				attrib.vertices[3 * index.vertex_index + 2]
-			};
-
-			vertex.texCoord = {
-				attrib.texcoords[2 * index.texcoord_index + 0],
-				1.0f - attrib.texcoords[2 * index.texcoord_index + 1]
-			};
-
-			vertex.color = { 1.0f, 1.0f, 1.0f };
-
-			if (uniqueVertices.count(vertex) == 0) 
-			{
-				uniqueVertices[vertex] = static_cast<uint32_t>(vertices.size());
-				vertices.push_back(vertex);
-			}
-			indices.push_back(uniqueVertices[vertex]);
-		}
-	}
-}
-
-void Renderer::createVertexBuffer()
-{
-	VkDeviceSize size = sizeof(vertices[0]) * vertices.size();
-
-	Buffer stagingBuffer{ *m_device, size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT };
-
-	auto* data = stagingBuffer.map();
-	memcpy(data, vertices.data(), static_cast<size_t>(size));
-	stagingBuffer.unmap();
-
-	m_vertexBuffer.reset(new Buffer{*m_device, size, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT });
-
-	m_device->copyBuffer(stagingBuffer, *m_vertexBuffer);
-}
-
-void Renderer::createIndexBuffer()
-{
-	VkDeviceSize size = sizeof(indices[0]) * indices.size();
-
-	Buffer stagingBuffer{ *m_device, size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT };
-
-	auto* data = stagingBuffer.map();
-	memcpy(data, indices.data(), static_cast<size_t>(size));
-	stagingBuffer.unmap();
-
-	m_indexBuffer.reset(new Buffer{ *m_device, size, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT });
-
-	m_device->copyBuffer(stagingBuffer, *m_indexBuffer);
+	m_mesh.reset(new Mesh{ *m_device, "MODEL_PATH" });
 }
 
 void Renderer::createSwapchain()
@@ -286,12 +214,8 @@ void Renderer::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t image
 	scissor.extent = m_swapchain->getExtent();
 	vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-	VkDeviceSize offsets[] = {0};
-	auto buffer = m_vertexBuffer->getBuffer();
-	vkCmdBindVertexBuffers(commandBuffer, 0, 1, &buffer, offsets);
-	vkCmdBindIndexBuffer(commandBuffer, m_indexBuffer->getBuffer(), 0, VK_INDEX_TYPE_UINT32);
-
-	vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
+	m_mesh->bindBuffers(commandBuffer);
+	m_mesh->draw(commandBuffer);
 
 	vkCmdEndRenderPass(commandBuffer);
 	if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS)
