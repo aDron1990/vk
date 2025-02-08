@@ -16,6 +16,7 @@ private:
 	void createImage(const std::string& imagePath);
 	void createImageView();
 	void createImageSampler();
+	void generateMipmaps(VkImage image, VkFormat imageFormat, int32_t width, int32_t height, uint32_t mipLevels);
 
 private:
 	Device& m_device;
@@ -23,4 +24,5 @@ private:
 	VkDeviceMemory m_imageMemory;
 	VkImageView m_imageView;
 	VkSampler m_sampler;
+	uint32_t m_mipLevels;
 };

@@ -245,7 +245,7 @@ void Device::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryP
 	vkBindBufferMemory(m_device, buffer, memory, 0);
 }
 
-void Device::createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory)
+void Device::createImage(uint32_t width, uint32_t height, uint32_t mipLevels, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory)
 {
 	auto createInfo = VkImageCreateInfo{};
 	createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -253,7 +253,7 @@ void Device::createImage(uint32_t width, uint32_t height, VkFormat format, VkIma
 	createInfo.extent.width = width;
 	createInfo.extent.height = height;
 	createInfo.extent.depth = 1;
-	createInfo.mipLevels = 1;
+	createInfo.mipLevels = mipLevels;
 	createInfo.arrayLayers = 1;
 	createInfo.format = format;
 	createInfo.tiling = tiling;
@@ -277,7 +277,7 @@ void Device::createImage(uint32_t width, uint32_t height, VkFormat format, VkIma
 	vkBindImageMemory(m_device, image, imageMemory, 0);
 }
 
-VkImageView Device::createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags)
+VkImageView Device::createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, uint32_t mipLevels)
 {
 	auto imageView = VkImageView{};
 	auto createInfo = VkImageViewCreateInfo{};
@@ -287,7 +287,7 @@ VkImageView Device::createImageView(VkImage image, VkFormat format, VkImageAspec
 	createInfo.format = format;
 	createInfo.subresourceRange.aspectMask = aspectFlags;
 	createInfo.subresourceRange.baseMipLevel = 0;
-	createInfo.subresourceRange.levelCount = 1;
+	createInfo.subresourceRange.levelCount = mipLevels;
 	createInfo.subresourceRange.baseArrayLayer = 0;
 	createInfo.subresourceRange.layerCount = 1;
 	if (vkCreateImageView(m_device, &createInfo, nullptr, &imageView) != VK_SUCCESS)
@@ -382,7 +382,7 @@ bool hasStencilComponent(VkFormat format)
 	return format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT;
 }
 
-void Device::transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout)
+void Device::transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t mipLevels)
 {
 	auto commandBuffer = beginSingleTimeCommands();
 	VkPipelineStageFlags sourceStage;
@@ -397,7 +397,7 @@ void Device::transitionImageLayout(VkImage image, VkFormat format, VkImageLayout
 	barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 	barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 	barrier.subresourceRange.baseMipLevel = 0;
-	barrier.subresourceRange.levelCount = 1;
+	barrier.subresourceRange.levelCount = mipLevels;
 	barrier.subresourceRange.baseArrayLayer = 0;
 	barrier.subresourceRange.layerCount = 1;
 	if (newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL) 

@@ -262,7 +262,7 @@ void Renderer::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t image
 	auto renderPassInfo = VkRenderPassBeginInfo{};
 	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 	renderPassInfo.renderPass = m_renderPass;
-	renderPassInfo.framebuffer = m_swapchain->getFramebuffer	(imageIndex);
+	renderPassInfo.framebuffer = m_swapchain->getFramebuffer(imageIndex);
 	renderPassInfo.renderArea.offset = { 0, 0 };
 	renderPassInfo.renderArea.extent = m_swapchain->getExtent();
 	renderPassInfo.pClearValues = clearValues.begin();
