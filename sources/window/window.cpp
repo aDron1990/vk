@@ -21,7 +21,7 @@ Window::Window(int widht, int height, std::string_view title) : m_window{ nullpt
 	};
 	
 	m_input.reset(new Input{ *this });
-	m_renderer.reset(new Renderer{ m_window.get() });
+	m_renderer.reset(new Renderer{ *this });
 }
 
 void Window::update()

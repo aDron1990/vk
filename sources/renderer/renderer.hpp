@@ -21,12 +21,13 @@
 #include <optional>
 #include <memory>
 
+class Window;
 class Renderer
 {
 public:
-	Renderer(GLFWwindow* window);
+	Renderer(Window& window);
 	~Renderer();
-	void draw();
+	void render();
 
 private:
 	void createContext();
@@ -40,11 +41,11 @@ private:
 	void createMesh();
 	
 private:
-	void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
+	void renderScene(VkCommandBuffer commandBuffer, uint32_t imageIndex);
 
 private:
 	uint32_t currentFrame{};
-	GLFWwindow* m_window;
+	Window& m_window;
 
 	VkRenderPass m_renderPass;
 

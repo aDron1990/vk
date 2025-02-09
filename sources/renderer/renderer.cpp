@@ -1,4 +1,5 @@
 #include "renderer/renderer.hpp"
+#include "window/window.hpp"
 #include "load_file.hpp"
 
 #include <glm/gtc/matrix_transform.hpp>
@@ -14,7 +15,7 @@
 
 const std::string MODEL_PATH = "../../resources/models/viking_room.obj";
 
-Renderer::Renderer(GLFWwindow* window) : m_window{window}
+Renderer::Renderer(Window& window) : m_window{window}
 {
 	createContext();
 	createDevice();
@@ -55,7 +56,7 @@ void Renderer::createContext()
 void Renderer::createDevice()
 {
 	auto surface = VkSurfaceKHR{};
-	if (glfwCreateWindowSurface(m_context->getInstance(), m_window, nullptr, &surface) != VK_SUCCESS)
+	if (glfwCreateWindowSurface(m_context->getInstance(), m_window.getWindow(), nullptr, &surface) != VK_SUCCESS)
 		throw std::runtime_error{ "failed to create vulkan surface" };
 
 	m_device.reset(new Device{*m_context, surface});
@@ -134,7 +135,7 @@ void Renderer::createMesh()
 void Renderer::createSwapchain()
 {
 	int width, height;
-	glfwGetFramebufferSize(m_window, &width, &height);
+	glfwGetFramebufferSize(m_window.getWindow(), &width, &height);
 	auto extent = VkExtent2D{ static_cast<uint32_t>(width), static_cast<uint32_t>(height) };
 	auto createProps = SwapchainProperties{};
 	createProps.renderPass = m_renderPass;
@@ -176,7 +177,7 @@ void Renderer::createCommandBuffers()
 	}
 }
 
-void Renderer::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex)
+void Renderer::renderScene(VkCommandBuffer commandBuffer, uint32_t imageIndex)
 {
 	auto beginInfo = VkCommandBufferBeginInfo{};
 	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -227,7 +228,7 @@ void Renderer::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t image
 		throw std::runtime_error{ "failed to end command buffer" };
 }
 
-void Renderer::draw()
+void Renderer::render()
 {
 	auto imageIndex = m_swapchain->beginFrame(m_frameDatas[currentFrame].inFlightFence, m_frameDatas[currentFrame].imageAvailableSemaphore);
 	if (imageIndex == UINT32_MAX) return;
@@ -235,7 +236,7 @@ void Renderer::draw()
 
 	vkResetCommandBuffer(commandBuffer, 0);
 
-	recordCommandBuffer(commandBuffer, imageIndex);
+	renderScene(commandBuffer, imageIndex);
 
 	std::initializer_list<VkPipelineStageFlags> waitStages = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
 	auto submitInfo = VkSubmitInfo{};
