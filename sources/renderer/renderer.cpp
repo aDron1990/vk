@@ -27,7 +27,8 @@ Renderer::Renderer(Window& window) : m_window{window}
 	createGraphicsPipeline();
 	m_model.reset(new Model{ *m_device, MODEL_PATH, TEXTURE_PATH });
 	m_object.reset(new Object{ *m_device, *m_model });
-	m_object->setRotation({-90.0f, 0.0f, -90.0f});
+	m_object->setRotation({ -90.0f, 0.0f, -90.0f });
+	m_light.reset(new LightBuffer{ *m_device });
 }
 
 Renderer::~Renderer()
@@ -44,6 +45,7 @@ Renderer::~Renderer()
 	m_pipeline.reset();
 	m_swapchain.reset();
 	m_model.reset();
+	m_light.reset();
 	m_device.reset();
 	m_context.reset();
 }

@@ -23,6 +23,8 @@
 #include <optional>
 #include <memory>
 
+using LightBuffer = UniformBuffer<Light>;
+
 class Window;
 class Renderer
 {
@@ -63,6 +65,7 @@ private:
 	std::unique_ptr<Device> m_device;
 	std::unique_ptr<Swapchain> m_swapchain;
 	std::unique_ptr<GraphicsPipeline> m_pipeline;
+	std::unique_ptr<LightBuffer> m_light;
 	std::unique_ptr<Model> m_model;
 	std::unique_ptr<Object> m_object;
 };
