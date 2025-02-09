@@ -13,8 +13,9 @@ add_executable(vk
 	"sources/load_file.hpp"
 
 	"sources/window/window.hpp"
-	"sources/window/glfw_window.hpp"
-	"sources/window/glfw_window.cpp"
+	"sources/window/window.cpp"
+	"sources/window/input.hpp"
+	"sources/window/input.cpp"
 
 	"sources/renderer/config.hpp"
 	"sources/renderer/types.hpp"

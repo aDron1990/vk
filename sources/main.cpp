@@ -8,12 +8,13 @@ int main()
 {
 	try
 	{
-		auto window = createWindow(800, 600, "window");
-		auto& renderer = window->getRenderer();
+		auto window = Window{ 800, 600, "window" };
+		auto& renderer = window.getRenderer();
+		auto& input = window.getInput();
 
-		while (!window->shouldClose())
+		while (!window.shouldClose())
 		{
-			window->update();
+			window.update();
 			renderer.draw();
 		}
 	}

@@ -1,19 +1,28 @@
 #pragma once
 
-#include <string_view>
-#include <memory>
-#include <cstring>
-
+#include "window/input.hpp"
 #include "renderer/renderer.hpp"
+
+#include <GLFW/glfw3.h>
 
 class Window
 {
 public:
-	virtual ~Window() = default;
-	virtual Renderer& getRenderer() = 0;
-	virtual void update() = 0;
-	virtual bool shouldClose() = 0;
+	Window(int widht, int height, std::string_view title);
+	void update();
+	bool shouldClose();
+	Renderer& getRenderer();
+	Input& getInput();
+	GLFWwindow* getWindow();
+	
+private:
+	using HandlePtr = std::unique_ptr<GLFWwindow, void(*)(GLFWwindow*)>;
+	using RendererPtr = std::unique_ptr<Renderer>;
+	using InputPtr = std::unique_ptr<Input>;
+
+	HandlePtr m_window;
+	RendererPtr m_renderer;
+	InputPtr m_input;
+	
 };
 
-using WindowPtr = std::unique_ptr<Window>;
-WindowPtr createWindow(uint_fast32_t width, uint_fast32_t height, std::string_view title);
