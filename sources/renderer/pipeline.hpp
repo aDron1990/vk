@@ -27,7 +27,6 @@ public:
 	
 protected:
 	void createPipeline(const std::vector<VkDescriptorSetLayout>& descriptorSetLayouts);
-	virtual void bindDescriptorSets(VkCommandBuffer commandBuffer, uint32_t currentFrame) = 0;
 
 private:
 	VkShaderModule createShaderModule(const std::vector<char>& code);

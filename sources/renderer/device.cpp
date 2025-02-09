@@ -10,10 +10,15 @@ Device::Device(Context& context, VkSurfaceKHR surface) : m_context{context}, m_s
 	pickGpu();
 	createDevice();
 	createCommandPool();
+	createDescriptorSetLayouts();
+	m_descriptorPool.reset(new DescriptorPool{ *this });
 }
 
 Device::~Device()
 {
+	m_descriptorPool.reset();
+	vkDestroyDescriptorSetLayout(m_device, m_uboDescriptorSetLayout, nullptr);
+	vkDestroyDescriptorSetLayout(m_device, m_samplerDescriptorSetLayout, nullptr);
 	vkDestroyCommandPool(m_device, m_commandPool, nullptr);
 	vkDestroyDevice(m_device, nullptr);
 	vkDestroySurfaceKHR(m_context.getInstance(), m_surface, nullptr);
@@ -222,6 +227,38 @@ void Device::createCommandPool()
 		throw std::runtime_error{ "failed to create vulkan command pool" };
 }
 
+void Device::createDescriptorSetLayouts()
+{
+	{
+		auto uboBind = VkDescriptorSetLayoutBinding{};
+		uboBind.binding = 0;
+		uboBind.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		uboBind.descriptorCount = 1;
+		uboBind.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+
+		auto createInfo = VkDescriptorSetLayoutCreateInfo{};
+		createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+		createInfo.pBindings = &uboBind;
+		createInfo.bindingCount = 1;
+		if (vkCreateDescriptorSetLayout(m_device, &createInfo, nullptr, &m_uboDescriptorSetLayout) != VK_SUCCESS)
+			throw std::runtime_error{ "failed to create descriptor set layout" };
+	}
+	{
+		auto samplerBind = VkDescriptorSetLayoutBinding{};
+		samplerBind.binding = 0;
+		samplerBind.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		samplerBind.descriptorCount = 1;
+		samplerBind.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+		auto createInfo = VkDescriptorSetLayoutCreateInfo{};
+		createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+		createInfo.pBindings = &samplerBind;
+		createInfo.bindingCount = 1;
+		if (vkCreateDescriptorSetLayout(m_device, &createInfo, nullptr, &m_samplerDescriptorSetLayout) != VK_SUCCESS)
+			throw std::runtime_error{ "failed to create descriptor set layout" };
+	}
+}
+
 void Device::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& memory)
 {
 	auto createInfo = VkBufferCreateInfo{};
@@ -332,7 +369,7 @@ void Device::copyBufferToImage(Buffer& srcBuffer, VkImage dstImage, uint32_t wid
 	endSingleTimeCommands(commandBuffer);
 }
 
-std::vector<VkCommandBuffer> Device::allocateCommandBuffers(uint32_t count)
+std::vector<VkCommandBuffer> Device::createCommandBuffers(uint32_t count)
 {
 	auto commandBuffers = std::vector<VkCommandBuffer>(count);
 	auto allocInfo = VkCommandBufferAllocateInfo{};
@@ -344,6 +381,11 @@ std::vector<VkCommandBuffer> Device::allocateCommandBuffers(uint32_t count)
 		throw std::runtime_error{ "failed to allocate vulkan command buffers" };
 
 	return commandBuffers;
+}
+
+DescriptorSet Device::createDescriptorSet(VkDescriptorSetLayout layout)
+{
+	return m_descriptorPool->createDescriptorSet(layout);
 }
 
 VkCommandBuffer Device::beginSingleTimeCommands()
@@ -468,4 +510,15 @@ VkQueue Device::getGraphicsQueue()
 VkQueue Device::getPresentQueue()
 {
 	return m_presentQueue;
+}
+
+VkDescriptorSetLayout Device::getUBOLayout()
+{
+	return m_uboDescriptorSetLayout;
+}
+
+VkDescriptorSetLayout Device::getSamplerLayout()
+{
+	return m_samplerDescriptorSetLayout;
+
 }

@@ -3,7 +3,10 @@
 #include "renderer/config.hpp"
 #include "renderer/types.hpp"
 #include "renderer/context.hpp"
+#include "renderer/descriptor_pool.hpp"
 #include "renderer/buffer.hpp"
+
+#include <memory>
 
 class Device
 {
@@ -19,7 +22,8 @@ public:
 	void copyBufferToImage(Buffer& srcBuffer, VkImage dstImage, uint32_t width, uint32_t height);
 	void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t mipLevels);
 
-	std::vector<VkCommandBuffer> allocateCommandBuffers(uint32_t count);
+	std::vector<VkCommandBuffer> createCommandBuffers(uint32_t count);
+	DescriptorSet createDescriptorSet(VkDescriptorSetLayout layout);
 
 	VkCommandBuffer beginSingleTimeCommands();
 	void endSingleTimeCommands(VkCommandBuffer commandBuffer);
@@ -35,6 +39,8 @@ public:
 	VkDevice getDevice();
 	VkQueue getGraphicsQueue();
 	VkQueue getPresentQueue();
+	VkDescriptorSetLayout getUBOLayout();
+	VkDescriptorSetLayout getSamplerLayout();
 
 private:
 	bool checkGpuExtensionsSupport(VkPhysicalDevice gpu);
@@ -44,13 +50,17 @@ private:
 	bool isGpuSuitable(VkPhysicalDevice gpu);
 	void createDevice();
 	void createCommandPool();
+	void createDescriptorSetLayouts();
 
 private:
 	Context& m_context;
+	std::unique_ptr<DescriptorPool> m_descriptorPool;
 	VkSurfaceKHR m_surface;
 	VkPhysicalDevice m_gpu;
 	VkDevice m_device;
 	VkQueue m_graphicsQueue;
 	VkQueue m_presentQueue;
 	VkCommandPool m_commandPool;
+	VkDescriptorSetLayout m_uboDescriptorSetLayout;
+	VkDescriptorSetLayout m_samplerDescriptorSetLayout;
 };

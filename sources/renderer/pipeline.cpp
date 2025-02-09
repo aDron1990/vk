@@ -143,7 +143,6 @@ VkShaderModule Pipeline::createShaderModule(const std::vector<char>& code)
 void Pipeline::bind(VkCommandBuffer commandBuffer, uint32_t currentFrame)
 {
 	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline);
-	bindDescriptorSets(commandBuffer, currentFrame);
 }
 
 VkPipelineLayout Pipeline::getLayout()

@@ -38,6 +38,8 @@ add_executable(vk
 	"sources/renderer/texture.cpp"
 	"sources/renderer/mesh.hpp"
 	"sources/renderer/mesh.cpp"
+	"sources/renderer/descriptor_pool.hpp"
+	"sources/renderer/descriptor_pool.cpp"
 )
 
 set_property(TARGET vk PROPERTY CXX_STANDARD 23)

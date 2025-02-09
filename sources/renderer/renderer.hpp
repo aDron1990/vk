@@ -1,6 +1,7 @@
 #pragma once
 
 #include "renderer/config.hpp"
+#include "renderer/types.hpp"
 #include "renderer/context.hpp"
 #include "renderer/device.hpp"
 #include "renderer/swapchain.hpp"
@@ -36,9 +37,10 @@ private:
 	void createSwapchain();
 	void createGraphicsPipeline();
 	void createMesh();
-
+	
 private:
 	void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
+	void updateBuffer(uint32_t currentFrame);
 
 private:
 	uint32_t currentFrame{};
@@ -61,4 +63,5 @@ private:
 	std::unique_ptr<Swapchain> m_swapchain;
 	std::unique_ptr<GraphicsPipeline> m_pipeline;
 	std::unique_ptr<Mesh> m_mesh;
+	std::unique_ptr<UniformBuffer<UniformBufferObject>> m_uniformBuffer;
 };
