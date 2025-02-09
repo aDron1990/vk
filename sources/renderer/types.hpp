@@ -28,10 +28,11 @@ struct Vertex
 {
 	glm::vec3 pos;
 	glm::vec3 color;
+	glm::vec3 normal;
 	glm::vec2 texCoord;
 
 	static VkVertexInputBindingDescription getBindDesc();
-	static std::array<VkVertexInputAttributeDescription, 3> getAttrDesc();
+	static std::array<VkVertexInputAttributeDescription, 4> getAttrDesc();
 	inline bool operator==(const Vertex& other) const {
 		return pos == other.pos && color == other.color && texCoord == other.texCoord;
 	}

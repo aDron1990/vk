@@ -26,8 +26,10 @@ Renderer::Renderer(Window& window) : m_window{window}
 	createSwapchain();
 	createGraphicsPipeline();
 	m_model.reset(new Model{ *m_device, MODEL_PATH, TEXTURE_PATH });
-	m_object.reset(new Object{ *m_device, *m_model });
-	m_object->setRotation({ -90.0f, 0.0f, -90.0f });
+	m_sphere.reset(new Object{ *m_device, *m_model });
+	m_lamp.reset(new Object{ *m_device, *m_model });
+	m_lamp->setPosition({ 6.0f, 5.0f, 10.0f });
+	//m_lamp->setScale({ .2f, .2f, .2f });
 	m_light.reset(new LightBuffer{ *m_device, m_device->getLightLayout()});
 }
 
@@ -40,7 +42,8 @@ Renderer::~Renderer()
 		vkDestroySemaphore(m_device->getDevice(), frameData.renderFinishedSemaphore, nullptr);
 		vkDestroyFence(m_device->getDevice(), frameData.inFlightFence, nullptr);
 	}
-	m_object.reset();
+	m_sphere.reset();
+	m_lamp.reset();
 	vkDestroyRenderPass(m_device->getDevice(), m_renderPass, nullptr);
 	m_pipeline.reset();
 	m_swapchain.reset();
@@ -220,14 +223,15 @@ void Renderer::renderScene(VkCommandBuffer commandBuffer, uint32_t imageIndex)
 
 	auto extent = m_swapchain->getExtent();
 	auto view = m_camera.getViewMatrix();
-	auto proj = glm::perspective(glm::radians(45.0f), extent.width / (float)extent.height, 0.1f, 10.0f);
+	auto proj = glm::perspective(glm::radians(45.0f), extent.width / (float)extent.height, 0.1f, 100.0f);
 	proj[1][1] *= -1;
 
-	//auto blue = (float)(glm::sin(glfwGetTime()) + 1.0f) / 2.0f;
-	Light light = Light{ .position = {12.0f, 10.0f, 20.0f}, .color = {1.0f, 1.0f, 1.0f}};
+	
+	Light light = Light{ .position = {6.0f, 5.0f, 10.0f}, .color = {1.0f, 1.0f, 1.0f} };
 	m_light->write(light, currentFrame);
 	m_light->bind(commandBuffer, m_pipeline->getLayout(), 2, currentFrame);
-	m_object->draw(commandBuffer, m_pipeline->getLayout(), currentFrame, view, proj);
+	m_sphere->draw(commandBuffer, m_pipeline->getLayout(), currentFrame, view, proj);
+	m_lamp->draw(commandBuffer, m_pipeline->getLayout(), currentFrame, view, proj);
 
 	vkCmdEndRenderPass(commandBuffer);
 	if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS)
