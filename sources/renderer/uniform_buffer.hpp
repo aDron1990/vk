@@ -13,13 +13,13 @@ template<typename T>
 class UniformBuffer
 {
 public:
-	UniformBuffer(Device& device) : m_device{device}
+	UniformBuffer(Device& device, VkDescriptorSetLayout	layout) : m_device{device}
 	{
 		m_size = sizeof(T);
 		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
 		{
 			auto& buffer = m_buffers[i];
-			m_descriptorSets[i] = m_device.createDescriptorSet(m_device.getUBOLayout());
+			m_descriptorSets[i] = m_device.createDescriptorSet(layout);
 			buffer.reset(new Buffer{ m_device, m_size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT });
 			m_buffersMapped[i] = buffer->map();
 
@@ -52,9 +52,9 @@ public:
 		memcpy(m_buffersMapped[currentFrame], &data, sizeof(T));
 	}
 
-	void bind(VkCommandBuffer commandBuffer, VkPipelineLayout layout, uint32_t currentFrame)
+	void bind(VkCommandBuffer commandBuffer, VkPipelineLayout layout, uint32_t set, uint32_t currentFrame)
 	{
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, layout, 0, 1, &m_descriptorSets[currentFrame].set, 0, nullptr);
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, layout, set, 1, &m_descriptorSets[currentFrame].set, 0, nullptr);
 	}
 
 	Buffer& getBuffer(uint32_t currentFrame)

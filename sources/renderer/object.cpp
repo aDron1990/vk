@@ -1,6 +1,6 @@
 #include "renderer/object.hpp"
 
-Object::Object(Device& device, Model& model) : m_model{model}, m_mvpBuffer{device}
+Object::Object(Device& device, Model& model) : m_model{model}, m_mvpBuffer{device, device.getMVPLayout()}
 {}
 
 void Object::draw(VkCommandBuffer commandBuffer, VkPipelineLayout layout, uint32_t currentFrame, const glm::mat4& view, const glm::mat4& proj)
@@ -14,7 +14,7 @@ void Object::draw(VkCommandBuffer commandBuffer, VkPipelineLayout layout, uint32
 	mvp.view = view;
 	mvp.proj = proj;
 	m_mvpBuffer.write(mvp, currentFrame);
-	m_mvpBuffer.bind(commandBuffer, layout, currentFrame);
+	m_mvpBuffer.bind(commandBuffer, layout, 0, currentFrame);
 	m_model.draw(commandBuffer, layout, currentFrame);
 }
 

@@ -186,9 +186,9 @@ void Texture::createDescriptorSets()
     }
 }
 
-void Texture::bind(VkCommandBuffer commandBuffer, VkPipelineLayout layout, uint32_t currentFrame)
+void Texture::bind(VkCommandBuffer commandBuffer, VkPipelineLayout layout, uint32_t set, uint32_t currentFrame)
 {
-    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, layout, 1, 1, &m_descriptorSets[currentFrame].set, 0, nullptr);
+    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, layout, set, 1, &m_descriptorSets[currentFrame].set, 0, nullptr);
 }
 
 VkImageView Texture::getImageView()

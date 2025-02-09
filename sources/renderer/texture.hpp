@@ -9,7 +9,7 @@ class Texture
 public:
 	Texture(Device& device, const std::string& imagePath);
 	~Texture();
-	void bind(VkCommandBuffer commandBuffer, VkPipelineLayout layout, uint32_t currentFrame);
+	void bind(VkCommandBuffer commandBuffer, VkPipelineLayout layout, uint32_t set, uint32_t currentFrame);
 	VkImageView getImageView();
 	VkSampler getSampler();
 

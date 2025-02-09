@@ -39,8 +39,9 @@ public:
 	VkDevice getDevice();
 	VkQueue getGraphicsQueue();
 	VkQueue getPresentQueue();
-	VkDescriptorSetLayout getUBOLayout();
+	VkDescriptorSetLayout getMVPLayout();
 	VkDescriptorSetLayout getSamplerLayout();
+	VkDescriptorSetLayout getLightLayout();
 
 private:
 	bool checkGpuExtensionsSupport(VkPhysicalDevice gpu);
@@ -61,6 +62,7 @@ private:
 	VkQueue m_graphicsQueue;
 	VkQueue m_presentQueue;
 	VkCommandPool m_commandPool;
-	VkDescriptorSetLayout m_uboDescriptorSetLayout;
+	VkDescriptorSetLayout m_mvpDescriptorSetLayout;
 	VkDescriptorSetLayout m_samplerDescriptorSetLayout;
+	VkDescriptorSetLayout m_lightDescriptorSetLayout;
 };

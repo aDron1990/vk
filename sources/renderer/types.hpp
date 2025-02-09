@@ -56,6 +56,6 @@ struct MVP
 
 struct Light
 {
-	glm::vec3 position;
-	glm::vec3 color;
+	alignas(16) glm::vec3 position;
+	alignas(16) glm::vec3 color;
 };

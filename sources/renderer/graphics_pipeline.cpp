@@ -11,7 +11,7 @@
 GraphicsPipeline::GraphicsPipeline(Device& device, PipelineInfo& info)
 	: Pipeline{ device, info }, m_device{ device }
 {
-	createPipeline({ m_device.getUBOLayout(), m_device.getSamplerLayout() });
+	createPipeline({ m_device.getMVPLayout(), m_device.getSamplerLayout(), m_device.getLightLayout() });
 }
 
 GraphicsPipeline::~GraphicsPipeline()

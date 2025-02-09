@@ -17,8 +17,9 @@ Device::Device(Context& context, VkSurfaceKHR surface) : m_context{context}, m_s
 Device::~Device()
 {
 	m_descriptorPool.reset();
-	vkDestroyDescriptorSetLayout(m_device, m_uboDescriptorSetLayout, nullptr);
+	vkDestroyDescriptorSetLayout(m_device, m_mvpDescriptorSetLayout, nullptr);
 	vkDestroyDescriptorSetLayout(m_device, m_samplerDescriptorSetLayout, nullptr);
+	vkDestroyDescriptorSetLayout(m_device, m_lightDescriptorSetLayout, nullptr);
 	vkDestroyCommandPool(m_device, m_commandPool, nullptr);
 	vkDestroyDevice(m_device, nullptr);
 	vkDestroySurfaceKHR(m_context.getInstance(), m_surface, nullptr);
@@ -230,17 +231,17 @@ void Device::createCommandPool()
 void Device::createDescriptorSetLayouts()
 {
 	{
-		auto uboBind = VkDescriptorSetLayoutBinding{};
-		uboBind.binding = 0;
-		uboBind.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		uboBind.descriptorCount = 1;
-		uboBind.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+		auto mvpBind = VkDescriptorSetLayoutBinding{};
+		mvpBind.binding = 0;
+		mvpBind.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		mvpBind.descriptorCount = 1;
+		mvpBind.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 
 		auto createInfo = VkDescriptorSetLayoutCreateInfo{};
 		createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-		createInfo.pBindings = &uboBind;
+		createInfo.pBindings = &mvpBind;
 		createInfo.bindingCount = 1;
-		if (vkCreateDescriptorSetLayout(m_device, &createInfo, nullptr, &m_uboDescriptorSetLayout) != VK_SUCCESS)
+		if (vkCreateDescriptorSetLayout(m_device, &createInfo, nullptr, &m_mvpDescriptorSetLayout) != VK_SUCCESS)
 			throw std::runtime_error{ "failed to create descriptor set layout" };
 	}
 	{
@@ -255,6 +256,20 @@ void Device::createDescriptorSetLayouts()
 		createInfo.pBindings = &samplerBind;
 		createInfo.bindingCount = 1;
 		if (vkCreateDescriptorSetLayout(m_device, &createInfo, nullptr, &m_samplerDescriptorSetLayout) != VK_SUCCESS)
+			throw std::runtime_error{ "failed to create descriptor set layout" };
+	}
+	{
+		auto lightBind = VkDescriptorSetLayoutBinding{};
+		lightBind.binding = 0;
+		lightBind.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		lightBind.descriptorCount = 1;
+		lightBind.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+		auto createInfo = VkDescriptorSetLayoutCreateInfo{};
+		createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+		createInfo.pBindings = &lightBind;
+		createInfo.bindingCount = 1;
+		if (vkCreateDescriptorSetLayout(m_device, &createInfo, nullptr, &m_lightDescriptorSetLayout) != VK_SUCCESS)
 			throw std::runtime_error{ "failed to create descriptor set layout" };
 	}
 }
@@ -512,13 +527,18 @@ VkQueue Device::getPresentQueue()
 	return m_presentQueue;
 }
 
-VkDescriptorSetLayout Device::getUBOLayout()
+VkDescriptorSetLayout Device::getMVPLayout()
 {
-	return m_uboDescriptorSetLayout;
+	return m_mvpDescriptorSetLayout;
 }
 
 VkDescriptorSetLayout Device::getSamplerLayout()
 {
 	return m_samplerDescriptorSetLayout;
 
+}
+
+VkDescriptorSetLayout Device::getLightLayout()
+{
+	return m_lightDescriptorSetLayout;
 }

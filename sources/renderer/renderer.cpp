@@ -28,7 +28,7 @@ Renderer::Renderer(Window& window) : m_window{window}
 	m_model.reset(new Model{ *m_device, MODEL_PATH, TEXTURE_PATH });
 	m_object.reset(new Object{ *m_device, *m_model });
 	m_object->setRotation({ -90.0f, 0.0f, -90.0f });
-	m_light.reset(new LightBuffer{ *m_device });
+	m_light.reset(new LightBuffer{ *m_device, m_device->getLightLayout()});
 }
 
 Renderer::~Renderer()
@@ -209,14 +209,12 @@ void Renderer::renderScene(VkCommandBuffer commandBuffer, uint32_t imageIndex)
 
 	static auto& input = m_window.getInput();
 	auto cameraMove = glm::vec3{};
-
 	if (input.getKey('W')) cameraMove.z += 1;
 	if (input.getKey('S')) cameraMove.z -= 1;
 	if (input.getKey('D')) cameraMove.x += 1;
 	if (input.getKey('A')) cameraMove.x -= 1;
 	if (input.getKey(GLFW_KEY_SPACE)) cameraMove.y += 1;
 	if (input.getKey(GLFW_KEY_LEFT_SHIFT)) cameraMove.y -= 1;
-
 	m_camera.move(cameraMove);
 	m_camera.rotate(input.getCursorDelta());
 
@@ -225,6 +223,10 @@ void Renderer::renderScene(VkCommandBuffer commandBuffer, uint32_t imageIndex)
 	auto proj = glm::perspective(glm::radians(45.0f), extent.width / (float)extent.height, 0.1f, 10.0f);
 	proj[1][1] *= -1;
 
+	//auto blue = (float)(glm::sin(glfwGetTime()) + 1.0f) / 2.0f;
+	Light light = Light{ .position = {12.0f, 10.0f, 20.0f}, .color = {1.0f, 1.0f, 1.0f}};
+	m_light->write(light, currentFrame);
+	m_light->bind(commandBuffer, m_pipeline->getLayout(), 2, currentFrame);
 	m_object->draw(commandBuffer, m_pipeline->getLayout(), currentFrame, view, proj);
 
 	vkCmdEndRenderPass(commandBuffer);
