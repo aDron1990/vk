@@ -27,6 +27,7 @@ Renderer::Renderer(Window& window) : m_window{window}
 	createSwapchain();
 	createGraphicsPipeline();
 	m_model.reset(new Model{ *m_device, m_mesh, m_texture });
+	m_model->setRotation({-90.0f, 0.0f, -90.0f});
 }
 
 Renderer::~Renderer()
@@ -215,9 +216,22 @@ void Renderer::renderScene(VkCommandBuffer commandBuffer, uint32_t imageIndex)
 	scissor.extent = m_swapchain->getExtent();
 	vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
+	static auto& input = m_window.getInput();
+	auto cameraMove = glm::vec3{};
+
+	if (input.getKey('W')) cameraMove.z += 1;
+	if (input.getKey('S')) cameraMove.z -= 1;
+	if (input.getKey('D')) cameraMove.x += 1;
+	if (input.getKey('A')) cameraMove.x -= 1;
+	if (input.getKey(GLFW_KEY_SPACE)) cameraMove.y += 1;
+	if (input.getKey(GLFW_KEY_LEFT_SHIFT)) cameraMove.y -= 1;
+
+	m_camera.move(cameraMove);
+	m_camera.rotate(input.getCursorDelta());
+
 	auto extent = m_swapchain->getExtent();
 	auto ubo = UniformBufferObject{};
-	auto view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	auto view = m_camera.getViewMatrix();
 	auto proj = glm::perspective(glm::radians(45.0f), extent.width / (float)extent.height, 0.1f, 10.0f);
 	proj[1][1] *= -1;
 

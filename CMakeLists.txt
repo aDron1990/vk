@@ -43,6 +43,8 @@ add_executable(vk
 	"sources/renderer/model.cpp"
 	"sources/renderer/descriptor_pool.hpp"
 	"sources/renderer/descriptor_pool.cpp"
+	"sources/renderer/camera.hpp"
+	"sources/renderer/camera.cpp"
 )
 
 set_property(TARGET vk PROPERTY CXX_STANDARD 23)

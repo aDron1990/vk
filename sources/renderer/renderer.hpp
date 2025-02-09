@@ -12,6 +12,7 @@
 #include "renderer/texture.hpp"
 #include "renderer/mesh.hpp"
 #include "renderer/model.hpp"
+#include "renderer/camera.hpp"
 
 #include <vulkan/vulkan.h>
 #include <GLFW/glfw3.h>
@@ -45,6 +46,7 @@ private:
 
 private:
 	uint32_t currentFrame{};
+	Camera m_camera;
 	Window& m_window;
 
 	VkRenderPass m_renderPass;

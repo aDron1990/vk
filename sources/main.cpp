@@ -8,14 +8,15 @@ int main()
 {
 	try
 	{
-		auto window = Window{ 800, 600, "window" };
+		auto window = Window{ 1280, 720, "window" };
 		auto& renderer = window.getRenderer();
 		auto& input = window.getInput();
 
 		while (!window.shouldClose())
 		{
 			window.update();
-			renderer.draw();
+			renderer.render();
+			if (input.getKey(GLFW_KEY_ESCAPE)) break;
 		}
 	}
 	catch (std::exception& ex)
