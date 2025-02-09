@@ -16,7 +16,7 @@ public:
 
 private:
 	Model& m_model;
-	UniformBuffer<UniformBufferObject> m_mvpBuffer;
+	UniformBuffer<MVP> m_mvpBuffer;
 	glm::vec3 m_position{};
 	glm::vec3 m_rotation{};
 	glm::vec3 m_scale{ 1.0f };

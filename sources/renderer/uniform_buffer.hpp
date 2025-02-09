@@ -26,7 +26,7 @@ public:
 			auto bufferInfo = VkDescriptorBufferInfo{};
 			bufferInfo.buffer = buffer->getBuffer();
 			bufferInfo.offset = 0;
-			bufferInfo.range = sizeof(UniformBufferObject);
+			bufferInfo.range = sizeof(T);
 
 			auto descriptorWrite = VkWriteDescriptorSet{};
 			descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
