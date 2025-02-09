@@ -13,7 +13,7 @@
 #include <cstdint>
 #include <unordered_map>
 
-const std::string MODEL_PATH = "../../resources/models/viking_room.obj";
+const std::string MODEL_PATH = "../../resources/models/sphere.obj";
 const std::string TEXTURE_PATH = "../../resources/textures/viking_room.png";
 
 Renderer::Renderer(Window& window) : m_window{window}

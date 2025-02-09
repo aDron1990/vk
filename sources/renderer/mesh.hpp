@@ -16,7 +16,7 @@ public:
 	void draw(VkCommandBuffer commandBuffer);
 
 private:
-	void loadModel();
+	void loadModel(const std::string& modelPath);
 	void createVertexBuffer();
 	void createIndexBuffer();
 
