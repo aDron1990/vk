@@ -25,7 +25,7 @@ Renderer::Renderer(GLFWwindow* window) : m_window{window}
 	createMesh();
 	createSwapchain();
 	createGraphicsPipeline();
-	m_uniformBuffer.reset(new UniformBuffer<UniformBufferObject>{*m_device});
+	m_model.reset(new Model{ *m_device, m_mesh, m_texture });
 }
 
 Renderer::~Renderer()
@@ -37,7 +37,7 @@ Renderer::~Renderer()
 		vkDestroySemaphore(m_device->getDevice(), frameData.renderFinishedSemaphore, nullptr);
 		vkDestroyFence(m_device->getDevice(), frameData.inFlightFence, nullptr);
 	}
-	m_uniformBuffer.reset();
+	m_model.reset();
 	vkDestroyRenderPass(m_device->getDevice(), m_renderPass, nullptr);
 	m_pipeline.reset();
 	m_swapchain.reset();
@@ -214,29 +214,17 @@ void Renderer::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t image
 	scissor.extent = m_swapchain->getExtent();
 	vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-	m_texture->bind(commandBuffer, m_pipeline->getLayout(), currentFrame);
-	m_uniformBuffer->bind(commandBuffer, m_pipeline->getLayout(), currentFrame);
-	m_mesh->bindBuffers(commandBuffer);
-	m_mesh->draw(commandBuffer);
+	auto extent = m_swapchain->getExtent();
+	auto ubo = UniformBufferObject{};
+	auto view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	auto proj = glm::perspective(glm::radians(45.0f), extent.width / (float)extent.height, 0.1f, 10.0f);
+	proj[1][1] *= -1;
+
+	m_model->draw(commandBuffer, m_pipeline->getLayout(), currentFrame, view, proj);
 
 	vkCmdEndRenderPass(commandBuffer);
 	if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS)
 		throw std::runtime_error{ "failed to end command buffer" };
-}
-
-void Renderer::updateBuffer(uint32_t currentFrame)
-{
-	static auto startTime = std::chrono::high_resolution_clock::now();
-	auto currentTime = std::chrono::high_resolution_clock::now();
-	auto time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
-
-	auto ubo = UniformBufferObject{};
-	ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-	ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-	ubo.proj = glm::perspective(glm::radians(45.0f), 800 / (float)600, 0.1f, 10.0f);
-	ubo.proj[1][1] *= -1;
-
-	m_uniformBuffer->write(ubo, currentFrame);
 }
 
 void Renderer::draw()
@@ -248,8 +236,6 @@ void Renderer::draw()
 	vkResetCommandBuffer(commandBuffer, 0);
 
 	recordCommandBuffer(commandBuffer, imageIndex);
-
-	updateBuffer(currentFrame);
 
 	std::initializer_list<VkPipelineStageFlags> waitStages = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
 	auto submitInfo = VkSubmitInfo{};

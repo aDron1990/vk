@@ -38,6 +38,8 @@ add_executable(vk
 	"sources/renderer/texture.cpp"
 	"sources/renderer/mesh.hpp"
 	"sources/renderer/mesh.cpp"
+	"sources/renderer/model.hpp"
+	"sources/renderer/model.cpp"
 	"sources/renderer/descriptor_pool.hpp"
 	"sources/renderer/descriptor_pool.cpp"
 )

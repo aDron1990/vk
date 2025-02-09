@@ -11,6 +11,7 @@
 #include "renderer/uniform_buffer.hpp"
 #include "renderer/texture.hpp"
 #include "renderer/mesh.hpp"
+#include "renderer/model.hpp"
 
 #include <vulkan/vulkan.h>
 #include <GLFW/glfw3.h>
@@ -40,7 +41,6 @@ private:
 	
 private:
 	void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
-	void updateBuffer(uint32_t currentFrame);
 
 private:
 	uint32_t currentFrame{};
@@ -59,9 +59,9 @@ private:
 
 	std::unique_ptr<Context> m_context;
 	std::unique_ptr<Device> m_device;
-	std::unique_ptr<Texture> m_texture;
 	std::unique_ptr<Swapchain> m_swapchain;
 	std::unique_ptr<GraphicsPipeline> m_pipeline;
-	std::unique_ptr<Mesh> m_mesh;
-	std::unique_ptr<UniformBuffer<UniformBufferObject>> m_uniformBuffer;
+	std::shared_ptr<Texture> m_texture;
+	std::shared_ptr<Mesh> m_mesh;
+	std::unique_ptr<Model> m_model;
 };
