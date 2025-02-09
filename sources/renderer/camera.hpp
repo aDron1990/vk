@@ -6,9 +6,10 @@ class Camera
 {
 public:
 	Camera();
-	glm::mat4 getViewMatrix();
 	void move(glm::vec3 direction);
 	void rotate(glm::vec2 rotation);
+	glm::mat4 getViewMatrix();
+	glm::vec3 getPosition();
 
 private:
 	void updateCamera();

@@ -226,8 +226,7 @@ void Renderer::renderScene(VkCommandBuffer commandBuffer, uint32_t imageIndex)
 	auto proj = glm::perspective(glm::radians(45.0f), extent.width / (float)extent.height, 0.1f, 100.0f);
 	proj[1][1] *= -1;
 
-	
-	Light light = Light{ .position = {6.0f, 5.0f, 10.0f}, .color = {1.0f, 1.0f, 1.0f} };
+	Light light = Light{ .position = {6.0f, 5.0f, 10.0f}, .viewPosition = m_camera.getPosition(), .color = {0.85f, 0.85f, 0.4f} };
 	m_light->write(light, currentFrame);
 	m_light->bind(commandBuffer, m_pipeline->getLayout(), 2, currentFrame);
 	m_sphere->draw(commandBuffer, m_pipeline->getLayout(), currentFrame, view, proj);
