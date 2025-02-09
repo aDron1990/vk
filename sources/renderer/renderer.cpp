@@ -14,6 +14,7 @@
 #include <unordered_map>
 
 const std::string MODEL_PATH = "../../resources/models/viking_room.obj";
+const std::string TEXTURE_PATH = "../../resources/textures/viking_room.png";
 
 Renderer::Renderer(Window& window) : m_window{window}
 {
@@ -22,12 +23,11 @@ Renderer::Renderer(Window& window) : m_window{window}
 	createSyncObjects();
 	createCommandBuffers();
 	createRenderPass();
-	createTexture();
-	createMesh();
 	createSwapchain();
 	createGraphicsPipeline();
-	m_model.reset(new Model{ *m_device, m_mesh, m_texture });
-	m_model->setRotation({-90.0f, 0.0f, -90.0f});
+	m_model.reset(new Model{ *m_device, MODEL_PATH, TEXTURE_PATH });
+	m_object.reset(new Object{ *m_device, *m_model });
+	m_object->setRotation({-90.0f, 0.0f, -90.0f});
 }
 
 Renderer::~Renderer()
@@ -39,12 +39,11 @@ Renderer::~Renderer()
 		vkDestroySemaphore(m_device->getDevice(), frameData.renderFinishedSemaphore, nullptr);
 		vkDestroyFence(m_device->getDevice(), frameData.inFlightFence, nullptr);
 	}
-	m_model.reset();
+	m_object.reset();
 	vkDestroyRenderPass(m_device->getDevice(), m_renderPass, nullptr);
 	m_pipeline.reset();
 	m_swapchain.reset();
-	m_texture.reset();
-	m_mesh.reset();
+	m_model.reset();
 	m_device.reset();
 	m_context.reset();
 }
@@ -121,16 +120,6 @@ void Renderer::createRenderPass()
 
 	if (vkCreateRenderPass(m_device->getDevice(), &createInfo, nullptr, &m_renderPass) != VK_SUCCESS)
 		throw std::runtime_error{ "failed to create vulkan render pass" };
-}
-
-void Renderer::createTexture()
-{
-	m_texture.reset(new Texture{ *m_device, "../../resources/textures/viking_room.png" });
-}
-
-void Renderer::createMesh()
-{
-	m_mesh.reset(new Mesh{ *m_device, "MODEL_PATH" });
 }
 
 void Renderer::createSwapchain()
@@ -230,12 +219,11 @@ void Renderer::renderScene(VkCommandBuffer commandBuffer, uint32_t imageIndex)
 	m_camera.rotate(input.getCursorDelta());
 
 	auto extent = m_swapchain->getExtent();
-	auto ubo = UniformBufferObject{};
 	auto view = m_camera.getViewMatrix();
 	auto proj = glm::perspective(glm::radians(45.0f), extent.width / (float)extent.height, 0.1f, 10.0f);
 	proj[1][1] *= -1;
 
-	m_model->draw(commandBuffer, m_pipeline->getLayout(), currentFrame, view, proj);
+	m_object->draw(commandBuffer, m_pipeline->getLayout(), currentFrame, view, proj);
 
 	vkCmdEndRenderPass(commandBuffer);
 	if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS)

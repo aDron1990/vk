@@ -13,6 +13,7 @@
 #include "renderer/mesh.hpp"
 #include "renderer/model.hpp"
 #include "renderer/camera.hpp"
+#include "renderer/object.hpp"
 
 #include <vulkan/vulkan.h>
 #include <GLFW/glfw3.h>
@@ -36,10 +37,8 @@ private:
 	void createSyncObjects();
 	void createCommandBuffers();
 	void createRenderPass();
-	void createTexture();
 	void createSwapchain();
 	void createGraphicsPipeline();
-	void createMesh();
 	
 private:
 	void renderScene(VkCommandBuffer commandBuffer, uint32_t imageIndex);
@@ -64,7 +63,6 @@ private:
 	std::unique_ptr<Device> m_device;
 	std::unique_ptr<Swapchain> m_swapchain;
 	std::unique_ptr<GraphicsPipeline> m_pipeline;
-	std::shared_ptr<Texture> m_texture;
-	std::shared_ptr<Mesh> m_mesh;
 	std::unique_ptr<Model> m_model;
+	std::unique_ptr<Object> m_object;
 };
