@@ -42,6 +42,7 @@ public:
 	VkDescriptorSetLayout getMVPLayout();
 	VkDescriptorSetLayout getSamplerLayout();
 	VkDescriptorSetLayout getLightLayout();
+	VkDescriptorSetLayout getMaterialLayout();
 
 private:
 	bool checkGpuExtensionsSupport(VkPhysicalDevice gpu);
@@ -65,4 +66,5 @@ private:
 	VkDescriptorSetLayout m_mvpDescriptorSetLayout;
 	VkDescriptorSetLayout m_samplerDescriptorSetLayout;
 	VkDescriptorSetLayout m_lightDescriptorSetLayout;
+	VkDescriptorSetLayout m_materialDescriptorSetLayout;
 };

@@ -20,6 +20,7 @@ Device::~Device()
 	vkDestroyDescriptorSetLayout(m_device, m_mvpDescriptorSetLayout, nullptr);
 	vkDestroyDescriptorSetLayout(m_device, m_samplerDescriptorSetLayout, nullptr);
 	vkDestroyDescriptorSetLayout(m_device, m_lightDescriptorSetLayout, nullptr);
+	vkDestroyDescriptorSetLayout(m_device, m_materialDescriptorSetLayout, nullptr);
 	vkDestroyCommandPool(m_device, m_commandPool, nullptr);
 	vkDestroyDevice(m_device, nullptr);
 	vkDestroySurfaceKHR(m_context.getInstance(), m_surface, nullptr);
@@ -270,6 +271,20 @@ void Device::createDescriptorSetLayouts()
 		createInfo.pBindings = &lightBind;
 		createInfo.bindingCount = 1;
 		if (vkCreateDescriptorSetLayout(m_device, &createInfo, nullptr, &m_lightDescriptorSetLayout) != VK_SUCCESS)
+			throw std::runtime_error{ "failed to create descriptor set layout" };
+	}
+	{
+		auto materialBind = VkDescriptorSetLayoutBinding{};
+		materialBind.binding = 0;
+		materialBind.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		materialBind.descriptorCount = 1;
+		materialBind.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+		auto createInfo = VkDescriptorSetLayoutCreateInfo{};
+		createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+		createInfo.pBindings = &materialBind;
+		createInfo.bindingCount = 1;
+		if (vkCreateDescriptorSetLayout(m_device, &createInfo, nullptr, &m_materialDescriptorSetLayout) != VK_SUCCESS)
 			throw std::runtime_error{ "failed to create descriptor set layout" };
 	}
 }
@@ -541,4 +556,9 @@ VkDescriptorSetLayout Device::getSamplerLayout()
 VkDescriptorSetLayout Device::getLightLayout()
 {
 	return m_lightDescriptorSetLayout;
+}
+
+VkDescriptorSetLayout Device::getMaterialLayout()
+{
+	return m_materialDescriptorSetLayout;
 }

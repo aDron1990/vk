@@ -42,7 +42,7 @@ void Mesh::loadModel(const std::string& modelPath)
 				1.0f - attrib.texcoords[2 * index.texcoord_index + 1]
 			};
 
-			vertex.color = { 0.5f, 0.6f, 0.31f };
+			vertex.color = { 1.0f, 0.0f, 1.0f };
 
 			if (uniqueVertices.count(vertex) == 0)
 			{

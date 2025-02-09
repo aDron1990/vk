@@ -60,4 +60,16 @@ struct Light
 	alignas(16) glm::vec3 position;
 	alignas(16) glm::vec3 viewPosition;
 	alignas(16) glm::vec3 color;
+	alignas(16) glm::vec3 ambient;
+	alignas(16) glm::vec3 diffuse;
+	alignas(16) glm::vec3 specular;
+};
+
+struct Material 
+{
+	alignas(16) glm::vec3 ambient;
+	alignas(16) glm::vec3 diffuse;
+	alignas(16) glm::vec3 specular;
+	alignas(16) glm::vec3 color;
+	float shininess;
 };
