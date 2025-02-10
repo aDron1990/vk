@@ -17,7 +17,7 @@
 #include <cstdint>
 #include <unordered_map>
 
-const std::string MODEL_PATH = "../../resources/models/plane.obj";
+const std::string MODEL_PATH = "../../resources/models/monkey.obj";
 const std::string TEXTURE_PATH = "../../resources/textures/container2.png";
 
 Renderer::Renderer(Window& window) : m_window{window}
@@ -31,7 +31,7 @@ Renderer::Renderer(Window& window) : m_window{window}
 	createGraphicsPipeline();
 	m_specularMap.reset(new Texture{ *m_device, "../../resources/textures/container2_specular.png" });
 	m_model.reset(new Model{ *m_device, MODEL_PATH, TEXTURE_PATH });
-	m_sphere.reset(new Object{ *m_device, *m_model });
+	m_object.reset(new Object{ *m_device, *m_model });
 	m_light.reset(new LightBuffer{ *m_device, m_device->getLightLayout()});
 
 
@@ -57,7 +57,7 @@ Renderer::Renderer(Window& window) : m_window{window}
 
 
 
-	light.position = { 6.0f, 5.0f, 10.0f };
+	light.direction = { -0.2f, -1.0f, -0.3f };
 	light.ambient = { 0.2f, 0.2f, 0.2f };
 	light.diffuse = { 0.5f, 0.5f, 0.5f };
 	light.specular = { 1.0f, 1.0f, 1.0f };
@@ -78,7 +78,7 @@ Renderer::~Renderer()
 		vkDestroySemaphore(m_device->getDevice(), frameData.renderFinishedSemaphore, nullptr);
 		vkDestroyFence(m_device->getDevice(), frameData.inFlightFence, nullptr);
 	}
-	m_sphere.reset();
+	m_object.reset();
 	vkDestroyRenderPass(m_device->getDevice(), m_renderPass, nullptr);
 	m_pipeline.reset();
 	m_swapchain.reset();
@@ -270,17 +270,15 @@ void Renderer::renderScene(VkCommandBuffer commandBuffer, uint32_t imageIndex)
 
 	auto extent = m_swapchain->getExtent();
 	auto view = m_camera.getViewMatrix();
-	auto proj = glm::perspective(glm::radians(45.0f), extent.width / (float)extent.height, 0.1f, 100.0f);
+	auto proj = glm::perspective(glm::radians(80.0f), extent.width / (float)extent.height, 0.1f, 100.0f);
 	proj[1][1] *= -1;
 
 	light.viewPosition = m_camera.getPosition();
 
-	
-
 	m_light->write(light, currentFrame);
 	m_light->bind(commandBuffer, m_pipeline->getLayout(), 1, currentFrame);
 	m_specularMap->bind(commandBuffer, m_pipeline->getLayout(), 4, currentFrame);
-	m_sphere->draw(commandBuffer, m_pipeline->getLayout(), currentFrame, view, proj);
+	m_object->draw(commandBuffer, m_pipeline->getLayout(), currentFrame, view, proj);
 
 	ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commandBuffer);
 
@@ -295,13 +293,19 @@ void Renderer::render()
 	ImGui_ImplGlfw_NewFrame();
 	ImGui::NewFrame();
 
-	ImGui::ShowDemoWindow();
+	auto pos = m_object->getPosition();
+	auto cachePos = m_object->getPosition();
 
 	ImGui::Begin("Object");
-	ImGui::SliderFloat("shininess", &m_sphere->material.shininess, 0.0f, 128);
+	ImGui::DragFloat3("position", &pos.x, 0.1f);
+	ImGui::Separator();
+	ImGui::DragFloat("shininess", &m_object->material.shininess, 0.5f, 0.5f, 128.0f);
 	ImGui::End();
+
+	if (pos != cachePos) m_object->setPosition(pos);
 	
 	ImGui::Begin("Light");
+	ImGui::DragFloat3("direction", (float*)&light.direction);
 	ImGui::ColorEdit3("ambient", (float*)&light.ambient);
 	ImGui::ColorEdit3("diffuse", (float*)&light.diffuse);
 	ImGui::ColorEdit3("specular", (float*)&light.specular);

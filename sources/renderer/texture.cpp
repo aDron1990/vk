@@ -45,10 +45,10 @@ void Texture::createImage(const std::string& imagePath)
 		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_image, m_imageMemory
 	);
 
-	m_device.transitionImageLayout(m_image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, m_mipLevels);
+	m_device.transitionImageLayout(m_image, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, m_mipLevels);
 	m_device.copyBufferToImage(stagingBuffer, m_image, static_cast<uint32_t>(width), static_cast<uint32_t>(height));
 
-	generateMipmaps(m_image, VK_FORMAT_R8G8B8A8_SRGB, width, height, m_mipLevels);
+	generateMipmaps(m_image, VK_FORMAT_R8G8B8A8_UNORM, width, height, m_mipLevels);
 }
 
 void Texture::generateMipmaps(VkImage image, VkFormat imageFormat, int32_t width, int32_t height, uint32_t mipLevels)
@@ -134,7 +134,7 @@ void Texture::generateMipmaps(VkImage image, VkFormat imageFormat, int32_t width
 
 void Texture::createImageView()
 {
-	m_imageView = m_device.createImageView(m_image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT, m_mipLevels);
+	m_imageView = m_device.createImageView(m_image, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT, m_mipLevels);
 }
 
 void Texture::createImageSampler()

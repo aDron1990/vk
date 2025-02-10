@@ -1,7 +1,7 @@
 #version 450
 
 layout(set = 1, binding = 0) uniform Light {
-    vec3 position;
+    vec3 direction;
     vec3 viewPosition;
     vec3 ambient;
     vec3 diffuse;
@@ -34,7 +34,7 @@ void main()
 
     // diffuse
     vec3 norm = fragNormal;
-    vec3 lightDir = normalize(light.position - fragPosition);
+    vec3 lightDir = normalize(-light.direction);
     float diff = max(dot(norm, lightDir), 0.0);
     vec3 diffuse = light.diffuse * diff * vec3(texture(diffuseMap, fragTexCoord));
     
