@@ -10,7 +10,6 @@ Input::Input(Window& window) : m_window{ window }, m_keyStates{}
 	glfwSetKeyCallback(gwindow, keyCallback);
 	glfwGetCursorPos(gwindow, &m_lastCursorPos.x, &m_lastCursorPos.y);
 	glfwSetCursorPosCallback(gwindow, cursorPosCallback);
-	glfwSetInputMode(gwindow, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 }
 
 void Input::keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
@@ -26,14 +25,45 @@ void Input::cursorPosCallback(GLFWwindow* window, double xpos, double ypos)
 	input->setCursorPos({ xpos, ypos });
 }
 
+void Input::update()
+{
+	m_keyDownStates.fill(false);
+	m_keyUpStates.fill(false);
+	glfwPollEvents();
+}
+
+bool Input::getCursorLock()
+{
+	return m_cursorLock;
+}
+
+void Input::lockCursor(bool lock)
+{
+	m_cursorLock = lock;
+	glfwSetInputMode(m_window.getWindow(), GLFW_CURSOR, m_cursorLock ? GLFW_CURSOR_DISABLED : GLFW_CURSOR_NORMAL);
+	glfwGetCursorPos(m_window.getWindow(), &m_lastCursorPos.x, &m_lastCursorPos.y);
+}
+
 bool Input::getKey(uint32_t keyCode)
 {
 	return m_keyStates[keyCode];
 }
 
+bool Input::getKeyDown(uint32_t keyCode)
+{
+	return m_keyDownStates[keyCode];
+}
+
+bool Input::getKeyUp(uint32_t keyCode)
+{
+	return m_keyUpStates[keyCode];
+}
+
 void Input::setKey(uint32_t keyCode, bool state)
 {
 	m_keyStates[keyCode] = state;
+	if (state) m_keyDownStates[keyCode] = true;
+	else m_keyUpStates[keyCode] = true;
 }
 
 glm::dvec2 Input::getCursorPos()

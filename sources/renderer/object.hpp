@@ -14,6 +14,8 @@ public:
 	glm::vec3 getRotation();
 	glm::vec3 getScale();
 
+	Material material{};
+
 private:
 	Model& m_model;
 	UniformBuffer<MVP> m_mvpBuffer;

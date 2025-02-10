@@ -39,6 +39,7 @@ public:
 	VkDevice getDevice();
 	VkQueue getGraphicsQueue();
 	VkQueue getPresentQueue();
+	VkDescriptorPool getDescriptorPool();
 	VkDescriptorSetLayout getMVPLayout();
 	VkDescriptorSetLayout getSamplerLayout();
 	VkDescriptorSetLayout getLightLayout();

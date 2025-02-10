@@ -14,7 +14,7 @@ int main()
 
 		while (!window.shouldClose())
 		{
-			window.update();
+			input.update();
 			renderer.render();
 			if (input.getKey(GLFW_KEY_ESCAPE)) break;
 		}

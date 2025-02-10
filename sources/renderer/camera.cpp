@@ -20,12 +20,8 @@ void Camera::updateCamera()
     m_up = glm::normalize(glm::cross(m_right, m_front));
 }
 
-void Camera::move(glm::vec3 direction)
+void Camera::move(glm::vec3 direction, float delta)
 {
-    static auto lastTime = std::chrono::high_resolution_clock::now();
-    auto now = std::chrono::high_resolution_clock::now();
-    auto delta = std::chrono::duration<float, std::chrono::seconds::period>(now - lastTime).count();
-    lastTime = now;
     auto front = m_front;
     front.y = 0.0f;
     front = glm::normalize(front);
@@ -35,12 +31,8 @@ void Camera::move(glm::vec3 direction)
     updateCamera();
 }
 
-void Camera::rotate(glm::vec2 rotation)
+void Camera::rotate(glm::vec2 rotation, float delta)
 {
-    static auto lastTime = std::chrono::high_resolution_clock::now();
-    auto now = std::chrono::high_resolution_clock::now();
-    auto delta = std::chrono::duration<float, std::chrono::seconds::period>(now - lastTime).count();
-    lastTime = now;
     m_yaw += rotation.x * delta * RSPEED;
     m_pitch -= rotation.y * delta * RSPEED;
     if (m_pitch > 89.0f) m_pitch = 89.0f;

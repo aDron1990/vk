@@ -9,7 +9,6 @@ class Window
 {
 public:
 	Window(int widht, int height, std::string_view title);
-	void update();
 	bool shouldClose();
 	Renderer& getRenderer();
 	Input& getInput();

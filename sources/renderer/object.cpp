@@ -1,7 +1,13 @@
 #include "renderer/object.hpp"
 
 Object::Object(Device& device, Model& model) : m_model{ model }, m_mvpBuffer{ device, device.getMVPLayout() }, m_materialBuffer{ device, device.getLightLayout() }
-{}
+{
+	material.color = { 0.5f, 0.6f, 0.31f };
+	material.ambient = { 1.0f, 0.5f, 0.31f };
+	material.diffuse = { 1.0f, 0.5f, 0.31f };
+	material.specular = { 0.5f, 0.5f, 0.5f };
+	material.shininess = 32.0f;
+}
 
 void Object::draw(VkCommandBuffer commandBuffer, VkPipelineLayout layout, uint32_t currentFrame, const glm::mat4& view, const glm::mat4& proj)
 {
@@ -15,13 +21,7 @@ void Object::draw(VkCommandBuffer commandBuffer, VkPipelineLayout layout, uint32
 	mvp.proj = proj;
 	m_mvpBuffer.write(mvp, currentFrame);
 	m_mvpBuffer.bind(commandBuffer, layout, 0, currentFrame);
-
-	auto material = Material{};
-	material.color = { 0.5f, 0.6f, 0.31f };
-	material.ambient = { 1.0f, 0.5f, 0.31f };
-	material.diffuse = { 1.0f, 0.5f, 0.31f };
-	material.specular = { 0.5f, 0.5f, 0.5f };
-	material.shininess = 32.0f;
+	
 	m_materialBuffer.write(material, currentFrame);
 	m_materialBuffer.bind(commandBuffer, layout, 2, currentFrame);
 

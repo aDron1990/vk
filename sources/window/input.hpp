@@ -11,7 +11,13 @@ class Input
 {
 public:
 	Input(Window& window);
+	void update();
+	bool getCursorLock();
+	void lockCursor(bool lock = true);
+
 	bool getKey(uint32_t keyCode);
+	bool getKeyDown(uint32_t keyCode);
+	bool getKeyUp(uint32_t keyCode);
 	void setKey(uint32_t keyCode, bool state);
 
 	glm::dvec2 getCursorPos();
@@ -24,8 +30,11 @@ private:
 
 private:
 	Window& m_window;
-	std::array<bool, 1024> m_keyStates;
+	std::array<bool, 1024> m_keyStates{};
+	std::array<bool, 1024> m_keyDownStates{};
+	std::array<bool, 1024> m_keyUpStates{};
 	glm::dvec2 m_lastCursorPos;
 	glm::dvec2 m_cursorDelta{};
+	bool m_cursorLock{false};
 };
 

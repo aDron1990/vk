@@ -69,4 +69,6 @@ private:
 	std::unique_ptr<Model> m_model;
 	std::unique_ptr<Object> m_sphere;
 	std::unique_ptr<Texture> m_specularMap;
+
+	Light light{};
 };

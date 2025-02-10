@@ -7,6 +7,7 @@ find_package(glfw3 CONFIG REQUIRED)
 find_package(glm CONFIG REQUIRED)
 find_package(Stb REQUIRED)
 find_package(tinyobjloader CONFIG REQUIRED)
+find_package(imgui CONFIG REQUIRED)
 
 add_executable(vk 
 	"sources/main.cpp"
@@ -59,4 +60,5 @@ target_link_libraries(vk PRIVATE
 	Vulkan::Vulkan
 	glm::glm-header-only
 	tinyobjloader::tinyobjloader
+	imgui::imgui
 )

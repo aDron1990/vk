@@ -4,6 +4,10 @@
 
 #include <glm/gtc/matrix_transform.hpp>
 
+#include "imgui.h"
+#include "imgui_impl_glfw.h"
+#include "imgui_impl_vulkan.h"
+
 #include <stdexcept>
 #include <print>
 #include <set>
@@ -29,11 +33,45 @@ Renderer::Renderer(Window& window) : m_window{window}
 	m_model.reset(new Model{ *m_device, MODEL_PATH, TEXTURE_PATH });
 	m_sphere.reset(new Object{ *m_device, *m_model });
 	m_light.reset(new LightBuffer{ *m_device, m_device->getLightLayout()});
+
+
+	ImGui::CreateContext();
+	ImGuiIO& io = ImGui::GetIO(); (void)io;
+	ImGui::SetNavCursorVisible(false);
+	ImGui_ImplGlfw_InitForVulkan(window.getWindow(), true);
+
+	ImGui_ImplVulkan_InitInfo initInfo{};
+	initInfo.Instance = m_context->getInstance();
+	initInfo.PhysicalDevice = m_device->getGpu();
+	initInfo.Device = m_device->getDevice();
+	initInfo.QueueFamily = m_device->findQueueFamilies(m_device->getGpu()).graphics.value();
+	initInfo.Queue = m_device->getGraphicsQueue();
+	initInfo.RenderPass = m_renderPass;
+	initInfo.MinImageCount = 2;
+	initInfo.ImageCount = 3;
+	initInfo.DescriptorPoolSize = 128;
+	if (!ImGui_ImplVulkan_Init(&initInfo))
+		throw;
+	
+	ImGui_ImplVulkan_CreateFontsTexture();
+
+
+
+	light.position = { 6.0f, 5.0f, 10.0f };
+	light.ambient = { 0.2f, 0.2f, 0.2f };
+	light.diffuse = { 0.5f, 0.5f, 0.5f };
+	light.specular = { 1.0f, 1.0f, 1.0f };
 }
 
 Renderer::~Renderer()
 {
 	vkDeviceWaitIdle(m_device->getDevice());
+
+	ImGui_ImplVulkan_Shutdown();
+	ImGui_ImplGlfw_Shutdown();
+	ImGui::DestroyContext();
+
+	
 	for (auto& frameData : m_frameDatas)
 	{
 		vkDestroySemaphore(m_device->getDevice(), frameData.imageAvailableSemaphore, nullptr);
@@ -208,34 +246,43 @@ void Renderer::renderScene(VkCommandBuffer commandBuffer, uint32_t imageIndex)
 	scissor.extent = m_swapchain->getExtent();
 	vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
+	static auto lastTime = std::chrono::high_resolution_clock::now();
+	auto now = std::chrono::high_resolution_clock::now();
+	auto delta = std::chrono::duration<float, std::chrono::seconds::period>(now - lastTime).count();
+	lastTime = now;
+
 	static auto& input = m_window.getInput();
 	auto cameraMove = glm::vec3{};
+	if (input.getKeyDown(GLFW_KEY_Q))
+		input.lockCursor(!input.getCursorLock());
+	if (input.getCursorLock())
+	{
+		m_camera.rotate(input.getCursorDelta(), delta);
+	}
+
 	if (input.getKey('W')) cameraMove.z += 1;
 	if (input.getKey('S')) cameraMove.z -= 1;
 	if (input.getKey('D')) cameraMove.x += 1;
 	if (input.getKey('A')) cameraMove.x -= 1;
 	if (input.getKey(GLFW_KEY_SPACE)) cameraMove.y += 1;
 	if (input.getKey(GLFW_KEY_LEFT_SHIFT)) cameraMove.y -= 1;
-	m_camera.move(cameraMove);
-	m_camera.rotate(input.getCursorDelta());
+	m_camera.move(cameraMove, delta);
 
 	auto extent = m_swapchain->getExtent();
 	auto view = m_camera.getViewMatrix();
 	auto proj = glm::perspective(glm::radians(45.0f), extent.width / (float)extent.height, 0.1f, 100.0f);
 	proj[1][1] *= -1;
 
-	auto light = Light{};
-	light.position = { 6.0f, 5.0f, 10.0f };
 	light.viewPosition = m_camera.getPosition();
-	light.color = { 0.85f, 0.85f, 0.4f };
-	light.ambient = { 0.2f, 0.2f, 0.2f };
-	light.diffuse = { 0.5f, 0.5f, 0.5f };
-	light.specular = { 1.0f, 1.0f, 1.0f };
+
+	
 
 	m_light->write(light, currentFrame);
 	m_light->bind(commandBuffer, m_pipeline->getLayout(), 1, currentFrame);
 	m_specularMap->bind(commandBuffer, m_pipeline->getLayout(), 4, currentFrame);
 	m_sphere->draw(commandBuffer, m_pipeline->getLayout(), currentFrame, view, proj);
+
+	ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commandBuffer);
 
 	vkCmdEndRenderPass(commandBuffer);
 	if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS)
@@ -244,6 +291,26 @@ void Renderer::renderScene(VkCommandBuffer commandBuffer, uint32_t imageIndex)
 
 void Renderer::render()
 {
+	ImGui_ImplVulkan_NewFrame();
+	ImGui_ImplGlfw_NewFrame();
+	ImGui::NewFrame();
+
+	ImGui::ShowDemoWindow();
+
+	ImGui::Begin("Object");
+	ImGui::SliderFloat("shininess", &m_sphere->material.shininess, 0.0f, 128);
+	ImGui::End();
+	
+	ImGui::Begin("Light");
+	ImGui::ColorEdit3("ambient", (float*)&light.ambient);
+	ImGui::ColorEdit3("diffuse", (float*)&light.diffuse);
+	ImGui::ColorEdit3("specular", (float*)&light.specular);
+	ImGui::End();
+
+	ImGui::Render();
+
+
+
 	auto imageIndex = m_swapchain->beginFrame(m_frameDatas[currentFrame].inFlightFence, m_frameDatas[currentFrame].imageAvailableSemaphore);
 	if (imageIndex == UINT32_MAX) return;
 	auto commandBuffer = m_frameDatas[currentFrame].commandBuffer;

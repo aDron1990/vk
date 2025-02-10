@@ -24,11 +24,6 @@ Window::Window(int widht, int height, std::string_view title) : m_window{ nullpt
 	m_renderer.reset(new Renderer{ *this });
 }
 
-void Window::update()
-{
-	glfwPollEvents();
-}
-
 bool Window::shouldClose()
 {
 	return glfwWindowShouldClose(m_window.get());

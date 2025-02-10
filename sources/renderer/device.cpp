@@ -542,6 +542,11 @@ VkQueue Device::getPresentQueue()
 	return m_presentQueue;
 }
 
+VkDescriptorPool Device::getDescriptorPool()
+{
+	return m_descriptorPool->getPool();
+}
+
 VkDescriptorSetLayout Device::getMVPLayout()
 {
 	return m_mvpDescriptorSetLayout;

@@ -3,8 +3,6 @@
 layout(set = 1, binding = 0) uniform Light {
     vec3 position;
     vec3 viewPosition;
-    vec3 color;
-
     vec3 ambient;
     vec3 diffuse;
     vec3 specular;
@@ -44,7 +42,7 @@ void main()
     vec3 viewDir = normalize(light.viewPosition - fragPosition);
     vec3 reflectDir = reflect(-lightDir, norm);
     float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
-    vec3 specular = spec * vec3(texture(specularMap, fragTexCoord));  
+    vec3 specular = light.specular * spec * vec3(texture(specularMap, fragTexCoord));  
 
     // result
     vec4 result = vec4((ambient + diffuse + specular), 1.0);
