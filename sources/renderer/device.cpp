@@ -550,7 +550,6 @@ VkDescriptorSetLayout Device::getMVPLayout()
 VkDescriptorSetLayout Device::getSamplerLayout()
 {
 	return m_samplerDescriptorSetLayout;
-
 }
 
 VkDescriptorSetLayout Device::getLightLayout()

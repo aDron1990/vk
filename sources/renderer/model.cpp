@@ -9,7 +9,7 @@ Model::Model(Device& device, const std::string& modelPath, const std::string& te
 
 void Model::draw(VkCommandBuffer commandBuffer, VkPipelineLayout layout, uint32_t currentFrame)
 {
-	m_texture->bind(commandBuffer, layout, 1, currentFrame);
+	m_texture->bind(commandBuffer, layout, 3, currentFrame);
 	m_mesh->bindBuffers(commandBuffer);
 	m_mesh->draw(commandBuffer);
 }

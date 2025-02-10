@@ -21,6 +21,6 @@ private:
 	glm::vec3 m_up;
 	float m_yaw = -90.0f;
 	float m_pitch = 00.0f;
-	const float SPEED = 0.001f;
-	const float RSPEED = 0.1f;
+	const float SPEED = 5.0f;
+	const float RSPEED = 150.0f;
 };

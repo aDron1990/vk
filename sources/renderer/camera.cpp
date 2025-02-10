@@ -1,10 +1,11 @@
 #include "renderer/camera.hpp"
 
 #include <glm/gtc/matrix_transform.hpp>
+#include <chrono>
 
 Camera::Camera()
 {
-    m_position = { 0.0f, 0.0f, 4.0f };
+    m_position = { 0.0f, 2.0f, 4.0f };
     updateCamera();
 }
 
@@ -21,16 +22,27 @@ void Camera::updateCamera()
 
 void Camera::move(glm::vec3 direction)
 {
-    m_position += m_front * direction.z * SPEED;
-    m_position += m_right * direction.x * SPEED;
-    m_position += glm::vec3{ 0.0f, 1.0f, 0.0f } * direction.y * SPEED;
+    static auto lastTime = std::chrono::high_resolution_clock::now();
+    auto now = std::chrono::high_resolution_clock::now();
+    auto delta = std::chrono::duration<float, std::chrono::seconds::period>(now - lastTime).count();
+    lastTime = now;
+    auto front = m_front;
+    front.y = 0.0f;
+    front = glm::normalize(front);
+    m_position += front * direction.z * delta * SPEED;
+    m_position += m_right * direction.x * delta * SPEED;
+    m_position += glm::vec3{ 0.0f, 1.0f, 0.0f } * direction.y * delta * SPEED;
     updateCamera();
 }
 
 void Camera::rotate(glm::vec2 rotation)
 {
-    m_yaw += rotation.x * RSPEED;
-    m_pitch -= rotation.y * RSPEED;
+    static auto lastTime = std::chrono::high_resolution_clock::now();
+    auto now = std::chrono::high_resolution_clock::now();
+    auto delta = std::chrono::duration<float, std::chrono::seconds::period>(now - lastTime).count();
+    lastTime = now;
+    m_yaw += rotation.x * delta * RSPEED;
+    m_pitch -= rotation.y * delta * RSPEED;
     if (m_pitch > 89.0f) m_pitch = 89.0f;
     if (m_pitch < -89.0f) m_pitch = -89.0f;
     updateCamera();

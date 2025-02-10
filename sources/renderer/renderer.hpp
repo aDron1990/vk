@@ -68,5 +68,5 @@ private:
 	std::unique_ptr<LightBuffer> m_light;
 	std::unique_ptr<Model> m_model;
 	std::unique_ptr<Object> m_sphere;
-	std::unique_ptr<Object> m_lamp;
+	std::unique_ptr<Texture> m_specularMap;
 };

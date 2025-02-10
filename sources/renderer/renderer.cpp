@@ -13,8 +13,8 @@
 #include <cstdint>
 #include <unordered_map>
 
-const std::string MODEL_PATH = "../../resources/models/sphere.obj";
-const std::string TEXTURE_PATH = "../../resources/textures/viking_room.png";
+const std::string MODEL_PATH = "../../resources/models/plane.obj";
+const std::string TEXTURE_PATH = "../../resources/textures/container2.png";
 
 Renderer::Renderer(Window& window) : m_window{window}
 {
@@ -25,11 +25,9 @@ Renderer::Renderer(Window& window) : m_window{window}
 	createRenderPass();
 	createSwapchain();
 	createGraphicsPipeline();
+	m_specularMap.reset(new Texture{ *m_device, "../../resources/textures/container2_specular.png" });
 	m_model.reset(new Model{ *m_device, MODEL_PATH, TEXTURE_PATH });
 	m_sphere.reset(new Object{ *m_device, *m_model });
-	m_lamp.reset(new Object{ *m_device, *m_model });
-	m_lamp->setPosition({ 6.0f, 5.0f, 10.0f });
-	//m_lamp->setScale({ .2f, .2f, .2f });
 	m_light.reset(new LightBuffer{ *m_device, m_device->getLightLayout()});
 }
 
@@ -43,10 +41,10 @@ Renderer::~Renderer()
 		vkDestroyFence(m_device->getDevice(), frameData.inFlightFence, nullptr);
 	}
 	m_sphere.reset();
-	m_lamp.reset();
 	vkDestroyRenderPass(m_device->getDevice(), m_renderPass, nullptr);
 	m_pipeline.reset();
 	m_swapchain.reset();
+	m_specularMap.reset();
 	m_model.reset();
 	m_light.reset();
 	m_device.reset();
@@ -181,7 +179,7 @@ void Renderer::renderScene(VkCommandBuffer commandBuffer, uint32_t imageIndex)
 
 	auto clearValues = 
 	{ 
-		VkClearValue{.color = {{0.0f, 0.0f, 0.0f, 1.0f}}},
+		VkClearValue{.color = {{0.05f, 0.05f, 0.05f, 1.0f}}},
 		VkClearValue{.depthStencil = {1.0f, 0}}
 	};
 	auto renderPassInfo = VkRenderPassBeginInfo{};
@@ -235,9 +233,9 @@ void Renderer::renderScene(VkCommandBuffer commandBuffer, uint32_t imageIndex)
 	light.specular = { 1.0f, 1.0f, 1.0f };
 
 	m_light->write(light, currentFrame);
-	m_light->bind(commandBuffer, m_pipeline->getLayout(), 2, currentFrame);
+	m_light->bind(commandBuffer, m_pipeline->getLayout(), 1, currentFrame);
+	m_specularMap->bind(commandBuffer, m_pipeline->getLayout(), 4, currentFrame);
 	m_sphere->draw(commandBuffer, m_pipeline->getLayout(), currentFrame, view, proj);
-	m_lamp->draw(commandBuffer, m_pipeline->getLayout(), currentFrame, view, proj);
 
 	vkCmdEndRenderPass(commandBuffer);
 	if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS)

@@ -23,7 +23,7 @@ void Object::draw(VkCommandBuffer commandBuffer, VkPipelineLayout layout, uint32
 	material.specular = { 0.5f, 0.5f, 0.5f };
 	material.shininess = 32.0f;
 	m_materialBuffer.write(material, currentFrame);
-	m_materialBuffer.bind(commandBuffer, layout, 3, currentFrame);
+	m_materialBuffer.bind(commandBuffer, layout, 2, currentFrame);
 
 	m_model.draw(commandBuffer, layout, currentFrame);
 }
