@@ -15,18 +15,19 @@ struct PipelineInfo
 	std::string vertexPath;
 	std::string fragmentPath;
 	VkRenderPass renderPass;
+	std::vector<VkDescriptorSetLayout> descriptorSetLayouts;
 };
 
 class Pipeline
 {
 public:
 	Pipeline(Device& device, PipelineInfo& info);
-	virtual ~Pipeline();
+	~Pipeline();
 	void bind(VkCommandBuffer commandBuffer);
 	VkPipelineLayout getLayout();
 	
 protected:
-	void createPipeline(const std::vector<VkDescriptorSetLayout>& descriptorSetLayouts);
+	void createPipeline();
 
 private:
 	VkShaderModule createShaderModule(const std::vector<char>& code);

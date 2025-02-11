@@ -31,8 +31,6 @@ add_executable(vk
 	"sources/renderer/swapchain.cpp"
 	"sources/renderer/pipeline.hpp"
 	"sources/renderer/pipeline.cpp"
-	"sources/renderer/graphics_pipeline.hpp"
-	"sources/renderer/graphics_pipeline.cpp"
 	"sources/renderer/buffer.hpp"
 	"sources/renderer/buffer.cpp"
 	"sources/renderer/uniform_buffer.hpp"

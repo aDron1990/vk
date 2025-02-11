@@ -122,7 +122,8 @@ void Renderer::createGraphicsPipeline()
 	pipelineInfo.vertexPath = "../../resources/shaders/shader.vert.spv";
 	pipelineInfo.fragmentPath = "../../resources/shaders/shader.frag.spv";
 	pipelineInfo.renderPass = m_swapchainPass->getRenderPass();
-	m_pipeline.reset(new GraphicsPipeline{ *m_device, pipelineInfo });
+	pipelineInfo.descriptorSetLayouts = { m_device->getMVPLayout(), m_device->getLightLayout(), m_device->getMaterialLayout(), m_device->getSamplerLayout(), m_device->getSamplerLayout() };
+	m_pipeline.reset(new Pipeline{ *m_device, pipelineInfo });
 }
 
 void Renderer::createSyncObjects()

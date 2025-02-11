@@ -7,7 +7,9 @@
 #include <vector>
 
 Pipeline::Pipeline(Device& device, PipelineInfo& info) : m_device{ device }, m_info{ info }
-{}
+{
+	createPipeline();
+}
 
 Pipeline::~Pipeline()
 {
@@ -15,7 +17,7 @@ Pipeline::~Pipeline()
 	vkDestroyPipelineLayout(m_device.getDevice(), m_layout, nullptr);
 }
 
-void Pipeline::createPipeline(const std::vector<VkDescriptorSetLayout>& descriptorSetLayouts)
+void Pipeline::createPipeline()
 {
 	auto vertexCode = loadFile(m_info.vertexPath);
 	auto fragmentCode = loadFile(m_info.fragmentPath);
@@ -99,8 +101,8 @@ void Pipeline::createPipeline(const std::vector<VkDescriptorSetLayout>& descript
 
 	auto pipelineLayoutInfo = VkPipelineLayoutCreateInfo{};
 	pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-	pipelineLayoutInfo.pSetLayouts = descriptorSetLayouts.data();
-	pipelineLayoutInfo.setLayoutCount = static_cast<uint32_t>(descriptorSetLayouts.size());
+	pipelineLayoutInfo.pSetLayouts = m_info.descriptorSetLayouts.data();
+	pipelineLayoutInfo.setLayoutCount = static_cast<uint32_t>(m_info.descriptorSetLayouts.size());
 	if (vkCreatePipelineLayout(m_device.getDevice(), &pipelineLayoutInfo, nullptr, &m_layout) != VK_SUCCESS)
 		throw std::runtime_error{ "failed to create vulkan pipeline layout" };
 
