@@ -14,6 +14,7 @@
 #include "renderer/model.hpp"
 #include "renderer/camera.hpp"
 #include "renderer/object.hpp"
+#include "renderer/swapchain_pass.hpp"
 
 #include <vulkan/vulkan.h>
 #include <GLFW/glfw3.h>
@@ -49,7 +50,7 @@ private:
 	Camera m_camera;
 	Window& m_window;
 
-	VkRenderPass m_renderPass;
+	
 
 	VkCommandBuffer m_commandBuffer;
 	VkSemaphore m_imageAvailableSemaphore;
@@ -58,6 +59,7 @@ private:
 
 	std::unique_ptr<Context> m_context;
 	std::unique_ptr<Device> m_device;
+	std::unique_ptr<SwapchainPass> m_swapchainPass;
 	std::unique_ptr<Swapchain> m_swapchain;
 	std::unique_ptr<GraphicsPipeline> m_pipeline;
 	std::unique_ptr<LightBuffer> m_light;

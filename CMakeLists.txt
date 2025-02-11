@@ -48,6 +48,11 @@ add_executable(vk
 	"sources/renderer/camera.cpp"
 	"sources/renderer/object.hpp"
 	"sources/renderer/object.cpp"
+	"sources/renderer/render_pass.hpp"
+	"sources/renderer/offscreen_pass.hpp"
+	"sources/renderer/offscreen_pass.cpp"
+	"sources/renderer/swapchain_pass.hpp"
+	"sources/renderer/swapchain_pass.cpp"
 )
 
 set_property(TARGET vk PROPERTY CXX_STANDARD 23)
