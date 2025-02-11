@@ -50,15 +50,18 @@ void Pipeline::createPipeline()
 	viewportState.viewportCount = 1;
 	viewportState.scissorCount = 1;
 
-	auto bindDesc = Vertex::getBindDesc();
-	auto attrDesc = Vertex::getAttrDesc();
-
 	auto vertexInputInfo = VkPipelineVertexInputStateCreateInfo{};
 	vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-	vertexInputInfo.pVertexBindingDescriptions = &bindDesc;
-	vertexInputInfo.vertexBindingDescriptionCount = 1;
-	vertexInputInfo.pVertexAttributeDescriptions = attrDesc.data();
-	vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attrDesc.size());
+
+	if (m_info.vertexInput)
+	{
+		auto bindDesc = Vertex::getBindDesc();
+		auto attrDesc = Vertex::getAttrDesc();
+		vertexInputInfo.pVertexBindingDescriptions = &bindDesc;
+		vertexInputInfo.vertexBindingDescriptionCount = 1;
+		vertexInputInfo.pVertexAttributeDescriptions = attrDesc.data();
+		vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attrDesc.size());
+	}
 
 	auto inputAssembly = VkPipelineInputAssemblyStateCreateInfo{};
 	inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
@@ -71,7 +74,7 @@ void Pipeline::createPipeline()
 	rasterizer.rasterizerDiscardEnable = VK_FALSE;
 	rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
 	rasterizer.lineWidth = 1.0f;
-	rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
+	rasterizer.cullMode = m_info.culling;
 	rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
 	rasterizer.depthBiasEnable = VK_FALSE;
 

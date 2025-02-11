@@ -54,6 +54,8 @@ private:
 	VkSemaphore m_renderFinishedSemaphore;
 	VkFence m_inFlightFence;
 
+	std::unique_ptr<Texture> test;
+
 	std::unique_ptr<Context> m_context;
 	std::unique_ptr<Device> m_device;
 	std::unique_ptr<SwapchainPass> m_swapchainPass;

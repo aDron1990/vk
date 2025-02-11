@@ -16,6 +16,8 @@ struct PipelineInfo
 	std::string fragmentPath;
 	VkRenderPass renderPass;
 	std::vector<VkDescriptorSetLayout> descriptorSetLayouts;
+	bool vertexInput;
+	VkCullModeFlags culling;
 };
 
 class Pipeline

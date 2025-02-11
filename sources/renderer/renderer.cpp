@@ -61,6 +61,8 @@ Renderer::Renderer(Window& window) : m_window{window}
 	light.ambient = { 0.2f, 0.2f, 0.2f };
 	light.diffuse = { 0.5f, 0.5f, 0.5f };
 	light.specular = { 1.0f, 1.0f, 1.0f };
+
+	test.reset(new Texture{ *m_device, TEXTURE_PATH });
 }
 
 Renderer::~Renderer()
@@ -75,6 +77,7 @@ Renderer::~Renderer()
 	vkDestroySemaphore(m_device->getDevice(), m_renderFinishedSemaphore, nullptr);
 	vkDestroyFence(m_device->getDevice(), m_inFlightFence, nullptr);
 
+	test.reset();
 	m_object.reset();
 	m_swapchainPass.reset();
 	m_pipeline.reset();
@@ -119,10 +122,13 @@ void Renderer::createSwapchain()
 void Renderer::createGraphicsPipeline()
 {
 	auto pipelineInfo = PipelineInfo{};
-	pipelineInfo.vertexPath = "../../resources/shaders/shader.vert.spv";
-	pipelineInfo.fragmentPath = "../../resources/shaders/shader.frag.spv";
+	pipelineInfo.vertexPath = "../../resources/shaders/post/shader.vert.spv";
+	pipelineInfo.fragmentPath = "../../resources/shaders/post/shader.frag.spv";
 	pipelineInfo.renderPass = m_swapchainPass->getRenderPass();
-	pipelineInfo.descriptorSetLayouts = { m_device->getMVPLayout(), m_device->getLightLayout(), m_device->getMaterialLayout(), m_device->getSamplerLayout(), m_device->getSamplerLayout() };
+	//pipelineInfo.descriptorSetLayouts = { m_device->getMVPLayout(), m_device->getLightLayout(), m_device->getMaterialLayout(), m_device->getSamplerLayout(), m_device->getSamplerLayout() };
+	pipelineInfo.descriptorSetLayouts = { m_device->getSamplerLayout() };
+	pipelineInfo.vertexInput = false;
+	pipelineInfo.culling = VK_CULL_MODE_NONE;
 	m_pipeline.reset(new Pipeline{ *m_device, pipelineInfo });
 }
 
@@ -176,6 +182,7 @@ void Renderer::renderScene(VkCommandBuffer commandBuffer, uint32_t imageIndex)
 	scissor.extent = m_swapchain->getExtent();
 	vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
+#if 0
 	static auto lastTime = std::chrono::high_resolution_clock::now();
 	auto now = std::chrono::high_resolution_clock::now();
 	auto delta = std::chrono::duration<float, std::chrono::seconds::period>(now - lastTime).count();
@@ -209,6 +216,9 @@ void Renderer::renderScene(VkCommandBuffer commandBuffer, uint32_t imageIndex)
 	m_light->bind(commandBuffer, m_pipeline->getLayout(), 1);
 	m_specularMap->bind(commandBuffer, m_pipeline->getLayout(), 4);
 	m_object->draw(commandBuffer, m_pipeline->getLayout(), view, proj);
+#endif
+	test->bind(commandBuffer, m_pipeline->getLayout(), 0);
+	vkCmdDraw(commandBuffer, 6, 1, 0, 0);
 
 	ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commandBuffer);
 
