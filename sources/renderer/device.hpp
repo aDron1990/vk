@@ -40,10 +40,11 @@ public:
 	VkQueue getGraphicsQueue();
 	VkQueue getPresentQueue();
 	VkDescriptorPool getDescriptorPool();
-	VkDescriptorSetLayout getMVPLayout();
-	VkDescriptorSetLayout getSamplerLayout();
-	VkDescriptorSetLayout getLightLayout();
-	VkDescriptorSetLayout getMaterialLayout();
+
+	VkDescriptorSetLayout getUboVertexLayout();
+	VkDescriptorSetLayout getUboFragmentLayout();
+	//VkDescriptorSetLayout getSamplerVertexLayout();
+	VkDescriptorSetLayout getSamplerFragmentLayout();
 
 private:
 	bool checkGpuExtensionsSupport(VkPhysicalDevice gpu);
@@ -64,8 +65,9 @@ private:
 	VkQueue m_graphicsQueue;
 	VkQueue m_presentQueue;
 	VkCommandPool m_commandPool;
-	VkDescriptorSetLayout m_mvpDescriptorSetLayout;
-	VkDescriptorSetLayout m_samplerDescriptorSetLayout;
-	VkDescriptorSetLayout m_lightDescriptorSetLayout;
-	VkDescriptorSetLayout m_materialDescriptorSetLayout;
+
+	VkDescriptorSetLayout m_uboVertexLayout;
+	VkDescriptorSetLayout m_uboFragmentLayout;
+	//VkDescriptorSetLayout m_samplerVertexLayout;
+	VkDescriptorSetLayout m_samplerFragmentLayout;
 };

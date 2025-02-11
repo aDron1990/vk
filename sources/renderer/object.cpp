@@ -1,6 +1,6 @@
 #include "renderer/object.hpp"
 
-Object::Object(Device& device, Model& model) : m_model{ model }, m_mvpBuffer{ device, device.getMVPLayout() }, m_materialBuffer{ device, device.getLightLayout() }
+Object::Object(Device& device, Model& model) : m_model{ model }, m_mvpBuffer{ device, device.getUboVertexLayout() }, m_materialBuffer{ device, device.getUboFragmentLayout() }
 {
 	material.color = { 0.5f, 0.6f, 0.31f };
 	material.ambient = { 1.0f, 0.5f, 0.31f };

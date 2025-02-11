@@ -32,7 +32,7 @@ Renderer::Renderer(Window& window) : m_window{window}
 	m_specularMap.reset(new Texture{ *m_device, "../../resources/textures/container2_specular.png" });
 	m_model.reset(new Model{ *m_device, MODEL_PATH, TEXTURE_PATH });
 	m_object.reset(new Object{ *m_device, *m_model });
-	m_light.reset(new LightBuffer{ *m_device, m_device->getLightLayout()});
+	m_light.reset(new LightBuffer{ *m_device, m_device->getUboVertexLayout()});
 
 
 	ImGui::CreateContext();
@@ -126,7 +126,7 @@ void Renderer::createGraphicsPipeline()
 	pipelineInfo.fragmentPath = "../../resources/shaders/post/shader.frag.spv";
 	pipelineInfo.renderPass = m_swapchainPass->getRenderPass();
 	//pipelineInfo.descriptorSetLayouts = { m_device->getMVPLayout(), m_device->getLightLayout(), m_device->getMaterialLayout(), m_device->getSamplerLayout(), m_device->getSamplerLayout() };
-	pipelineInfo.descriptorSetLayouts = { m_device->getSamplerLayout() };
+	pipelineInfo.descriptorSetLayouts = { m_device->getSamplerFragmentLayout() };
 	pipelineInfo.vertexInput = false;
 	pipelineInfo.culling = VK_CULL_MODE_NONE;
 	m_pipeline.reset(new Pipeline{ *m_device, pipelineInfo });

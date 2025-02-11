@@ -17,10 +17,9 @@ Device::Device(Context& context, VkSurfaceKHR surface) : m_context{context}, m_s
 Device::~Device()
 {
 	m_descriptorPool.reset();
-	vkDestroyDescriptorSetLayout(m_device, m_mvpDescriptorSetLayout, nullptr);
-	vkDestroyDescriptorSetLayout(m_device, m_samplerDescriptorSetLayout, nullptr);
-	vkDestroyDescriptorSetLayout(m_device, m_lightDescriptorSetLayout, nullptr);
-	vkDestroyDescriptorSetLayout(m_device, m_materialDescriptorSetLayout, nullptr);
+	vkDestroyDescriptorSetLayout(m_device, m_uboVertexLayout, nullptr);
+	vkDestroyDescriptorSetLayout(m_device, m_uboFragmentLayout, nullptr);
+	vkDestroyDescriptorSetLayout(m_device, m_samplerFragmentLayout, nullptr);
 	vkDestroyCommandPool(m_device, m_commandPool, nullptr);
 	vkDestroyDevice(m_device, nullptr);
 	vkDestroySurfaceKHR(m_context.getInstance(), m_surface, nullptr);
@@ -242,21 +241,7 @@ void Device::createDescriptorSetLayouts()
 		createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
 		createInfo.pBindings = &mvpBind;
 		createInfo.bindingCount = 1;
-		if (vkCreateDescriptorSetLayout(m_device, &createInfo, nullptr, &m_mvpDescriptorSetLayout) != VK_SUCCESS)
-			throw std::runtime_error{ "failed to create descriptor set layout" };
-	}
-	{
-		auto samplerBind = VkDescriptorSetLayoutBinding{};
-		samplerBind.binding = 0;
-		samplerBind.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		samplerBind.descriptorCount = 1;
-		samplerBind.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-
-		auto createInfo = VkDescriptorSetLayoutCreateInfo{};
-		createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-		createInfo.pBindings = &samplerBind;
-		createInfo.bindingCount = 1;
-		if (vkCreateDescriptorSetLayout(m_device, &createInfo, nullptr, &m_samplerDescriptorSetLayout) != VK_SUCCESS)
+		if (vkCreateDescriptorSetLayout(m_device, &createInfo, nullptr, &m_uboVertexLayout) != VK_SUCCESS)
 			throw std::runtime_error{ "failed to create descriptor set layout" };
 	}
 	{
@@ -270,21 +255,21 @@ void Device::createDescriptorSetLayouts()
 		createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
 		createInfo.pBindings = &lightBind;
 		createInfo.bindingCount = 1;
-		if (vkCreateDescriptorSetLayout(m_device, &createInfo, nullptr, &m_lightDescriptorSetLayout) != VK_SUCCESS)
+		if (vkCreateDescriptorSetLayout(m_device, &createInfo, nullptr, &m_uboFragmentLayout) != VK_SUCCESS)
 			throw std::runtime_error{ "failed to create descriptor set layout" };
 	}
 	{
-		auto materialBind = VkDescriptorSetLayoutBinding{};
-		materialBind.binding = 0;
-		materialBind.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		materialBind.descriptorCount = 1;
-		materialBind.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+		auto samplerBind = VkDescriptorSetLayoutBinding{};
+		samplerBind.binding = 0;
+		samplerBind.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		samplerBind.descriptorCount = 1;
+		samplerBind.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
 		auto createInfo = VkDescriptorSetLayoutCreateInfo{};
 		createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-		createInfo.pBindings = &materialBind;
+		createInfo.pBindings = &samplerBind;
 		createInfo.bindingCount = 1;
-		if (vkCreateDescriptorSetLayout(m_device, &createInfo, nullptr, &m_materialDescriptorSetLayout) != VK_SUCCESS)
+		if (vkCreateDescriptorSetLayout(m_device, &createInfo, nullptr, &m_samplerFragmentLayout) != VK_SUCCESS)
 			throw std::runtime_error{ "failed to create descriptor set layout" };
 	}
 }
@@ -547,22 +532,17 @@ VkDescriptorPool Device::getDescriptorPool()
 	return m_descriptorPool->getPool();
 }
 
-VkDescriptorSetLayout Device::getMVPLayout()
+VkDescriptorSetLayout Device::getUboVertexLayout()
 {
-	return m_mvpDescriptorSetLayout;
+	return m_uboVertexLayout;
 }
 
-VkDescriptorSetLayout Device::getSamplerLayout()
+VkDescriptorSetLayout Device::getUboFragmentLayout()
 {
-	return m_samplerDescriptorSetLayout;
+	return m_uboFragmentLayout;
 }
 
-VkDescriptorSetLayout Device::getLightLayout()
+VkDescriptorSetLayout Device::getSamplerFragmentLayout()
 {
-	return m_lightDescriptorSetLayout;
-}
-
-VkDescriptorSetLayout Device::getMaterialLayout()
-{
-	return m_materialDescriptorSetLayout;
+	return m_samplerFragmentLayout;
 }
