@@ -176,15 +176,8 @@ VkFramebuffer Swapchain::getFramebuffer(uint32_t index)
 	return m_swapchainFramebuffers[index];
 }
 
-uint32_t Swapchain::getCurrentFrame()
-{
-	return currentFrame;
-}
-
 uint32_t Swapchain::beginFrame(VkFence inFlightFence, VkSemaphore imageAvailableSemaphore)
 {
-	currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
-
 	vkWaitForFences(m_device.getDevice(), 1, &inFlightFence, VK_TRUE, UINT64_MAX);
 
 	auto imageIndex = uint32_t{};

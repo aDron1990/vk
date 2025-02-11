@@ -46,20 +46,15 @@ private:
 	void renderScene(VkCommandBuffer commandBuffer, uint32_t imageIndex);
 
 private:
-	uint32_t currentFrame{};
 	Camera m_camera;
 	Window& m_window;
 
 	VkRenderPass m_renderPass;
 
-	struct FrameData
-	{
-		VkCommandBuffer commandBuffer;
-		VkSemaphore imageAvailableSemaphore;
-		VkSemaphore renderFinishedSemaphore;
-		VkFence inFlightFence;
-	};
-	std::array<FrameData, MAX_FRAMES_IN_FLIGHT> m_frameDatas;
+	VkCommandBuffer m_commandBuffer;
+	VkSemaphore m_imageAvailableSemaphore;
+	VkSemaphore m_renderFinishedSemaphore;
+	VkFence m_inFlightFence;
 
 	std::unique_ptr<Context> m_context;
 	std::unique_ptr<Device> m_device;

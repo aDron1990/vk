@@ -71,13 +71,10 @@ Renderer::~Renderer()
 	ImGui_ImplGlfw_Shutdown();
 	ImGui::DestroyContext();
 
-	
-	for (auto& frameData : m_frameDatas)
-	{
-		vkDestroySemaphore(m_device->getDevice(), frameData.imageAvailableSemaphore, nullptr);
-		vkDestroySemaphore(m_device->getDevice(), frameData.renderFinishedSemaphore, nullptr);
-		vkDestroyFence(m_device->getDevice(), frameData.inFlightFence, nullptr);
-	}
+	vkDestroySemaphore(m_device->getDevice(), m_imageAvailableSemaphore, nullptr);
+	vkDestroySemaphore(m_device->getDevice(), m_renderFinishedSemaphore, nullptr);
+	vkDestroyFence(m_device->getDevice(), m_inFlightFence, nullptr);
+
 	m_object.reset();
 	vkDestroyRenderPass(m_device->getDevice(), m_renderPass, nullptr);
 	m_pipeline.reset();
@@ -191,21 +188,15 @@ void Renderer::createSyncObjects()
 	fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
 	fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
-	for (auto& frameData : m_frameDatas)
-	{
-		if (vkCreateSemaphore(m_device->getDevice(), &semaphoreInfo, nullptr, &frameData.imageAvailableSemaphore) != VK_SUCCESS ||
-			vkCreateSemaphore(m_device->getDevice(), &semaphoreInfo, nullptr, &frameData.renderFinishedSemaphore) != VK_SUCCESS ||
-			vkCreateFence(m_device->getDevice(), &fenceInfo, nullptr, &frameData.inFlightFence) != VK_SUCCESS)
-			throw std::runtime_error{ "failed to create vulkan sync objects" };
-	}
+	if (vkCreateSemaphore(m_device->getDevice(), &semaphoreInfo, nullptr, &m_imageAvailableSemaphore) != VK_SUCCESS ||
+		vkCreateSemaphore(m_device->getDevice(), &semaphoreInfo, nullptr, &m_renderFinishedSemaphore) != VK_SUCCESS ||
+		vkCreateFence(m_device->getDevice(), &fenceInfo, nullptr, &m_inFlightFence) != VK_SUCCESS)
+		throw std::runtime_error{ "failed to create vulkan sync objects" };
 }
 
 void Renderer::createCommandBuffers()
 {
-	for (auto& frameData : m_frameDatas)
-	{
-		frameData.commandBuffer = m_device->createCommandBuffers(1).back();
-	}
+	m_commandBuffer = m_device->createCommandBuffers(1).back();
 }
 
 void Renderer::renderScene(VkCommandBuffer commandBuffer, uint32_t imageIndex)
@@ -230,7 +221,7 @@ void Renderer::renderScene(VkCommandBuffer commandBuffer, uint32_t imageIndex)
 	renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
 	vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-	m_pipeline->bind(commandBuffer, currentFrame);
+	m_pipeline->bind(commandBuffer);
 
 	auto viewport = VkViewport{};
 	viewport.x = 0.0f;
@@ -275,10 +266,10 @@ void Renderer::renderScene(VkCommandBuffer commandBuffer, uint32_t imageIndex)
 
 	light.viewPosition = m_camera.getPosition();
 
-	m_light->write(light, currentFrame);
-	m_light->bind(commandBuffer, m_pipeline->getLayout(), 1, currentFrame);
-	m_specularMap->bind(commandBuffer, m_pipeline->getLayout(), 4, currentFrame);
-	m_object->draw(commandBuffer, m_pipeline->getLayout(), currentFrame, view, proj);
+	m_light->write(light);
+	m_light->bind(commandBuffer, m_pipeline->getLayout(), 1);
+	m_specularMap->bind(commandBuffer, m_pipeline->getLayout(), 4);
+	m_object->draw(commandBuffer, m_pipeline->getLayout(), view, proj);
 
 	ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commandBuffer);
 
@@ -313,11 +304,9 @@ void Renderer::render()
 
 	ImGui::Render();
 
-
-
-	auto imageIndex = m_swapchain->beginFrame(m_frameDatas[currentFrame].inFlightFence, m_frameDatas[currentFrame].imageAvailableSemaphore);
+	auto imageIndex = m_swapchain->beginFrame(m_inFlightFence, m_imageAvailableSemaphore);
 	if (imageIndex == UINT32_MAX) return;
-	auto commandBuffer = m_frameDatas[currentFrame].commandBuffer;
+	auto commandBuffer = m_commandBuffer;
 
 	vkResetCommandBuffer(commandBuffer, 0);
 
@@ -325,8 +314,8 @@ void Renderer::render()
 
 	std::initializer_list<VkPipelineStageFlags> waitStages = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
 	auto submitInfo = VkSubmitInfo{};
-	auto signalSemaphores = { m_frameDatas[currentFrame].renderFinishedSemaphore };
-	auto waitSemaphores = { m_frameDatas[currentFrame].imageAvailableSemaphore };
+	auto signalSemaphores = { m_renderFinishedSemaphore };
+	auto waitSemaphores = { m_imageAvailableSemaphore };
 	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 	submitInfo.pWaitSemaphores = waitSemaphores.begin();
 	submitInfo.waitSemaphoreCount = waitSemaphores.size();
@@ -335,9 +324,8 @@ void Renderer::render()
 	submitInfo.commandBufferCount = 1;
 	submitInfo.pSignalSemaphores = signalSemaphores.begin();
 	submitInfo.signalSemaphoreCount = signalSemaphores.size();
-	if (vkQueueSubmit(m_device->getGraphicsQueue(), 1, &submitInfo, m_frameDatas[currentFrame].inFlightFence) != VK_SUCCESS)
+	if (vkQueueSubmit(m_device->getGraphicsQueue(), 1, &submitInfo, m_inFlightFence) != VK_SUCCESS)
 		throw std::runtime_error{ "failed to submit draw command buffer" };
 
-	m_swapchain->endFrame(imageIndex, m_frameDatas[currentFrame].renderFinishedSemaphore);
-	currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+	m_swapchain->endFrame(imageIndex, m_renderFinishedSemaphore);
 }

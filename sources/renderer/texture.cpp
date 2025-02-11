@@ -10,13 +10,12 @@ Texture::Texture(Device& device, const std::string& imagePath) : m_device{device
 	createImage(imagePath);
 	createImageView();
 	createImageSampler();
-    createDescriptorSets();
+    createDescriptorSet();
 }
 
 Texture::~Texture()
 {
-    for (auto& set : m_descriptorSets)
-        set.free();
+    m_descriptorSet.free();
 	vkDestroySampler(m_device.getDevice(), m_sampler, nullptr);
 	vkDestroyImageView(m_device.getDevice(), m_imageView, nullptr);
 	vkDestroyImage(m_device.getDevice(), m_image, nullptr);
@@ -163,32 +162,29 @@ void Texture::createImageSampler()
 		throw std::runtime_error("failed to create texture sampler!");
 }
 
-void Texture::createDescriptorSets()
+void Texture::createDescriptorSet()
 {
-    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
-    {
-        m_descriptorSets[i] = m_device.createDescriptorSet(m_device.getSamplerLayout());
+    m_descriptorSet = m_device.createDescriptorSet(m_device.getSamplerLayout());
 
-        auto samplerInfo = VkDescriptorImageInfo{};
-        samplerInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        samplerInfo.imageView = m_imageView;
-        samplerInfo.sampler = m_sampler;
+    auto samplerInfo = VkDescriptorImageInfo{};
+    samplerInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    samplerInfo.imageView = m_imageView;
+    samplerInfo.sampler = m_sampler;
 
-        auto descriptorWrite = VkWriteDescriptorSet{};
-        descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrite.dstSet = m_descriptorSets[i].set;
-        descriptorWrite.dstBinding = 0;
-        descriptorWrite.dstArrayElement = 0;
-        descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        descriptorWrite.pImageInfo = &samplerInfo;
-        descriptorWrite.descriptorCount = 1;
-        vkUpdateDescriptorSets(m_device.getDevice(), 1, &descriptorWrite, 0, nullptr);
-    }
+    auto descriptorWrite = VkWriteDescriptorSet{};
+    descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    descriptorWrite.dstSet = m_descriptorSet.set;
+    descriptorWrite.dstBinding = 0;
+    descriptorWrite.dstArrayElement = 0;
+    descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    descriptorWrite.pImageInfo = &samplerInfo;
+    descriptorWrite.descriptorCount = 1;
+    vkUpdateDescriptorSets(m_device.getDevice(), 1, &descriptorWrite, 0, nullptr);
 }
 
-void Texture::bind(VkCommandBuffer commandBuffer, VkPipelineLayout layout, uint32_t set, uint32_t currentFrame)
+void Texture::bind(VkCommandBuffer commandBuffer, VkPipelineLayout layout, uint32_t set)
 {
-    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, layout, set, 1, &m_descriptorSets[currentFrame].set, 0, nullptr);
+    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, layout, set, 1, &m_descriptorSet.set, 0, nullptr);
 }
 
 VkImageView Texture::getImageView()

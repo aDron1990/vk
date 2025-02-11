@@ -23,8 +23,6 @@ public:
 	VkFormat getFormat();
 	VkFramebuffer getFramebuffer(uint32_t index);
 
-	uint32_t getCurrentFrame();
-
 	uint32_t beginFrame(VkFence inFlightFence, VkSemaphore imageAvailableSemaphore);
 	void endFrame(uint32_t imageIndex, VkSemaphore renderFinishedSemaphore);
 	void recreate();
@@ -42,10 +40,8 @@ public:
 	VkExtent2D chooseSwapchainExtent(const VkSurfaceCapabilitiesKHR& capabilities);
 
 private:
-	const int MAX_FRAMES_IN_FLIGHT = 2;
 	VkFormat m_swapchainFormat;
 	VkExtent2D m_swapchainExtent;
-	uint32_t currentFrame{};
 
 private:
 	const VkRenderPass m_renderPass;

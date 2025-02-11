@@ -140,7 +140,7 @@ VkShaderModule Pipeline::createShaderModule(const std::vector<char>& code)
 	return shaderModule;
 }
 
-void Pipeline::bind(VkCommandBuffer commandBuffer, uint32_t currentFrame)
+void Pipeline::bind(VkCommandBuffer commandBuffer)
 {
 	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline);
 }

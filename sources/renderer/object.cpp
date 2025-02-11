@@ -9,7 +9,7 @@ Object::Object(Device& device, Model& model) : m_model{ model }, m_mvpBuffer{ de
 	material.shininess = 32.0f;
 }
 
-void Object::draw(VkCommandBuffer commandBuffer, VkPipelineLayout layout, uint32_t currentFrame, const glm::mat4& view, const glm::mat4& proj)
+void Object::draw(VkCommandBuffer commandBuffer, VkPipelineLayout layout, const glm::mat4& view, const glm::mat4& proj)
 {
 	auto mvp = MVP{};
 	mvp.model = glm::translate(glm::mat4(1.0f), m_position);
@@ -19,13 +19,13 @@ void Object::draw(VkCommandBuffer commandBuffer, VkPipelineLayout layout, uint32
 	mvp.model = glm::scale(mvp.model, m_scale);
 	mvp.view = view;
 	mvp.proj = proj;
-	m_mvpBuffer.write(mvp, currentFrame);
-	m_mvpBuffer.bind(commandBuffer, layout, 0, currentFrame);
+	m_mvpBuffer.write(mvp);
+	m_mvpBuffer.bind(commandBuffer, layout, 0);
 	
-	m_materialBuffer.write(material, currentFrame);
-	m_materialBuffer.bind(commandBuffer, layout, 2, currentFrame);
+	m_materialBuffer.write(material);
+	m_materialBuffer.bind(commandBuffer, layout, 2);
 
-	m_model.draw(commandBuffer, layout, currentFrame);
+	m_model.draw(commandBuffer, layout);
 }
 
 void Object::setPosition(glm::vec3 position)

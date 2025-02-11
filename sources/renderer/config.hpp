@@ -4,8 +4,6 @@
 
 #include <vector>
 
-constexpr int MAX_FRAMES_IN_FLIGHT = 2;
-
 #ifdef _DEBUG
 static const bool USE_VALIDATION_LAYERS = true;
 #else

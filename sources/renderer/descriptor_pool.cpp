@@ -18,9 +18,9 @@ void DescriptorPool::createPool()
 {
 	auto poolSizes = std::vector<VkDescriptorPoolSize>(2);
 	poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	poolSizes[0].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+	poolSizes[0].descriptorCount = 1;
 	poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	poolSizes[1].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+	poolSizes[1].descriptorCount = 1;
 
 	auto createInfo = VkDescriptorPoolCreateInfo{};
 	createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
@@ -35,12 +35,11 @@ void DescriptorPool::createPool()
 DescriptorSet DescriptorPool::createDescriptorSet(VkDescriptorSetLayout descriptorSetLayout)
 {
 	auto descriptorSet = DescriptorSet{};
-	auto layouts = std::vector<VkDescriptorSetLayout>(MAX_FRAMES_IN_FLIGHT, descriptorSetLayout);
 	auto allocInfo = VkDescriptorSetAllocateInfo{};
 	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 	allocInfo.descriptorPool = m_pool;
-	allocInfo.pSetLayouts = layouts.data();
-	allocInfo.descriptorSetCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+	allocInfo.pSetLayouts = &descriptorSetLayout;
+	allocInfo.descriptorSetCount = 1;
 	if (vkAllocateDescriptorSets(m_device.getDevice(), &allocInfo, &descriptorSet.set) != VK_SUCCESS)
 		throw std::runtime_error{ "failed to allocate descriptor sets" };
 

@@ -22,7 +22,7 @@ class Pipeline
 public:
 	Pipeline(Device& device, PipelineInfo& info);
 	virtual ~Pipeline();
-	void bind(VkCommandBuffer commandBuffer, uint32_t currentFrame);
+	void bind(VkCommandBuffer commandBuffer);
 	VkPipelineLayout getLayout();
 	
 protected:

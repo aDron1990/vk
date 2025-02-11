@@ -17,7 +17,7 @@ class Model
 {
 public:
 	Model(Device& device, const std::string& modelPath, const std::string& texturePath);
-	void draw(VkCommandBuffer commandBuffer, VkPipelineLayout layout, uint32_t currentFrame);
+	void draw(VkCommandBuffer commandBuffer, VkPipelineLayout layout);
 
 private:
 	Device& m_device;
