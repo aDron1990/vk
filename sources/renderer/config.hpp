@@ -7,7 +7,7 @@
 #ifdef _DEBUG
 static const bool USE_VALIDATION_LAYERS = true;
 #else
-static const bool USE_VALIDATION_LAYERS = true;
+static const bool USE_VALIDATION_LAYERS = false;
 #endif
 
 static const std::vector<const char*> VALIDATION_LAYER_NAMES =
