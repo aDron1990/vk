@@ -32,7 +32,7 @@ Renderer::Renderer(Window& window) : m_window{window}
 	m_specularMap.reset(new Texture{ *m_device, "../../resources/textures/container2_specular.png" });
 	m_model.reset(new Model{ *m_device, MODEL_PATH, TEXTURE_PATH });
 	m_object.reset(new Object{ *m_device, *m_model });
-	m_light.reset(new LightBuffer{ *m_device, m_device->getUboVertexLayout()});
+	m_light.reset(new LightBuffer{ *m_device, m_device->getUboFragmentLayout()});
 
 
 	ImGui::CreateContext();
@@ -63,6 +63,7 @@ Renderer::Renderer(Window& window) : m_window{window}
 	light.specular = { 1.0f, 1.0f, 1.0f };
 
 	test.reset(new Texture{ *m_device, TEXTURE_PATH });
+	test2.reset(new Texture{ *m_device, TEXTURE_PATH });
 }
 
 Renderer::~Renderer()
@@ -78,9 +79,12 @@ Renderer::~Renderer()
 	vkDestroyFence(m_device->getDevice(), m_inFlightFence, nullptr);
 
 	test.reset();
+	test2.reset();
 	m_object.reset();
 	m_swapchainPass.reset();
+	m_offscreenPass.reset();
 	m_pipeline.reset();
+	m_postPipeline.reset();
 	m_swapchain.reset();
 	m_specularMap.reset();
 	m_model.reset();
@@ -105,7 +109,8 @@ void Renderer::createDevice()
 
 void Renderer::createRenderPass()
 {
-	m_swapchainPass.reset(new SwapchainPass{*m_device});
+	m_swapchainPass.reset(new SwapchainPass{ *m_device });
+	m_offscreenPass.reset(new OffscreenPass{ *m_device, 1280, 720 });
 }
 
 void Renderer::createSwapchain()
@@ -121,15 +126,28 @@ void Renderer::createSwapchain()
 
 void Renderer::createGraphicsPipeline()
 {
-	auto pipelineInfo = PipelineInfo{};
-	pipelineInfo.vertexPath = "../../resources/shaders/post/shader.vert.spv";
-	pipelineInfo.fragmentPath = "../../resources/shaders/post/shader.frag.spv";
-	pipelineInfo.renderPass = m_swapchainPass->getRenderPass();
-	//pipelineInfo.descriptorSetLayouts = { m_device->getMVPLayout(), m_device->getLightLayout(), m_device->getMaterialLayout(), m_device->getSamplerLayout(), m_device->getSamplerLayout() };
-	pipelineInfo.descriptorSetLayouts = { m_device->getSamplerFragmentLayout() };
-	pipelineInfo.vertexInput = false;
-	pipelineInfo.culling = VK_CULL_MODE_NONE;
-	m_pipeline.reset(new Pipeline{ *m_device, pipelineInfo });
+	{
+		auto pipelineInfo = PipelineInfo{};
+		pipelineInfo.vertexPath = "../../resources/shaders/shader.vert.spv";
+		pipelineInfo.fragmentPath = "../../resources/shaders/shader.frag.spv";
+		pipelineInfo.renderPass = m_offscreenPass->getRenderPass();
+		pipelineInfo.descriptorSetLayouts = { m_device->getUboVertexLayout(), m_device->getUboFragmentLayout(), m_device->getUboFragmentLayout(), m_device->getSamplerFragmentLayout(), m_device->getSamplerFragmentLayout() };
+		//pipelineInfo.descriptorSetLayouts = { m_device->getSamplerFragmentLayout() };
+		pipelineInfo.vertexInput = true;
+		pipelineInfo.culling = VK_CULL_MODE_NONE;
+		m_pipeline.reset(new Pipeline{ *m_device, pipelineInfo });
+	}
+	{
+		auto pipelineInfo = PipelineInfo{};
+		pipelineInfo.vertexPath = "../../resources/shaders/post/shader.vert.spv";
+		pipelineInfo.fragmentPath = "../../resources/shaders/post/shader.frag.spv";
+		pipelineInfo.renderPass = m_swapchainPass->getRenderPass();
+		//pipelineInfo.descriptorSetLayouts = { m_device->getMVPLayout(), m_device->getLightLayout(), m_device->getMaterialLayout(), m_device->getSamplerLayout(), m_device->getSamplerLayout() };
+		pipelineInfo.descriptorSetLayouts = { m_device->getSamplerFragmentLayout() };
+		pipelineInfo.vertexInput = false;
+		pipelineInfo.culling = VK_CULL_MODE_NONE;
+		m_postPipeline.reset(new Pipeline{ *m_device, pipelineInfo });
+	}
 }
 
 void Renderer::createSyncObjects()
@@ -154,17 +172,15 @@ void Renderer::createCommandBuffers()
 
 void Renderer::renderScene(VkCommandBuffer commandBuffer, uint32_t imageIndex)
 {
-	auto beginInfo = VkCommandBufferBeginInfo{};
-	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-	if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS)
-		throw std::runtime_error{ "failed to record command buffer" };
+	
+	
 
 	auto clearValues = 
 	std::array<VkClearValue, 2>{
 		VkClearValue{.color = {{0.05f, 0.05f, 0.05f, 1.0f}}},
 		VkClearValue{.depthStencil = {1.0f, 0}}
 	};
-	m_swapchainPass->begin(commandBuffer, clearValues, imageIndex);
+	m_offscreenPass->begin(commandBuffer, clearValues);
 
 	m_pipeline->bind(commandBuffer);
 
@@ -182,7 +198,6 @@ void Renderer::renderScene(VkCommandBuffer commandBuffer, uint32_t imageIndex)
 	scissor.extent = m_swapchain->getExtent();
 	vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-#if 0
 	static auto lastTime = std::chrono::high_resolution_clock::now();
 	auto now = std::chrono::high_resolution_clock::now();
 	auto delta = std::chrono::duration<float, std::chrono::seconds::period>(now - lastTime).count();
@@ -216,15 +231,43 @@ void Renderer::renderScene(VkCommandBuffer commandBuffer, uint32_t imageIndex)
 	m_light->bind(commandBuffer, m_pipeline->getLayout(), 1);
 	m_specularMap->bind(commandBuffer, m_pipeline->getLayout(), 4);
 	m_object->draw(commandBuffer, m_pipeline->getLayout(), view, proj);
-#endif
-	test->bind(commandBuffer, m_pipeline->getLayout(), 0);
+
+	m_offscreenPass->end(commandBuffer);
+}
+
+void Renderer::postProccess(VkCommandBuffer commandBuffer, uint32_t imageIndex)
+{
+	auto clearValues =
+		std::array<VkClearValue, 2>{
+			VkClearValue{.color = {{1.00f, 0.05f, 0.05f, 1.0f}}},
+			VkClearValue{.depthStencil = {1.0f, 0}}
+	};
+	m_swapchainPass->begin(commandBuffer, clearValues, imageIndex);
+
+	m_postPipeline->bind(commandBuffer);
+
+	auto viewport = VkViewport{};
+	viewport.x = 0.0f;
+	viewport.y = 0.0f;
+	viewport.width = static_cast<float>(m_swapchain->getExtent().width);
+	viewport.height = static_cast<float>(m_swapchain->getExtent().height);
+	viewport.minDepth = 0.0f;
+	viewport.maxDepth = 1.0f;
+	vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+
+	auto scissor = VkRect2D{}; 
+	scissor.offset = { 0, 0 };
+	scissor.extent = m_swapchain->getExtent();
+	vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+
+	//test->bind(commandBuffer, m_postPipeline->getLayout(), 0);
+	//test2->bind(commandBuffer, m_postPipeline->getLayout(), 1);
+	m_offscreenPass->bindDescriptorSet(commandBuffer, m_postPipeline->getLayout(), 0);
 	vkCmdDraw(commandBuffer, 6, 1, 0, 0);
 
 	ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commandBuffer);
 
 	m_swapchainPass->end(commandBuffer);
-	if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS)
-		throw std::runtime_error{ "failed to end command buffer" };
 }
 
 void Renderer::render()
@@ -257,9 +300,19 @@ void Renderer::render()
 	if (imageIndex == UINT32_MAX) return;
 	auto commandBuffer = m_commandBuffer;
 
-	vkResetCommandBuffer(commandBuffer, 0);
+	auto beginInfo = VkCommandBufferBeginInfo{};
+	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+	if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS)
+		throw std::runtime_error{ "failed to record command buffer" };
+
+	//vkResetCommandBuffer(commandBuffer, 0);
 
 	renderScene(commandBuffer, imageIndex);
+	postProccess(commandBuffer, imageIndex);
+
+	if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS)
+		throw std::runtime_error{ "failed to end command buffer" };
+
 
 	std::initializer_list<VkPipelineStageFlags> waitStages = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
 	auto submitInfo = VkSubmitInfo{};

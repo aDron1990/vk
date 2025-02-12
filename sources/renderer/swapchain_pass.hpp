@@ -24,5 +24,4 @@ private:
 	Device& m_device;
 	Swapchain* m_swapchain;
 	VkRenderPass m_renderPass;
-
 };

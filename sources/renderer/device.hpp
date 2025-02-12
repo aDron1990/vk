@@ -20,7 +20,7 @@ public:
 
 	void copyBuffer(Buffer& srcBuffer, Buffer& dstBuffer);
 	void copyBufferToImage(Buffer& srcBuffer, VkImage dstImage, uint32_t width, uint32_t height);
-	void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t mipLevels);
+	void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t mipLevels, VkCommandBuffer commandBuffer = VK_NULL_HANDLE);
 
 	std::vector<VkCommandBuffer> createCommandBuffers(uint32_t count);
 	DescriptorSet createDescriptorSet(VkDescriptorSetLayout layout);
