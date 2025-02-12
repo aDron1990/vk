@@ -260,8 +260,6 @@ void Renderer::postProccess(VkCommandBuffer commandBuffer, uint32_t imageIndex)
 	scissor.extent = m_swapchain->getExtent();
 	vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-	//test->bind(commandBuffer, m_postPipeline->getLayout(), 0);
-	//test2->bind(commandBuffer, m_postPipeline->getLayout(), 1);
 	m_offscreenPass->bindDescriptorSet(commandBuffer, m_postPipeline->getLayout(), 0);
 	vkCmdDraw(commandBuffer, 6, 1, 0, 0);
 
@@ -304,8 +302,6 @@ void Renderer::render()
 	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 	if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS)
 		throw std::runtime_error{ "failed to record command buffer" };
-
-	//vkResetCommandBuffer(commandBuffer, 0);
 
 	renderScene(commandBuffer, imageIndex);
 	postProccess(commandBuffer, imageIndex);
