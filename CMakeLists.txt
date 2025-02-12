@@ -74,6 +74,15 @@ add_shader("resources/shaders/main/shader.frag")
 add_shader("resources/shaders/post/shader.vert")
 add_shader("resources/shaders/post/shader.frag")
 
+add_custom_target(shader_dep ALL
+    DEPENDS
+    "resources/shaders/main/shader.vert.spv"
+    "resources/shaders/main/shader.frag.spv"
+	"resources/shaders/post/shader.vert.spv"
+    "resources/shaders/post/shader.frag.spv"
+)
+add_dependencies(vk shader_dep)
+
 cmrc_add_resource_library(shaders
 	"resources/shaders/main/shader.vert.spv"
     "resources/shaders/main/shader.frag.spv"
