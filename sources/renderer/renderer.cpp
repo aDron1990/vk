@@ -1,12 +1,13 @@
 #include "renderer/renderer.hpp"
 #include "window/window.hpp"
-#include "load_file.hpp"
 
 #include <glm/gtc/matrix_transform.hpp>
 
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_vulkan.h"
+
+#include <cmrc/cmrc.hpp>
 
 #include <stdexcept>
 #include <print>
@@ -128,8 +129,8 @@ void Renderer::createGraphicsPipeline()
 {
 	{
 		auto pipelineInfo = PipelineInfo{};
-		pipelineInfo.vertexPath = "../../resources/shaders/shader.vert.spv";
-		pipelineInfo.fragmentPath = "../../resources/shaders/shader.frag.spv";
+		pipelineInfo.vertexPath = "resources/shaders/main/shader.vert.spv";
+		pipelineInfo.fragmentPath = "resources/shaders/main/shader.frag.spv";
 		pipelineInfo.renderPass = m_offscreenPass->getRenderPass();
 		pipelineInfo.descriptorSetLayouts = { m_device->getUboVertexLayout(), m_device->getUboFragmentLayout(), m_device->getUboFragmentLayout(), m_device->getSamplerFragmentLayout(), m_device->getSamplerFragmentLayout() };
 		pipelineInfo.vertexInput = true;
@@ -138,8 +139,8 @@ void Renderer::createGraphicsPipeline()
 	}
 	{
 		auto pipelineInfo = PipelineInfo{};
-		pipelineInfo.vertexPath = "../../resources/shaders/post/shader.vert.spv";
-		pipelineInfo.fragmentPath = "../../resources/shaders/post/shader.frag.spv";
+		pipelineInfo.vertexPath = "resources/shaders/post/shader.vert.spv";
+		pipelineInfo.fragmentPath = "resources/shaders/post/shader.frag.spv";
 		pipelineInfo.renderPass = m_swapchainPass->getRenderPass();
 		pipelineInfo.descriptorSetLayouts = { m_device->getSamplerFragmentLayout() };
 		pipelineInfo.vertexInput = false;

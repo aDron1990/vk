@@ -1,7 +1,8 @@
 #include "renderer/pipeline.hpp"
-#include "load_file.hpp"
 
 #include <glm/gtc/matrix_transform.hpp>
+#include <cmrc/cmrc.hpp>
+CMRC_DECLARE(shaders);
 
 #include <stdexcept>
 #include <vector>
@@ -19,8 +20,10 @@ Pipeline::~Pipeline()
 
 void Pipeline::createPipeline()
 {
-	auto vertexCode = loadFile(m_info.vertexPath);
-	auto fragmentCode = loadFile(m_info.fragmentPath);
+	auto vertexFile = cmrc::shaders::get_filesystem().open(m_info.vertexPath);
+	auto fragmentFile = cmrc::shaders::get_filesystem().open(m_info.fragmentPath);
+	auto vertexCode = std::vector<char>(vertexFile.begin(), vertexFile.end());
+	auto fragmentCode = std::vector<char>(fragmentFile.begin(), fragmentFile.end());
 	auto vertexModule = createShaderModule(vertexCode);
 	auto fragmentModule = createShaderModule(fragmentCode);
 

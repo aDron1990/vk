@@ -8,10 +8,10 @@ find_package(glm CONFIG REQUIRED)
 find_package(Stb REQUIRED)
 find_package(tinyobjloader CONFIG REQUIRED)
 find_package(imgui CONFIG REQUIRED)
+find_package(CMakeRC CONFIG REQUIRED)
 
 add_executable(vk 
 	"sources/main.cpp"
-	"sources/load_file.hpp"
 
 	"sources/window/window.hpp"
 	"sources/window/window.cpp"
@@ -66,7 +66,7 @@ target_link_libraries(vk PRIVATE
 	imgui::imgui
 )
 
-# Shaderspost
+# Shaders
 include(cmake/add_shader.cmake)
 
 add_shader("resources/shaders/main/shader.vert")
@@ -74,11 +74,11 @@ add_shader("resources/shaders/main/shader.frag")
 add_shader("resources/shaders/post/shader.vert")
 add_shader("resources/shaders/post/shader.frag")
 
-add_custom_target(shaders ALL
-    DEPENDS
-    "resources/shaders/main/shader.vert.spv"
+cmrc_add_resource_library(shaders
+	"resources/shaders/main/shader.vert.spv"
     "resources/shaders/main/shader.frag.spv"
 	"resources/shaders/post/shader.vert.spv"
     "resources/shaders/post/shader.frag.spv"
 )
-add_dependencies(vk shaders)
+
+target_link_libraries(vk PRIVATE shaders)
