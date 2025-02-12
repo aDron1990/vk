@@ -120,7 +120,7 @@ void Renderer::createSwapchain()
 	auto extent = VkExtent2D{ static_cast<uint32_t>(width), static_cast<uint32_t>(height) };
 	auto createProps = SwapchainProperties{};
 	createProps.renderPass = m_swapchainPass->getRenderPass();
-	m_swapchain.reset(new Swapchain{*m_device, createProps});
+	m_swapchain.reset(new Swapchain{ *m_device, createProps, [&](uint32_t width, uint32_t height) {m_offscreenPass->resize(width, height); } });
 	m_swapchainPass->setSwapchain(m_swapchain.get());
 }
 

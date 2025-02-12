@@ -7,24 +7,12 @@
 OffscreenPass::OffscreenPass(Device& device, uint32_t width, uint32_t height) : m_device{ device }, m_width{width}, m_height{height}
 {
 	createRenderPass();
-	createImage();
-	createDepthImage();
-	createFramebuffer();
-	createSampler();
-	createDescriptorSet();
+	createImages();
 }
 
 OffscreenPass::~OffscreenPass()
 {
-	m_descriptorSet.free();
-	vkDestroySampler(m_device.getDevice(), m_sampler, nullptr);
-	vkDestroyImageView(m_device.getDevice(), m_imageView, nullptr);
-	vkDestroyImage(m_device.getDevice(), m_image, nullptr);
-	vkFreeMemory(m_device.getDevice(), m_imageMemory, nullptr);
-	vkDestroyImageView(m_device.getDevice(), m_depthImageView, nullptr);
-	vkDestroyImage(m_device.getDevice(), m_depthImage, nullptr);
-	vkFreeMemory(m_device.getDevice(), m_depthImageMemory, nullptr);
-	vkDestroyFramebuffer(m_device.getDevice(), m_framebuffer, nullptr);
+	clearImages();
 	vkDestroyRenderPass(m_device.getDevice(), m_renderPass, nullptr);
 }
 
@@ -93,6 +81,28 @@ void OffscreenPass::createRenderPass()
 
 	if (vkCreateRenderPass(m_device.getDevice(), &createInfo, nullptr, &m_renderPass) != VK_SUCCESS)
 		throw std::runtime_error{ "failed to create vulkan render pass" };
+}
+
+void OffscreenPass::clearImages()
+{
+	m_descriptorSet.free();
+	vkDestroySampler(m_device.getDevice(), m_sampler, nullptr);
+	vkDestroyImageView(m_device.getDevice(), m_imageView, nullptr);
+	vkDestroyImage(m_device.getDevice(), m_image, nullptr);
+	vkFreeMemory(m_device.getDevice(), m_imageMemory, nullptr);
+	vkDestroyImageView(m_device.getDevice(), m_depthImageView, nullptr);
+	vkDestroyImage(m_device.getDevice(), m_depthImage, nullptr);
+	vkFreeMemory(m_device.getDevice(), m_depthImageMemory, nullptr);
+	vkDestroyFramebuffer(m_device.getDevice(), m_framebuffer, nullptr);
+}
+
+void OffscreenPass::createImages()
+{
+	createImage();
+	createDepthImage();
+	createFramebuffer();
+	createSampler();
+	createDescriptorSet();
 }
 
 void OffscreenPass::createImage()
@@ -199,6 +209,14 @@ void OffscreenPass::end(VkCommandBuffer commandBuffer)
 void OffscreenPass::bindDescriptorSet(VkCommandBuffer commandBuffer, VkPipelineLayout layout, uint32_t set)
 {
 	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, layout, set, 1, &m_descriptorSet.set, 0, nullptr);
+}
+
+void OffscreenPass::resize(uint32_t newWidth, uint32_t newHeight)
+{
+	clearImages();
+	m_width = newWidth;
+	m_height = newHeight;
+	createImages();
 }
 
 VkRenderPass OffscreenPass::getRenderPass()

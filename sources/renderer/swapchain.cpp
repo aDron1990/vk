@@ -3,8 +3,8 @@
 #include <stdexcept>
 #include <algorithm>
 
-Swapchain::Swapchain(Device& device, SwapchainProperties properties)
-	: m_device{device}, m_renderPass{ properties.renderPass }
+Swapchain::Swapchain(Device& device, SwapchainProperties properties, std::function<void(uint32_t, uint32_t)> onResize)
+	: m_device{device}, m_renderPass{ properties.renderPass }, m_onResize{onResize}
 {
 	createSwapchain();
 	createImageViews();
@@ -185,6 +185,7 @@ uint32_t Swapchain::beginFrame(VkFence inFlightFence, VkSemaphore imageAvailable
 	if (result == VK_ERROR_OUT_OF_DATE_KHR) 
 	{
 		recreate();
+		m_onResize(m_swapchainExtent.width, m_swapchainExtent.height);
 		return UINT32_MAX;
 	}
 	else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR)

@@ -7,6 +7,7 @@
 
 #include <vector>
 #include <optional>
+#include <functional>
 
 struct SwapchainProperties
 {
@@ -16,7 +17,7 @@ struct SwapchainProperties
 class Swapchain
 {
 public:
-	Swapchain(Device& device, SwapchainProperties properties);
+	Swapchain(Device& device, SwapchainProperties properties, std::function<void(uint32_t, uint32_t)> onResize);
 	~Swapchain();
 
 	VkExtent2D getExtent();
@@ -46,6 +47,7 @@ private:
 private:
 	const VkRenderPass m_renderPass;
 	Device& m_device;
+	std::function<void(uint32_t, uint32_t)> m_onResize;
 
 	VkSwapchainKHR m_swapchain;
 	VkImage m_depthImage;

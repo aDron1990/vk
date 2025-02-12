@@ -10,10 +10,13 @@ public:
 	void begin(VkCommandBuffer commandBuffer, const std::array<VkClearValue, 2>& clearValues);
 	void end(VkCommandBuffer commandBuffer);
 	void bindDescriptorSet(VkCommandBuffer commandBuffer, VkPipelineLayout layout, uint32_t set);
+	void resize(uint32_t newWidth, uint32_t newHeight);
 	VkRenderPass getRenderPass();
 
 private:
 	void createRenderPass();
+	void clearImages();
+	void createImages();
 	void createImage();
 	void createDepthImage();
 	void createFramebuffer();
