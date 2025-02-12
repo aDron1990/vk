@@ -97,7 +97,6 @@ add_custom_target(shader_dep ALL
 	"resources/shaders/combine/shader.vert.spv"
     "resources/shaders/combine/shader.frag.spv"
 )
-add_dependencies(vk shader_dep)
 
 cmrc_add_resource_library(shaders
 	"resources/shaders/main/shader.vert.spv"
@@ -113,6 +112,8 @@ cmrc_add_resource_library(shaders
 	"resources/shaders/combine/shader.vert.spv"
     "resources/shaders/combine/shader.frag.spv"
 )
+
+add_dependencies(shaders shader_dep)
 
 cmrc_add_resource_library(images
 	"resources/images/container2.png"
