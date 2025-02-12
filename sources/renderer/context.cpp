@@ -19,6 +19,7 @@ Context::~Context()
 
 void Context::createInstance()
 {
+	auto debugInfo = VkDebugUtilsMessengerCreateInfoEXT{};
 	auto appInfo = VkApplicationInfo{};
 	appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
 	appInfo.apiVersion = VK_API_VERSION_1_0;
@@ -32,7 +33,7 @@ void Context::createInstance()
 	instanceInfo.enabledExtensionCount = static_cast<uint32_t>(requiredExtensions.size());
 	if (USE_VALIDATION_LAYERS)
 	{
-		auto debugInfo = VkDebugUtilsMessengerCreateInfoEXT{};
+		
 		populateDebugMessengerCreateInfo(debugInfo);
 		instanceInfo.pNext = &debugInfo;
 		instanceInfo.ppEnabledLayerNames = VALIDATION_LAYER_NAMES.data();

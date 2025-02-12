@@ -56,10 +56,10 @@ void Pipeline::createPipeline()
 	auto vertexInputInfo = VkPipelineVertexInputStateCreateInfo{};
 	vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 
+	auto bindDesc = Vertex::getBindDesc();
+	auto attrDesc = Vertex::getAttrDesc();
 	if (m_info.vertexInput)
 	{
-		auto bindDesc = Vertex::getBindDesc();
-		auto attrDesc = Vertex::getAttrDesc();
 		vertexInputInfo.pVertexBindingDescriptions = &bindDesc;
 		vertexInputInfo.vertexBindingDescriptionCount = 1;
 		vertexInputInfo.pVertexAttributeDescriptions = attrDesc.data();
