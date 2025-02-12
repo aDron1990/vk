@@ -81,4 +81,16 @@ cmrc_add_resource_library(shaders
     "resources/shaders/post/shader.frag.spv"
 )
 
-target_link_libraries(vk PRIVATE shaders)
+cmrc_add_resource_library(images
+	"resources/images/container2.png"
+    "resources/images/container2_specular.png"
+	"resources/images/statue.jpg"
+    "resources/images/viking_room.png"
+)
+
+cmrc_add_resource_library(models
+    "resources/models/monkey.obj"
+	"resources/models/monkey.mtl"
+)
+
+target_link_libraries(vk PRIVATE shaders images models)

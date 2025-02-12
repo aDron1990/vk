@@ -2,6 +2,8 @@
 
 #define TINYOBJLOADER_IMPLEMENTATION
 #include <tiny_obj_loader.h>
+#include <cmrc/cmrc.hpp>
+CMRC_DECLARE(models);
 
 Mesh::Mesh(Device& device, const std::string& modelPath) : m_device{device}
 {
@@ -12,13 +14,17 @@ Mesh::Mesh(Device& device, const std::string& modelPath) : m_device{device}
 
 void Mesh::loadModel(const std::string& modelPath)
 {
-	tinyobj::attrib_t attrib;
-	std::vector<tinyobj::shape_t> shapes;
-	std::vector<tinyobj::material_t> materials;
-	std::string warn, err;
+	auto reader = tinyobj::ObjReader{};
+	auto modelFile = cmrc::models::get_filesystem().open(modelPath);
+	auto modelString = std::string{ modelFile.begin(), modelFile.size() };
 
-	if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, modelPath.c_str()))
-		throw std::runtime_error(warn + err);
+	auto mtlPath = modelPath.substr(0, modelPath.find_last_of(".")) + ".mtl";
+	auto mtlFile = cmrc::models::get_filesystem().open(mtlPath);
+	auto mtlString = std::string{ mtlFile.begin(), mtlFile.size() };
+
+	reader.ParseFromString(modelString, mtlString);
+	auto attrib = reader.GetAttrib();
+	auto shapes = reader.GetShapes();
 
 	std::unordered_map<Vertex, uint32_t> uniqueVertices{};
 	for (const auto& shape : shapes) {

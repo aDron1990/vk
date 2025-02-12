@@ -18,8 +18,8 @@
 #include <cstdint>
 #include <unordered_map>
 
-const std::string MODEL_PATH = "../../resources/models/monkey.obj";
-const std::string TEXTURE_PATH = "../../resources/textures/container2.png";
+const std::string MODEL_PATH = "resources/models/monkey.obj";
+const std::string TEXTURE_PATH = "../../resources/images/container2.png";
 
 Renderer::Renderer(Window& window) : m_window{window}
 {
@@ -30,7 +30,7 @@ Renderer::Renderer(Window& window) : m_window{window}
 	createRenderPass();
 	createSwapchain();
 	createGraphicsPipeline();
-	m_specularMap.reset(new Texture{ *m_device, "../../resources/textures/container2_specular.png" });
+	m_specularMap.reset(new Texture{ *m_device, "../../resources/images/container2_specular.png" });
 	m_model.reset(new Model{ *m_device, MODEL_PATH, TEXTURE_PATH });
 	m_object.reset(new Object{ *m_device, *m_model });
 	m_light.reset(new LightBuffer{ *m_device, m_device->getUboFragmentLayout()});
