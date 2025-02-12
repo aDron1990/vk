@@ -19,14 +19,13 @@ class Swapchain
 public:
 	Swapchain(Device& device, SwapchainProperties properties, std::function<void(uint32_t, uint32_t)> onResize);
 	~Swapchain();
-
-	VkExtent2D getExtent();
-	VkFormat getFormat();
-	VkFramebuffer getFramebuffer(uint32_t index);
-
 	uint32_t beginFrame(VkFence inFlightFence, VkSemaphore imageAvailableSemaphore);
 	void endFrame(uint32_t imageIndex, VkSemaphore renderFinishedSemaphore);
 	void recreate();
+	VkExtent2D getExtent();
+	VkFormat getFormat();
+	VkFramebuffer getFramebuffer(uint32_t index);
+	uint32_t getImageIndex();
 
 private:
 	void clear();
@@ -48,6 +47,7 @@ private:
 	const VkRenderPass m_renderPass;
 	Device& m_device;
 	std::function<void(uint32_t, uint32_t)> m_onResize;
+	uint32_t m_imageIndex;
 
 	VkSwapchainKHR m_swapchain;
 	VkImage m_depthImage;

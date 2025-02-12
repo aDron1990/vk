@@ -72,12 +72,17 @@ void SwapchainPass::createRenderPass()
 		throw std::runtime_error{ "failed to create vulkan render pass" };
 }
 
-void SwapchainPass::begin(VkCommandBuffer commandBuffer, const std::array<VkClearValue, 2>& clearValues, uint32_t imageIndex)
+void SwapchainPass::begin(VkCommandBuffer commandBuffer)
 {
+	auto clearValues =
+		std::array<VkClearValue, 2>{
+			VkClearValue{.color = {{0.05f, 0.05f, 0.05f, 1.0f}}},
+			VkClearValue{.depthStencil = {1.0f, 0}}
+	};
 	auto renderPassInfo = VkRenderPassBeginInfo{};
 	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 	renderPassInfo.renderPass = m_renderPass;
-	renderPassInfo.framebuffer = m_swapchain->getFramebuffer(imageIndex);
+	renderPassInfo.framebuffer = m_swapchain->getFramebuffer(m_swapchain->getImageIndex());
 	renderPassInfo.renderArea.offset = { 0, 0 };
 	renderPassInfo.renderArea.extent = m_swapchain->getExtent();
 	renderPassInfo.pClearValues = clearValues.data();

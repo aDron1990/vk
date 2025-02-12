@@ -37,6 +37,6 @@ void main()
     for(int i = 0; i < 9; i++)
         col += sampleTex[i] * kernel[i];
     
-    //outColor = vec4(col, 1.0);
-    outColor = vec4(vec3(1.0 - texture(frameTexture, fragTexCoord)), 1.0);
+    outColor = vec4(col, 1.0);
+    //outColor = vec4(vec3(1.0 - texture(frameTexture, fragTexCoord)), 1.0);
 }

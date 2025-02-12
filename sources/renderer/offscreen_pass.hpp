@@ -1,14 +1,15 @@
 #pragma once
 
+#include "renderer/render_pass.hpp"
 #include "renderer/device.hpp"
 
-class OffscreenPass
+class OffscreenPass : public RenderPass
 {
 public:
 	OffscreenPass(Device& device, uint32_t width, uint32_t height);
 	~OffscreenPass();
-	void begin(VkCommandBuffer commandBuffer, const std::array<VkClearValue, 2>& clearValues);
-	void end(VkCommandBuffer commandBuffer);
+	void begin(VkCommandBuffer commandBuffer) override;
+	void end(VkCommandBuffer commandBuffer) override;
 	void bindDescriptorSet(VkCommandBuffer commandBuffer, VkPipelineLayout layout, uint32_t set);
 	void resize(uint32_t newWidth, uint32_t newHeight);
 	VkRenderPass getRenderPass();

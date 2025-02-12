@@ -169,17 +169,8 @@ void Renderer::createCommandBuffers()
 	m_commandBuffer = m_device->createCommandBuffers(1).back();
 }
 
-void Renderer::renderScene(VkCommandBuffer commandBuffer, uint32_t imageIndex)
+void Renderer::setViewport(VkCommandBuffer commandBuffer)
 {
-	auto clearValues = 
-	std::array<VkClearValue, 2>{
-		VkClearValue{.color = {{0.05f, 0.05f, 0.05f, 1.0f}}},
-		VkClearValue{.depthStencil = {1.0f, 0}}
-	};
-	m_offscreenPass->begin(commandBuffer, clearValues);
-
-	m_pipeline->bind(commandBuffer);
-
 	auto viewport = VkViewport{};
 	viewport.x = 0.0f;
 	viewport.y = 0.0f;
@@ -193,11 +184,17 @@ void Renderer::renderScene(VkCommandBuffer commandBuffer, uint32_t imageIndex)
 	scissor.offset = { 0, 0 };
 	scissor.extent = m_swapchain->getExtent();
 	vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+}
 
+void Renderer::renderScene(VkCommandBuffer commandBuffer, RenderPass& renderPass, Pipeline& pipeline)
+{
 	static auto lastTime = std::chrono::high_resolution_clock::now();
 	auto now = std::chrono::high_resolution_clock::now();
 	auto delta = std::chrono::duration<float, std::chrono::seconds::period>(now - lastTime).count();
 	lastTime = now;
+
+	renderPass.begin(commandBuffer);
+	setViewport(commandBuffer);
 
 	static auto& input = m_window.getInput();
 	auto cameraMove = glm::vec3{};
@@ -207,7 +204,6 @@ void Renderer::renderScene(VkCommandBuffer commandBuffer, uint32_t imageIndex)
 	{
 		m_camera.rotate(input.getCursorDelta(), delta);
 	}
-
 	if (input.getKey('W')) cameraMove.z += 1;
 	if (input.getKey('S')) cameraMove.z -= 1;
 	if (input.getKey('D')) cameraMove.x += 1;
@@ -215,7 +211,6 @@ void Renderer::renderScene(VkCommandBuffer commandBuffer, uint32_t imageIndex)
 	if (input.getKey(GLFW_KEY_SPACE)) cameraMove.y += 1;
 	if (input.getKey(GLFW_KEY_LEFT_SHIFT)) cameraMove.y -= 1;
 	m_camera.move(cameraMove, delta);
-
 	auto extent = m_swapchain->getExtent();
 	auto view = m_camera.getViewMatrix();
 	auto proj = glm::perspective(glm::radians(80.0f), extent.width / (float)extent.height, 0.1f, 100.0f);
@@ -223,45 +218,25 @@ void Renderer::renderScene(VkCommandBuffer commandBuffer, uint32_t imageIndex)
 
 	light.viewPosition = m_camera.getPosition();
 
-	m_light->write(light);
-	m_light->bind(commandBuffer, m_pipeline->getLayout(), 1);
-	m_specularMap->bind(commandBuffer, m_pipeline->getLayout(), 4);
-	m_object->draw(commandBuffer, m_pipeline->getLayout(), view, proj);
+	pipeline.bind(commandBuffer);
 
-	m_offscreenPass->end(commandBuffer);
+	m_light->write(light);
+	m_light->bind(commandBuffer, pipeline.getLayout(), 1);
+	m_specularMap->bind(commandBuffer, pipeline.getLayout(), 4);
+	m_object->draw(commandBuffer, pipeline.getLayout(), view, proj);
+
+	renderPass.end(commandBuffer);
 }
 
-void Renderer::postProccess(VkCommandBuffer commandBuffer, uint32_t imageIndex)
+void Renderer::postProccess(VkCommandBuffer commandBuffer, RenderPass& renderPass, Pipeline& pipeline)
 {
-	auto clearValues =
-		std::array<VkClearValue, 2>{
-			VkClearValue{.color = {{0.0f, 0.0f, 0.0f, 1.0f}}},
-			VkClearValue{.depthStencil = {1.0f, 0}}
-	};
-	m_swapchainPass->begin(commandBuffer, clearValues, imageIndex);
-
-	m_postPipeline->bind(commandBuffer);
-
-	auto viewport = VkViewport{};
-	viewport.x = 0.0f;
-	viewport.y = 0.0f;
-	viewport.width = static_cast<float>(m_swapchain->getExtent().width);
-	viewport.height = static_cast<float>(m_swapchain->getExtent().height);
-	viewport.minDepth = 0.0f;
-	viewport.maxDepth = 1.0f;
-	vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
-
-	auto scissor = VkRect2D{}; 
-	scissor.offset = { 0, 0 };
-	scissor.extent = m_swapchain->getExtent();
-	vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
-
-	m_offscreenPass->bindDescriptorSet(commandBuffer, m_postPipeline->getLayout(), 0);
+	renderPass.begin(commandBuffer);
+	setViewport(commandBuffer);
+	pipeline.bind(commandBuffer);
+	m_offscreenPass->bindDescriptorSet(commandBuffer, pipeline.getLayout(), 0);
 	vkCmdDraw(commandBuffer, 6, 1, 0, 0);
-
 	ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commandBuffer);
-
-	m_swapchainPass->end(commandBuffer);
+	renderPass.end(commandBuffer);
 }
 
 void Renderer::render()
@@ -299,8 +274,8 @@ void Renderer::render()
 	if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS)
 		throw std::runtime_error{ "failed to record command buffer" };
 
-	renderScene(commandBuffer, imageIndex);
-	postProccess(commandBuffer, imageIndex);
+	renderScene(commandBuffer, *m_offscreenPass,*m_pipeline);
+	postProccess(commandBuffer, *m_swapchainPass, *m_postPipeline);
 
 	if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS)
 		throw std::runtime_error{ "failed to end command buffer" };

@@ -176,12 +176,16 @@ VkFramebuffer Swapchain::getFramebuffer(uint32_t index)
 	return m_swapchainFramebuffers[index];
 }
 
+uint32_t Swapchain::getImageIndex()
+{
+	return m_imageIndex;
+}
+
 uint32_t Swapchain::beginFrame(VkFence inFlightFence, VkSemaphore imageAvailableSemaphore)
 {
 	vkWaitForFences(m_device.getDevice(), 1, &inFlightFence, VK_TRUE, UINT64_MAX);
 
-	auto imageIndex = uint32_t{};
-	auto result = vkAcquireNextImageKHR(m_device.getDevice(), m_swapchain, UINT64_MAX, imageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
+	auto result = vkAcquireNextImageKHR(m_device.getDevice(), m_swapchain, UINT64_MAX, imageAvailableSemaphore, VK_NULL_HANDLE, &m_imageIndex);
 	if (result == VK_ERROR_OUT_OF_DATE_KHR) 
 	{
 		recreate();
@@ -192,7 +196,7 @@ uint32_t Swapchain::beginFrame(VkFence inFlightFence, VkSemaphore imageAvailable
 		throw std::runtime_error("failed to acquire swap chain image!");
 
 	vkResetFences(m_device.getDevice(), 1, &inFlightFence);
-	return imageIndex;
+	return m_imageIndex;
 }
 
 void Swapchain::endFrame(uint32_t imageIndex, VkSemaphore renderFinishedSemaphore)

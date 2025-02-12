@@ -44,8 +44,9 @@ private:
 	void createGraphicsPipeline();
 	
 private:
-	void renderScene(VkCommandBuffer commandBuffer, uint32_t imageIndex);
-	void postProccess(VkCommandBuffer commandBuffer, uint32_t imageIndex);
+	void renderScene(VkCommandBuffer commandBuffer, RenderPass& renderPass, Pipeline& pipeline);
+	void postProccess(VkCommandBuffer commandBuffer, RenderPass& renderPass, Pipeline& pipeline);
+	void setViewport(VkCommandBuffer commandBuffer);
 
 private:
 	Camera m_camera;

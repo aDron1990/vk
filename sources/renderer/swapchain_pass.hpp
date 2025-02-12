@@ -1,5 +1,6 @@
 #pragma once
 
+#include "renderer/render_pass.hpp"
 #include "renderer/device.hpp"
 #include "renderer/swapchain.hpp"
 
@@ -7,13 +8,13 @@
 
 #include <array>
 
-class SwapchainPass
+class SwapchainPass : public RenderPass
 {
 public:
 	SwapchainPass(Device& device);
 	~SwapchainPass();
-	void begin(VkCommandBuffer commandBuffer, const std::array<VkClearValue, 2>& clearValues, uint32_t imageIndex);
-	void end(VkCommandBuffer commandBuffer);
+	void begin(VkCommandBuffer commandBuffer) override;
+	void end(VkCommandBuffer commandBuffer) override;
 	void setSwapchain(Swapchain* swapchain);
 	VkRenderPass getRenderPass();
 

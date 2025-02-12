@@ -185,8 +185,13 @@ void OffscreenPass::createDescriptorSet()
 	vkUpdateDescriptorSets(m_device.getDevice(), 1, &descriptorWrite, 0, nullptr);
 }
 
-void OffscreenPass::begin(VkCommandBuffer commandBuffer, const std::array<VkClearValue, 2>& clearValues)
+void OffscreenPass::begin(VkCommandBuffer commandBuffer)
 {
+	auto clearValues =
+		std::array<VkClearValue, 2>{
+			VkClearValue{.color = {{0.05f, 0.05f, 0.05f, 1.0f}}},
+			VkClearValue{.depthStencil = {1.0f, 0}}
+	};
 	auto extent = VkExtent2D{};
 	extent.width = m_width;
 	extent.height = m_height;
