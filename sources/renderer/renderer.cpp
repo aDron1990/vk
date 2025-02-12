@@ -111,7 +111,7 @@ void Renderer::createDevice()
 void Renderer::createRenderPass()
 {
 	m_swapchainPass.reset(new SwapchainPass{ *m_device });
-	m_offscreenPass.reset(new OffscreenPass{ *m_device, 1280, 720 });
+	m_offscreenPass.reset(new OffscreenPass{ *m_device, 1280, 720, 2, true });
 }
 
 void Renderer::createSwapchain()
@@ -135,6 +135,7 @@ void Renderer::createGraphicsPipeline()
 		pipelineInfo.descriptorSetLayouts = { m_device->getUboVertexLayout(), m_device->getUboFragmentLayout(), m_device->getUboFragmentLayout(), m_device->getSamplerFragmentLayout(), m_device->getSamplerFragmentLayout() };
 		pipelineInfo.vertexInput = true;
 		pipelineInfo.culling = VK_CULL_MODE_NONE;
+		pipelineInfo.attachmentCount = 2;
 		m_pipeline.reset(new Pipeline{ *m_device, pipelineInfo });
 	}
 	{
@@ -145,6 +146,7 @@ void Renderer::createGraphicsPipeline()
 		pipelineInfo.descriptorSetLayouts = { m_device->getSamplerFragmentLayout() };
 		pipelineInfo.vertexInput = false;
 		pipelineInfo.culling = VK_CULL_MODE_NONE;
+		pipelineInfo.attachmentCount = 1;
 		m_postPipeline.reset(new Pipeline{ *m_device, pipelineInfo });
 	}
 }
@@ -233,7 +235,9 @@ void Renderer::postProccess(VkCommandBuffer commandBuffer, RenderPass& renderPas
 	renderPass.begin(commandBuffer);
 	setViewport(commandBuffer);
 	pipeline.bind(commandBuffer);
-	m_offscreenPass->bindDescriptorSet(commandBuffer, pipeline.getLayout(), 0);
+	m_offscreenPass->bindColorImage(commandBuffer, pipeline.getLayout(), 0, 0);
+	//m_offscreenPass->bindDepthImage(commandBuffer, pipeline.getLayout(), 0);
+
 	vkCmdDraw(commandBuffer, 6, 1, 0, 0);
 	ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commandBuffer);
 	renderPass.end(commandBuffer);

@@ -18,6 +18,7 @@ struct PipelineInfo
 	std::vector<VkDescriptorSetLayout> descriptorSetLayouts;
 	bool vertexInput;
 	VkCullModeFlags culling;
+	uint32_t attachmentCount;
 };
 
 class Pipeline

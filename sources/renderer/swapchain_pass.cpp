@@ -76,7 +76,7 @@ void SwapchainPass::begin(VkCommandBuffer commandBuffer)
 {
 	auto clearValues =
 		std::array<VkClearValue, 2>{
-			VkClearValue{.color = {{0.05f, 0.05f, 0.05f, 1.0f}}},
+			VkClearValue{.color = {{0.0f, 0.0f, 0.0f, 1.0f}}},
 			VkClearValue{.depthStencil = {1.0f, 0}}
 	};
 	auto renderPassInfo = VkRenderPassBeginInfo{};

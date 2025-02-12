@@ -86,18 +86,25 @@ void Pipeline::createPipeline()
 	multisampling.sampleShadingEnable = VK_FALSE;
 	multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
 
-	auto blendingAttachment = VkPipelineColorBlendAttachmentState{};
-	blendingAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT |
-		VK_COLOR_COMPONENT_G_BIT |
-		VK_COLOR_COMPONENT_B_BIT |
-		VK_COLOR_COMPONENT_A_BIT;
-	blendingAttachment.blendEnable = VK_FALSE;
+	auto blendingAttachments = std::vector<VkPipelineColorBlendAttachmentState>();
+	blendingAttachments.reserve(m_info.attachmentCount);
+	for (size_t i = 0; i < m_info.attachmentCount; i++)
+	{
+		auto blendingAttachment = VkPipelineColorBlendAttachmentState{};
+		blendingAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT |
+			VK_COLOR_COMPONENT_G_BIT |
+			VK_COLOR_COMPONENT_B_BIT |
+			VK_COLOR_COMPONENT_A_BIT;
+		blendingAttachment.blendEnable = VK_FALSE;
+		blendingAttachments.push_back(blendingAttachment);
+	}
 
 	auto blending = VkPipelineColorBlendStateCreateInfo{};
 	blending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
 	blending.logicOpEnable = VK_FALSE;
-	blending.attachmentCount = 1;
-	blending.pAttachments = &blendingAttachment;
+	blending.logicOp = VK_LOGIC_OP_COPY;
+	blending.pAttachments = blendingAttachments.data();
+	blending.attachmentCount = static_cast<uint32_t>(blendingAttachments.size());
 
 	auto depthStencil = VkPipelineDepthStencilStateCreateInfo{};
 	depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
