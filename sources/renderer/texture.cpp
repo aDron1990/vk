@@ -3,6 +3,9 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
+#include <cmrc/cmrc.hpp>
+CMRC_DECLARE(images);
+
 #include <stdexcept>
 
 Texture::Texture(Device& device, const std::string& imagePath) : m_device{device}
@@ -24,8 +27,9 @@ Texture::~Texture()
 
 void Texture::createImage(const std::string& imagePath)
 {
-	int width, height, channels;
-	auto* pixels = stbi_load(imagePath.c_str(), &width, &height, &channels, STBI_rgb_alpha);
+    int width, height, channels;
+    auto imageFile = cmrc::images::get_filesystem().open(imagePath);
+    auto* pixels = stbi_load_from_memory(reinterpret_cast<const stbi_uc*>(imageFile.begin()), imageFile.size(), &width, &height, &channels, STBI_rgb_alpha);
 	VkDeviceSize size = width * height * 4;
 	if (pixels == nullptr)
 		throw std::runtime_error{ "failed to load image" };
