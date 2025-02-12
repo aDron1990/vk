@@ -65,3 +65,20 @@ target_link_libraries(vk PRIVATE
 	tinyobjloader::tinyobjloader
 	imgui::imgui
 )
+
+# Shaderspost
+include(cmake/add_shader.cmake)
+
+add_shader("resources/shaders/main/shader.vert")
+add_shader("resources/shaders/main/shader.frag")
+add_shader("resources/shaders/post/shader.vert")
+add_shader("resources/shaders/post/shader.frag")
+
+add_custom_target(shaders ALL
+    DEPENDS
+    "resources/shaders/main/shader.vert.spv"
+    "resources/shaders/main/shader.frag.spv"
+	"resources/shaders/post/shader.vert.spv"
+    "resources/shaders/post/shader.frag.spv"
+)
+add_dependencies(vk shaders)
