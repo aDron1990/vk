@@ -72,3 +72,8 @@ struct Material
 	alignas(16) glm::vec3 color;
 	float shininess;
 };
+
+struct Emiter
+{
+	alignas(16) glm::vec3 color;
+};

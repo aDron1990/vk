@@ -71,23 +71,47 @@ include(cmake/add_shader.cmake)
 
 add_shader("resources/shaders/main/shader.vert")
 add_shader("resources/shaders/main/shader.frag")
-add_shader("resources/shaders/post/shader.vert")
-add_shader("resources/shaders/post/shader.frag")
+add_shader("resources/shaders/blur/horizontal.vert")
+add_shader("resources/shaders/blur/horizontal.frag")
+add_shader("resources/shaders/blur/vertical.vert")
+add_shader("resources/shaders/blur/vertical.frag")
+add_shader("resources/shaders/emiter/shader.vert")
+add_shader("resources/shaders/emiter/shader.frag")
+add_shader("resources/shaders/pick_bright/shader.vert")
+add_shader("resources/shaders/pick_bright/shader.frag")
+add_shader("resources/shaders/combine/shader.vert")
+add_shader("resources/shaders/combine/shader.frag")
 
 add_custom_target(shader_dep ALL
     DEPENDS
     "resources/shaders/main/shader.vert.spv"
     "resources/shaders/main/shader.frag.spv"
-	"resources/shaders/post/shader.vert.spv"
-    "resources/shaders/post/shader.frag.spv"
+	"resources/shaders/blur/horizontal.vert.spv"
+    "resources/shaders/blur/horizontal.frag.spv"
+	"resources/shaders/blur/vertical.vert.spv"
+    "resources/shaders/blur/vertical.frag.spv"
+	"resources/shaders/emiter/shader.vert.spv"
+    "resources/shaders/emiter/shader.frag.spv"
+	"resources/shaders/pick_bright/shader.vert.spv"
+    "resources/shaders/pick_bright/shader.frag.spv"
+	"resources/shaders/combine/shader.vert.spv"
+    "resources/shaders/combine/shader.frag.spv"
 )
 add_dependencies(vk shader_dep)
 
 cmrc_add_resource_library(shaders
 	"resources/shaders/main/shader.vert.spv"
     "resources/shaders/main/shader.frag.spv"
-	"resources/shaders/post/shader.vert.spv"
-    "resources/shaders/post/shader.frag.spv"
+	"resources/shaders/blur/horizontal.vert.spv"
+    "resources/shaders/blur/horizontal.frag.spv"
+	"resources/shaders/blur/vertical.vert.spv"
+    "resources/shaders/blur/vertical.frag.spv"
+	"resources/shaders/emiter/shader.vert.spv"
+    "resources/shaders/emiter/shader.frag.spv"
+	"resources/shaders/pick_bright/shader.vert.spv"
+    "resources/shaders/pick_bright/shader.frag.spv"
+	"resources/shaders/combine/shader.vert.spv"
+    "resources/shaders/combine/shader.frag.spv"
 )
 
 cmrc_add_resource_library(images

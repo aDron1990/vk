@@ -20,7 +20,7 @@ OffscreenPass::~OffscreenPass()
 void OffscreenPass::createRenderPass()
 {
 	auto details = m_device.querySwapchainSupport(m_device.getGpu());
-	auto format = Swapchain::chooseSwapchainSurfaceFormat(details.formats);
+	auto format = Swapchain::chooseSwapchainSurfaceFormat(details.formats).format;
 
 	auto attachments = std::vector<VkAttachmentDescription>{};
 	attachments.reserve(m_colorImages.size() + 1);
@@ -30,7 +30,7 @@ void OffscreenPass::createRenderPass()
 	for (size_t i = 0; i < m_colorImages.size(); i++)
 	{
 		auto colorAttachment = VkAttachmentDescription{};
-		colorAttachment.format = VK_FORMAT_R8G8B8A8_UNORM;
+		colorAttachment.format = format;
 		colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
 		colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 		colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -131,10 +131,10 @@ void OffscreenPass::createImages()
 	{
 		auto details = m_device.querySwapchainSupport(m_device.getGpu());
 		auto format = Swapchain::chooseSwapchainSurfaceFormat(details.formats).format;
-		m_device.createImage(m_width, m_height, 1, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_TILING_OPTIMAL,
+		m_device.createImage(m_width, m_height, 1, format, VK_IMAGE_TILING_OPTIMAL,
 			VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, colorImage.image, colorImage.memory);
-		colorImage.view = m_device.createImageView(colorImage.image, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT, 1);
-		m_device.transitionImageLayout(colorImage.image, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 1);
+		colorImage.view = m_device.createImageView(colorImage.image, format, VK_IMAGE_ASPECT_COLOR_BIT, 1);
+		m_device.transitionImageLayout(colorImage.image, format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 1);
 	}
 }
 

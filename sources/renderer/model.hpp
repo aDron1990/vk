@@ -17,6 +17,8 @@ class Model
 {
 public:
 	Model(Device& device, const std::string& modelPath, const std::string& texturePath);
+	void bindTexture(VkCommandBuffer commandBuffer, VkPipelineLayout layout, uint32_t set);
+	void bindMesh(VkCommandBuffer commandBuffer);
 	void draw(VkCommandBuffer commandBuffer, VkPipelineLayout layout);
 
 private:

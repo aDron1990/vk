@@ -6,7 +6,11 @@ class Object
 {
 public:
 	Object(Device& device, Model& model);
-	void draw(VkCommandBuffer commandBuffer, VkPipelineLayout layout, const glm::mat4& view, const glm::mat4& proj);
+	void draw(VkCommandBuffer commandBuffer, VkPipelineLayout layout);
+	void bindMVP(VkCommandBuffer commandBuffer, VkPipelineLayout layout, const glm::mat4& view, const glm::mat4& proj);
+	void bindTexture(VkCommandBuffer commandBuffer, VkPipelineLayout layout, uint32_t set);
+	void bindMesh(VkCommandBuffer commandBuffer);
+
 	void setPosition(glm::vec3 position);
 	void setRotation(glm::vec3 rotation);
 	void setScale(glm::vec3 scale);
