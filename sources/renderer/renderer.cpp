@@ -132,7 +132,6 @@ void Renderer::createGraphicsPipeline()
 		pipelineInfo.fragmentPath = "../../resources/shaders/shader.frag.spv";
 		pipelineInfo.renderPass = m_offscreenPass->getRenderPass();
 		pipelineInfo.descriptorSetLayouts = { m_device->getUboVertexLayout(), m_device->getUboFragmentLayout(), m_device->getUboFragmentLayout(), m_device->getSamplerFragmentLayout(), m_device->getSamplerFragmentLayout() };
-		//pipelineInfo.descriptorSetLayouts = { m_device->getSamplerFragmentLayout() };
 		pipelineInfo.vertexInput = true;
 		pipelineInfo.culling = VK_CULL_MODE_NONE;
 		m_pipeline.reset(new Pipeline{ *m_device, pipelineInfo });
@@ -142,7 +141,6 @@ void Renderer::createGraphicsPipeline()
 		pipelineInfo.vertexPath = "../../resources/shaders/post/shader.vert.spv";
 		pipelineInfo.fragmentPath = "../../resources/shaders/post/shader.frag.spv";
 		pipelineInfo.renderPass = m_swapchainPass->getRenderPass();
-		//pipelineInfo.descriptorSetLayouts = { m_device->getMVPLayout(), m_device->getLightLayout(), m_device->getMaterialLayout(), m_device->getSamplerLayout(), m_device->getSamplerLayout() };
 		pipelineInfo.descriptorSetLayouts = { m_device->getSamplerFragmentLayout() };
 		pipelineInfo.vertexInput = false;
 		pipelineInfo.culling = VK_CULL_MODE_NONE;
@@ -172,9 +170,6 @@ void Renderer::createCommandBuffers()
 
 void Renderer::renderScene(VkCommandBuffer commandBuffer, uint32_t imageIndex)
 {
-	
-	
-
 	auto clearValues = 
 	std::array<VkClearValue, 2>{
 		VkClearValue{.color = {{0.05f, 0.05f, 0.05f, 1.0f}}},
@@ -239,7 +234,7 @@ void Renderer::postProccess(VkCommandBuffer commandBuffer, uint32_t imageIndex)
 {
 	auto clearValues =
 		std::array<VkClearValue, 2>{
-			VkClearValue{.color = {{1.00f, 0.05f, 0.05f, 1.0f}}},
+			VkClearValue{.color = {{0.0f, 0.0f, 0.0f, 1.0f}}},
 			VkClearValue{.depthStencil = {1.0f, 0}}
 	};
 	m_swapchainPass->begin(commandBuffer, clearValues, imageIndex);
