@@ -44,9 +44,14 @@ private:
 	void createGraphicsPipeline();
 	
 private:
+	enum class Blur
+	{
+		Horizontal,
+		Vertical
+	};
 	void renderScene(VkCommandBuffer commandBuffer, RenderPass& renderPass, Pipeline& pipeline);
 	void pickBright(VkCommandBuffer commandBuffer, RenderPass& renderPass, Pipeline& pipeline);
-	void blur(VkCommandBuffer commandBuffer, RenderPass& renderPass, Pipeline& pipeline);
+	void blur(VkCommandBuffer commandBuffer, RenderPass& renderPass, Pipeline& pipeline, Blur direction);
 	void combine(VkCommandBuffer commandBuffer, RenderPass& renderPass, Pipeline& pipeline);
 
 private:
@@ -67,7 +72,8 @@ private:
 	std::unique_ptr<Context> m_context;
 	std::unique_ptr<Device> m_device;
 	std::unique_ptr<SwapchainPass> m_combinePass;
-	std::unique_ptr<OffscreenPass> m_blurPass;
+	std::unique_ptr<OffscreenPass> m_hblurPass;
+	std::unique_ptr<OffscreenPass> m_vblurPass;
 	std::unique_ptr<OffscreenPass> m_renderPass;
 	std::unique_ptr<OffscreenPass> m_brightPass;
 	std::unique_ptr<Swapchain> m_swapchain;

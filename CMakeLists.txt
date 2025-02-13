@@ -69,57 +69,32 @@ target_link_libraries(vk PRIVATE
 # Shaders
 include(cmake/add_shader.cmake)
 
-add_shader("resources/shaders/main/shader.vert")
-add_shader("resources/shaders/main/shader.frag")
-add_shader("resources/shaders/blur/horizontal.vert")
-add_shader("resources/shaders/blur/horizontal.frag")
-add_shader("resources/shaders/blur/vertical.vert")
-add_shader("resources/shaders/blur/vertical.frag")
-add_shader("resources/shaders/emiter/shader.vert")
-add_shader("resources/shaders/emiter/shader.frag")
-add_shader("resources/shaders/pick_bright/shader.vert")
-add_shader("resources/shaders/pick_bright/shader.frag")
-add_shader("resources/shaders/combine/shader.vert")
-add_shader("resources/shaders/combine/shader.frag")
-
-add_custom_target(shader_dep ALL
-    DEPENDS
-    "resources/shaders/main/shader.vert.spv"
-    "resources/shaders/main/shader.frag.spv"
-	"resources/shaders/blur/horizontal.vert.spv"
-    "resources/shaders/blur/horizontal.frag.spv"
-	"resources/shaders/blur/vertical.vert.spv"
-    "resources/shaders/blur/vertical.frag.spv"
-	"resources/shaders/emiter/shader.vert.spv"
-    "resources/shaders/emiter/shader.frag.spv"
-	"resources/shaders/pick_bright/shader.vert.spv"
-    "resources/shaders/pick_bright/shader.frag.spv"
-	"resources/shaders/combine/shader.vert.spv"
-    "resources/shaders/combine/shader.frag.spv"
+set(shader_files
+	"resources/shaders/main/shader.vert"
+    "resources/shaders/main/shader.frag"
+	"resources/shaders/blur/horizontal.vert"
+    "resources/shaders/blur/horizontal.frag"
+	"resources/shaders/blur/vertical.vert"
+    "resources/shaders/blur/vertical.frag"
+	"resources/shaders/emiter/shader.vert"
+    "resources/shaders/emiter/shader.frag"
+	"resources/shaders/pick_bright/shader.vert"
+    "resources/shaders/pick_bright/shader.frag"
+	"resources/shaders/combine/shader.vert"
+    "resources/shaders/combine/shader.frag"
 )
 
-cmrc_add_resource_library(shaders
-	"resources/shaders/main/shader.vert.spv"
-    "resources/shaders/main/shader.frag.spv"
-	"resources/shaders/blur/horizontal.vert.spv"
-    "resources/shaders/blur/horizontal.frag.spv"
-	"resources/shaders/blur/vertical.vert.spv"
-    "resources/shaders/blur/vertical.frag.spv"
-	"resources/shaders/emiter/shader.vert.spv"
-    "resources/shaders/emiter/shader.frag.spv"
-	"resources/shaders/pick_bright/shader.vert.spv"
-    "resources/shaders/pick_bright/shader.frag.spv"
-	"resources/shaders/combine/shader.vert.spv"
-    "resources/shaders/combine/shader.frag.spv"
-)
-
+add_shader("${shader_files}" spv_names)
+message(${spv_names})
+add_custom_target(shader_dep ALL DEPENDS ${spv_names})
+cmrc_add_resource_library(shaders ${spv_names})
 add_dependencies(shaders shader_dep)
 
 cmrc_add_resource_library(images
+	"resources/images/statue.jpg"
+	"resources/images/viking_room.png"
 	"resources/images/container2.png"
     "resources/images/container2_specular.png"
-	"resources/images/statue.jpg"
-    "resources/images/viking_room.png"
 )
 
 cmrc_add_resource_library(models

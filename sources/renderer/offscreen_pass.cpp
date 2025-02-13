@@ -180,9 +180,9 @@ void OffscreenPass::createSamplers()
 		createInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
 		createInfo.magFilter = VK_FILTER_LINEAR;
 		createInfo.minFilter = VK_FILTER_LINEAR;
-		createInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-		createInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-		createInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		createInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+		createInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+		createInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
 		createInfo.anisotropyEnable = VK_TRUE;
 		createInfo.maxAnisotropy = gpuProps.limits.maxSamplerAnisotropy;
 		createInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
@@ -205,9 +205,9 @@ void OffscreenPass::createSamplers()
 		createInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
 		createInfo.magFilter = VK_FILTER_LINEAR;
 		createInfo.minFilter = VK_FILTER_LINEAR;
-		createInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-		createInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-		createInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		createInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+		createInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+		createInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
 		createInfo.anisotropyEnable = VK_TRUE;
 		createInfo.maxAnisotropy = gpuProps.limits.maxSamplerAnisotropy;
 		createInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;

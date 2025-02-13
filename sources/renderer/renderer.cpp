@@ -90,7 +90,8 @@ Renderer::~Renderer()
 	m_emiter.reset();
 	m_combinePass.reset();
 	m_brightPass.reset();
-	m_blurPass.reset();
+	m_hblurPass.reset();
+	m_vblurPass.reset();
 	m_renderPass.reset();
 	
 	m_pipeline.reset();
@@ -126,7 +127,8 @@ void Renderer::createRenderPass()
 {
 	m_combinePass.reset(new SwapchainPass{ *m_device });
 	m_brightPass.reset(new OffscreenPass{ *m_device, 1280, 720 });
-	m_blurPass.reset(new OffscreenPass{ *m_device, 1280, 720 });
+	m_hblurPass.reset(new OffscreenPass{ *m_device, 1280, 720 });
+	m_vblurPass.reset(new OffscreenPass{ *m_device, 1280, 720 });
 	m_renderPass.reset(new OffscreenPass{ *m_device, 1280, 720, 2 });
 }
 
@@ -141,7 +143,8 @@ void Renderer::createSwapchain()
 		{
 			m_renderPass->resize(width, height);
 			m_brightPass->resize(width, height);
-			m_blurPass->resize(width, height);
+			m_hblurPass->resize(width, height);
+			m_vblurPass->resize(width, height);
 		} });
 	m_combinePass->setSwapchain(m_swapchain.get());
 }
@@ -174,7 +177,7 @@ void Renderer::createGraphicsPipeline()
 		auto pipelineInfo = PipelineInfo{};
 		pipelineInfo.vertexPath = "resources/shaders/blur/horizontal.vert.spv";
 		pipelineInfo.fragmentPath = "resources/shaders/blur/horizontal.frag.spv";
-		pipelineInfo.renderPass = m_blurPass->getRenderPass();
+		pipelineInfo.renderPass = m_hblurPass->getRenderPass();
 		pipelineInfo.descriptorSetLayouts = { m_device->getSamplerFragmentLayout() };
 		pipelineInfo.vertexInput = false;
 		pipelineInfo.culling = VK_CULL_MODE_NONE;
@@ -185,7 +188,7 @@ void Renderer::createGraphicsPipeline()
 		auto pipelineInfo = PipelineInfo{};
 		pipelineInfo.vertexPath = "resources/shaders/blur/vertical.vert.spv";
 		pipelineInfo.fragmentPath = "resources/shaders/blur/vertical.frag.spv";
-		pipelineInfo.renderPass = m_blurPass->getRenderPass();
+		pipelineInfo.renderPass = m_vblurPass->getRenderPass();
 		pipelineInfo.descriptorSetLayouts = { m_device->getSamplerFragmentLayout() };
 		pipelineInfo.vertexInput = false;
 		pipelineInfo.culling = VK_CULL_MODE_NONE;
@@ -314,12 +317,15 @@ void Renderer::pickBright(VkCommandBuffer commandBuffer, RenderPass& renderPass,
 	renderPass.end(commandBuffer);
 }
 
-void Renderer::blur(VkCommandBuffer commandBuffer, RenderPass& renderPass, Pipeline& pipeline)
+void Renderer::blur(VkCommandBuffer commandBuffer, RenderPass& renderPass, Pipeline& pipeline, Blur direction)
 {
 	renderPass.begin(commandBuffer);
 	setViewport(commandBuffer);
 	pipeline.bind(commandBuffer);
-	m_brightPass->bindColorImage(commandBuffer, pipeline.getLayout(), 0, 0);
+	if (direction == Blur::Horizontal)
+		m_brightPass->bindColorImage(commandBuffer, pipeline.getLayout(), 0, 0);
+	else
+		m_hblurPass->bindColorImage(commandBuffer, pipeline.getLayout(), 0, 0);
 	vkCmdDraw(commandBuffer, 6, 1, 0, 0);
 	renderPass.end(commandBuffer);
 }
@@ -330,7 +336,7 @@ void Renderer::combine(VkCommandBuffer commandBuffer, RenderPass& renderPass, Pi
 	setViewport(commandBuffer);
 	pipeline.bind(commandBuffer);
 	m_renderPass->bindColorImage(commandBuffer, pipeline.getLayout(), 0, 0);
-	m_blurPass->bindColorImage(commandBuffer, pipeline.getLayout(), 1, 0);
+	m_vblurPass->bindColorImage(commandBuffer, pipeline.getLayout(), 1, 0);
 
 	vkCmdDraw(commandBuffer, 6, 1, 0, 0);
 	ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commandBuffer);
@@ -374,8 +380,8 @@ void Renderer::render()
 
 	renderScene(commandBuffer, *m_renderPass, *m_pipeline);
 	pickBright(commandBuffer, *m_brightPass, *m_brightPipeline);
-	blur(commandBuffer, *m_blurPass, *m_hblurPipeline);
-	blur(commandBuffer, *m_blurPass, *m_vblurPipeline);
+	blur(commandBuffer, *m_hblurPass, *m_hblurPipeline, Blur::Horizontal);
+	blur(commandBuffer, *m_vblurPass, *m_vblurPipeline, Blur::Vertical);
 	combine(commandBuffer, *m_combinePass, *m_combinePipeline);
 
 	if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS)
