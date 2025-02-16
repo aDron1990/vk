@@ -80,21 +80,23 @@ void DescriptorPool::createDescriptorSetLayouts()
 	}
 }
 
-DescriptorSet DescriptorPool::createSet(VkDescriptorSetLayout descriptorSetLayout)
+DescriptorSetPtr DescriptorPool::createSet(VkDescriptorSetLayout descriptorSetLayout)
 {
-	auto descriptorSet = DescriptorSet{};
+	auto set = VkDescriptorSet{};
 	auto allocInfo = VkDescriptorSetAllocateInfo{};
 	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 	allocInfo.descriptorPool = m_pool;
 	allocInfo.pSetLayouts = &descriptorSetLayout;
 	allocInfo.descriptorSetCount = 1;
-	if (vkAllocateDescriptorSets(m_device.getDevice(), &allocInfo, &descriptorSet.set) != VK_SUCCESS)
+	if (vkAllocateDescriptorSets(m_device.getDevice(), &allocInfo, &set) != VK_SUCCESS)
 		throw std::runtime_error{ "failed to allocate descriptor sets" };
 
-	descriptorSet.free = [device = m_device.getDevice(), pool=m_pool, set = descriptorSet.set]()
+	auto free = [device = m_device.getDevice(), pool = m_pool, set = set]()
 	{
 		vkFreeDescriptorSets(device, pool, 1, &set);
 	};
+
+	auto descriptorSet = std::make_shared<DescriptorSet>(free, set);
 	return descriptorSet;
 }
 

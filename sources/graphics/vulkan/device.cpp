@@ -350,7 +350,7 @@ std::vector<VkCommandBuffer> Device::createCommandBuffers(uint32_t count)
 	return commandBuffers;
 }
 
-DescriptorSet Device::createDescriptorSet(VkDescriptorSetLayout layout)
+DescriptorSetPtr Device::createDescriptorSet(VkDescriptorSetLayout layout)
 {
 	return m_descriptorPool->createSet(layout);
 }

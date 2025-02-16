@@ -13,11 +13,10 @@ template<typename T>
 class UniformBuffer
 {
 public:
-	UniformBuffer(Device& device, VkDescriptorSetLayout	layout) : m_device{device}
+	UniformBuffer(Device& device, DescriptorSetPtr descriptorSet, uint32_t binding = 0) : m_device{ device }, m_descriptorSet{descriptorSet}
 	{
 		m_size = sizeof(T);
 		auto& buffer = m_buffer;
-		m_descriptorSet = m_device.createDescriptorSet(layout);
 		buffer.reset(new Buffer{ m_device, m_size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT });
 		m_bufferMapped = buffer->map();
 
@@ -28,8 +27,8 @@ public:
 
 		auto descriptorWrite = VkWriteDescriptorSet{};
 		descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		descriptorWrite.dstSet = m_descriptorSet.set;
-		descriptorWrite.dstBinding = 0;
+		descriptorWrite.dstSet = m_descriptorSet->getSet();
+		descriptorWrite.dstBinding = binding;
 		descriptorWrite.dstArrayElement = 0;
 		descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		descriptorWrite.pBufferInfo = &bufferInfo;
@@ -38,19 +37,15 @@ public:
 		vkUpdateDescriptorSets(m_device.getDevice(), 1, &descriptorWrite, 0, nullptr);
 	}
 
-	~UniformBuffer()
-	{
-		m_descriptorSet.free();
-	}
-
 	void write(const T& data)
 	{
 		memcpy(m_bufferMapped, &data, sizeof(T));
 	}
 
-	void bind(VkCommandBuffer commandBuffer, VkPipelineLayout layout, uint32_t set)
+	void bind(VkCommandBuffer commandBuffer, VkPipelineLayout layout, uint32_t setId)
 	{
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, layout, set, 1, &m_descriptorSet.set, 0, nullptr);
+		auto set = m_descriptorSet->getSet();
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, layout, setId, 1, &set, 0, nullptr);
 	}
 
 	Buffer& getBuffer()
@@ -72,6 +67,6 @@ private:
 	Device& m_device;
 	std::unique_ptr<Buffer> m_buffer;
 	void* m_bufferMapped;
-	DescriptorSet m_descriptorSet;
+	DescriptorSetPtr m_descriptorSet;
 	VkDeviceSize m_size;
 };

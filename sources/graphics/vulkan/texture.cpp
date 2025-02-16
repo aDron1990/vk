@@ -8,17 +8,16 @@ CMRC_DECLARE(images);
 
 #include <stdexcept>
 
-Texture::Texture(Device& device, const std::string& imagePath) : m_device{device}
+Texture::Texture(Device& device, const std::string& imagePath, DescriptorSetPtr descriptorSet, uint32_t binding) : m_device{device}, m_descriptorSet{descriptorSet}
 {
 	createImage(imagePath);
 	createImageView();
 	createImageSampler();
-    createDescriptorSet();
+    writeDescriptorSet(binding);
 }
 
 Texture::~Texture()
 {
-    m_descriptorSet.free();
 	vkDestroySampler(m_device.getDevice(), m_sampler, nullptr);
 	vkDestroyImageView(m_device.getDevice(), m_imageView, nullptr);
 	vkDestroyImage(m_device.getDevice(), m_image, nullptr);
@@ -166,7 +165,7 @@ void Texture::createImageSampler()
 		throw std::runtime_error("failed to create texture sampler!");
 }
 
-void Texture::createDescriptorSet()
+void Texture::writeDescriptorSet(uint32_t binding)
 {
     m_descriptorSet = m_device.createDescriptorSet(m_device.getSamplerFragmentLayout());
 
@@ -177,8 +176,8 @@ void Texture::createDescriptorSet()
 
     auto descriptorWrite = VkWriteDescriptorSet{};
     descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    descriptorWrite.dstSet = m_descriptorSet.set;
-    descriptorWrite.dstBinding = 0;
+    descriptorWrite.dstSet = m_descriptorSet->getSet();
+    descriptorWrite.dstBinding = binding;
     descriptorWrite.dstArrayElement = 0;
     descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
     descriptorWrite.pImageInfo = &samplerInfo;
@@ -186,9 +185,10 @@ void Texture::createDescriptorSet()
     vkUpdateDescriptorSets(m_device.getDevice(), 1, &descriptorWrite, 0, nullptr);
 }
 
-void Texture::bind(VkCommandBuffer commandBuffer, VkPipelineLayout layout, uint32_t set)
+void Texture::bind(VkCommandBuffer commandBuffer, VkPipelineLayout layout, uint32_t setId)
 {
-    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, layout, set, 1, &m_descriptorSet.set, 0, nullptr);
+    auto set = m_descriptorSet->getSet();
+    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, layout, setId, 1, &set, 0, nullptr);
 }
 
 VkImageView Texture::getImageView()

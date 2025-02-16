@@ -12,8 +12,8 @@ public:
 	~OffscreenPass();
 	void begin(VkCommandBuffer commandBuffer) override;
 	void end(VkCommandBuffer commandBuffer) override;
-	void bindColorImage(VkCommandBuffer commandBuffer, VkPipelineLayout layout, uint32_t set, uint32_t index);
-	void bindDepthImage(VkCommandBuffer commandBuffer, VkPipelineLayout layout, uint32_t set);
+	void bindColorImage(VkCommandBuffer commandBuffer, VkPipelineLayout layout, uint32_t setId, uint32_t index);
+	void bindDepthImage(VkCommandBuffer commandBuffer, VkPipelineLayout layout, uint32_t setId);
 	void resize(uint32_t newWidth, uint32_t newHeight);
 	VkRenderPass getRenderPass();
 
@@ -41,19 +41,11 @@ private:
 		VkDeviceMemory memory;
 		VkImageView view;
 		VkSampler sampler;
-		DescriptorSet descriptorSet;
+		DescriptorSetPtr descriptorSet;
 	};
 
 	std::vector<AttachmentImage> m_colorImages;
 	AttachmentImage m_depthImage;
-	
-	//VkImage m_image;
-	//VkDeviceMemory m_imageMemory;
-	//VkImageView m_imageView;
-	//VkImage m_depthImage;
-	//VkDeviceMemory m_depthImageMemory;
-	//VkImageView m_depthImageView;
 	VkFramebuffer m_framebuffer;
-	//VkSampler m_sampler;
-	//DescriptorSet m_descriptorSet;
+
 };

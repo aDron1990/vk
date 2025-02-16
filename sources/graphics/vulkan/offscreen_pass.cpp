@@ -99,7 +99,6 @@ void OffscreenPass::clearResources()
 {
 	if (m_storeDepth)
 	{
-		m_depthImage.descriptorSet.free();
 		vkDestroySampler(m_device.getDevice(), m_depthImage.sampler, nullptr);
 	}
 	vkDestroyImageView(m_device.getDevice(), m_depthImage.view, nullptr);
@@ -107,7 +106,6 @@ void OffscreenPass::clearResources()
 	vkFreeMemory(m_device.getDevice(), m_depthImage.memory, nullptr);
 	for (auto& colorImage : m_colorImages)
 	{
-		colorImage.descriptorSet.free();
 		vkDestroySampler(m_device.getDevice(), colorImage.sampler, nullptr);
 		vkDestroyImageView(m_device.getDevice(), colorImage.view, nullptr);
 		vkDestroyImage(m_device.getDevice(), colorImage.image, nullptr);
@@ -236,7 +234,7 @@ void OffscreenPass::createDescriptorSets()
 
 		auto descriptorWrite = VkWriteDescriptorSet{};
 		descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		descriptorWrite.dstSet = colorImage.descriptorSet.set;
+		descriptorWrite.dstSet = colorImage.descriptorSet->getSet();
 		descriptorWrite.dstBinding = 0;
 		descriptorWrite.dstArrayElement = 0;
 		descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -255,7 +253,7 @@ void OffscreenPass::createDescriptorSets()
 
 		auto descriptorWrite = VkWriteDescriptorSet{};
 		descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		descriptorWrite.dstSet = m_depthImage.descriptorSet.set;
+		descriptorWrite.dstSet = m_depthImage.descriptorSet->getSet();
 		descriptorWrite.dstBinding = 0;
 		descriptorWrite.dstArrayElement = 0;
 		descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -290,15 +288,19 @@ void OffscreenPass::end(VkCommandBuffer commandBuffer)
 	vkCmdEndRenderPass(commandBuffer);
 }
 
-void OffscreenPass::bindColorImage(VkCommandBuffer commandBuffer, VkPipelineLayout layout, uint32_t set, uint32_t index)
+void OffscreenPass::bindColorImage(VkCommandBuffer commandBuffer, VkPipelineLayout layout, uint32_t setId, uint32_t index)
 {
-	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, layout, set, 1, &m_colorImages[index].descriptorSet.set, 0, nullptr);
+	auto set = m_colorImages[index].descriptorSet->getSet();
+	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, layout, setId, 1, &set, 0, nullptr);
 }
 
-void OffscreenPass::bindDepthImage(VkCommandBuffer commandBuffer, VkPipelineLayout layout, uint32_t set)
+void OffscreenPass::bindDepthImage(VkCommandBuffer commandBuffer, VkPipelineLayout layout, uint32_t setId)
 {
 	if (m_storeDepth)
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, layout, set, 1, &m_depthImage.descriptorSet.set, 0, nullptr);
+	{
+		auto set = m_depthImage.descriptorSet->getSet();
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, layout, setId, 1, &set, 0, nullptr);
+	}
 }
 
 void OffscreenPass::resize(uint32_t newWidth, uint32_t newHeight)

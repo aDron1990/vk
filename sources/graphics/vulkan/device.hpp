@@ -23,7 +23,7 @@ public:
 	void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t mipLevels, VkImageAspectFlags aspect = VK_IMAGE_ASPECT_COLOR_BIT, VkCommandBuffer commandBuffer = VK_NULL_HANDLE);
 
 	std::vector<VkCommandBuffer> createCommandBuffers(uint32_t count);
-	DescriptorSet createDescriptorSet(VkDescriptorSetLayout layout);
+	DescriptorSetPtr createDescriptorSet(VkDescriptorSetLayout layout);
 
 	VkCommandBuffer beginSingleTimeCommands();
 	void endSingleTimeCommands(VkCommandBuffer commandBuffer);

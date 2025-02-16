@@ -1,6 +1,6 @@
 #include "graphics/vulkan/object.hpp"
 
-Object::Object(Device& device, Model& model) : m_model{ model }, m_mvpBuffer{ device, device.getUboVertexLayout() }, m_materialBuffer{ device, device.getUboFragmentLayout() }
+Object::Object(Device& device, Model& model) : m_model{ model }, m_mvpBuffer{ device, device.createDescriptorSet(device.getUboVertexLayout()) }, m_materialBuffer{ device, device.createDescriptorSet(device.getUboFragmentLayout()) }
 {
 	material.color = { 0.5f, 0.6f, 0.31f };
 	material.ambient = { 1.0f, 0.5f, 0.31f };

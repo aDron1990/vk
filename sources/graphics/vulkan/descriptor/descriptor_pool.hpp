@@ -5,12 +5,20 @@
 #include <vulkan/vulkan.h>
 
 #include <functional>
+#include <memory>
 
 struct DescriptorSet
 {
-	VkDescriptorSet set;
-	std::function<void()> free;
+public:
+	DescriptorSet(std::function<void()> free, VkDescriptorSet set) : m_free{ free }, m_set{set} {};
+	VkDescriptorSet getSet() { return m_set; };
+
+private:
+	std::function<void()> m_free;
+	VkDescriptorSet m_set;
 };
+
+using DescriptorSetPtr = std::shared_ptr<DescriptorSet>;
 
 class Device;
 
@@ -19,7 +27,7 @@ class DescriptorPool
 public:
 	DescriptorPool(Device& device, const DescriptorPoolProps& props);
 	~DescriptorPool();
-	DescriptorSet createSet(VkDescriptorSetLayout descriptorSetLayout);
+	DescriptorSetPtr createSet(VkDescriptorSetLayout descriptorSetLayout);
 	VkDescriptorPool getPool();
 	VkDescriptorSetLayout getLayout(uint32_t setId);
 	std::vector<VkDescriptorSetLayout> getLayouts();
