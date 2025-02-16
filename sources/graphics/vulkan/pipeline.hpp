@@ -10,7 +10,7 @@
 #include <string>
 #include <vector>
 
-struct PipelineInfo
+struct PipelineProps
 {
 	std::string vertexPath;
 	std::string fragmentPath;
@@ -24,8 +24,11 @@ struct PipelineInfo
 class Pipeline
 {
 public:
-	Pipeline(Device& device, PipelineInfo& info);
+	Pipeline();
 	~Pipeline();
+	void init(const PipelineProps& props);
+	void destroy();
+
 	void bind(VkCommandBuffer commandBuffer);
 	VkPipelineLayout getLayout();
 	
@@ -37,8 +40,8 @@ private:
 
 private:
 	Device& m_device;
-	std::unique_ptr<DescriptorPool> m_descriptorPool;
-	PipelineInfo m_info;
-	VkPipelineLayout m_layout;
-	VkPipeline m_pipeline;
+	bool m_initialized = false;
+	PipelineProps m_props{};
+	VkPipelineLayout m_layout{};
+	VkPipeline m_pipeline{};
 };

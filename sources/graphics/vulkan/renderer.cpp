@@ -158,7 +158,7 @@ void Renderer::createSwapchain()
 void Renderer::createGraphicsPipeline()
 {
 	{
-		auto pipelineInfo = PipelineInfo{};
+		auto pipelineInfo = PipelineProps{};
 		pipelineInfo.vertexPath = "resources/shaders/main/shader.vert.spv";
 		pipelineInfo.fragmentPath = "resources/shaders/main/shader.frag.spv";
 		pipelineInfo.renderPass = m_testPass->getRenderPass();
@@ -166,10 +166,11 @@ void Renderer::createGraphicsPipeline()
 		pipelineInfo.vertexInput = true;
 		pipelineInfo.culling = VK_CULL_MODE_BACK_BIT;
 		pipelineInfo.attachmentCount = 1;
-		m_testPipeline.reset(new Pipeline{ *m_device, pipelineInfo });
+		m_testPipeline.reset(new Pipeline);
+		m_testPipeline->init(pipelineInfo);
 	}
 	{
-		auto pipelineInfo = PipelineInfo{};
+		auto pipelineInfo = PipelineProps{};
 		pipelineInfo.vertexPath = "resources/shaders/combine/shader.vert.spv";
 		pipelineInfo.fragmentPath = "resources/shaders/combine/shader.frag.spv";
 		pipelineInfo.renderPass = m_swapchainPass->getRenderPass();
@@ -177,7 +178,9 @@ void Renderer::createGraphicsPipeline()
 		pipelineInfo.vertexInput = false;
 		pipelineInfo.culling = VK_CULL_MODE_NONE;
 		pipelineInfo.attachmentCount = 1;
-		m_combinePipeline.reset(new Pipeline{ *m_device, pipelineInfo });
+		m_combinePipeline.reset(new Pipeline);
+		m_combinePipeline->init(pipelineInfo);
+
 	}
 }
 

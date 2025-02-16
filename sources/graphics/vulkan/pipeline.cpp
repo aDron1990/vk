@@ -1,4 +1,5 @@
 #include "graphics/vulkan/pipeline.hpp"
+#include "graphics/vulkan/locator.hpp"
 
 #include <glm/gtc/matrix_transform.hpp>
 #include <cmrc/cmrc.hpp>
@@ -7,21 +8,35 @@ CMRC_DECLARE(shaders);
 #include <stdexcept>
 #include <vector>
 
-Pipeline::Pipeline(Device& device, PipelineInfo& info) : m_device{ device }, m_info{ info }
-{
-	createPipeline();
-}
+Pipeline::Pipeline() : m_device{ Locator::getDevice() } {}
 
 Pipeline::~Pipeline()
 {
-	vkDestroyPipeline(m_device.getDevice(), m_pipeline, nullptr);
-	vkDestroyPipelineLayout(m_device.getDevice(), m_layout, nullptr);
+	destroy();
+}
+
+void Pipeline::destroy()
+{
+	if (m_initialized)
+	{
+		vkDestroyPipeline(m_device.getDevice(), m_pipeline, nullptr);
+		vkDestroyPipelineLayout(m_device.getDevice(), m_layout, nullptr);
+	}
+	m_initialized = false;
+}
+
+void Pipeline::init(const PipelineProps& props)
+{
+	assert(!m_initialized);
+	m_props = props;
+	createPipeline();
+	m_initialized = true;
 }
 
 void Pipeline::createPipeline()
 {
-	auto vertexFile = cmrc::shaders::get_filesystem().open(m_info.vertexPath);
-	auto fragmentFile = cmrc::shaders::get_filesystem().open(m_info.fragmentPath);
+	auto vertexFile = cmrc::shaders::get_filesystem().open(m_props.vertexPath);
+	auto fragmentFile = cmrc::shaders::get_filesystem().open(m_props.fragmentPath);
 	auto vertexCode = std::vector<char>(vertexFile.begin(), vertexFile.end());
 	auto fragmentCode = std::vector<char>(fragmentFile.begin(), fragmentFile.end());
 	auto vertexModule = createShaderModule(vertexCode);
@@ -58,7 +73,7 @@ void Pipeline::createPipeline()
 
 	auto bindDesc = Vertex::getBindDesc();
 	auto attrDesc = Vertex::getAttrDesc();
-	if (m_info.vertexInput)
+	if (m_props.vertexInput)
 	{
 		vertexInputInfo.pVertexBindingDescriptions = &bindDesc;
 		vertexInputInfo.vertexBindingDescriptionCount = 1;
@@ -77,7 +92,7 @@ void Pipeline::createPipeline()
 	rasterizer.rasterizerDiscardEnable = VK_FALSE;
 	rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
 	rasterizer.lineWidth = 1.0f;
-	rasterizer.cullMode = m_info.culling;
+	rasterizer.cullMode = m_props.culling;
 	rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
 	rasterizer.depthBiasEnable = VK_FALSE;
 
@@ -87,8 +102,8 @@ void Pipeline::createPipeline()
 	multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
 
 	auto blendingAttachments = std::vector<VkPipelineColorBlendAttachmentState>();
-	blendingAttachments.reserve(m_info.attachmentCount);
-	for (size_t i = 0; i < m_info.attachmentCount; i++)
+	blendingAttachments.reserve(m_props.attachmentCount);
+	for (size_t i = 0; i < m_props.attachmentCount; i++)
 	{
 		auto blendingAttachment = VkPipelineColorBlendAttachmentState{};
 		blendingAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT |
@@ -114,8 +129,8 @@ void Pipeline::createPipeline()
 
 	auto pipelineLayoutInfo = VkPipelineLayoutCreateInfo{};
 	pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-	pipelineLayoutInfo.pSetLayouts = m_info.descriptorSetLayouts.data();
-	pipelineLayoutInfo.setLayoutCount = static_cast<uint32_t>(m_info.descriptorSetLayouts.size());
+	pipelineLayoutInfo.pSetLayouts = m_props.descriptorSetLayouts.data();
+	pipelineLayoutInfo.setLayoutCount = static_cast<uint32_t>(m_props.descriptorSetLayouts.size());
 	if (vkCreatePipelineLayout(m_device.getDevice(), &pipelineLayoutInfo, nullptr, &m_layout) != VK_SUCCESS)
 		throw std::runtime_error{ "failed to create vulkan pipeline layout" };
 
@@ -133,7 +148,7 @@ void Pipeline::createPipeline()
 	createInfo.pDynamicState = &dynamicInfo;
 	createInfo.pDepthStencilState = &depthStencil;
 	createInfo.layout = m_layout;
-	createInfo.renderPass = m_info.renderPass;
+	createInfo.renderPass = m_props.renderPass;
 	createInfo.subpass = 0;
 	if (vkCreateGraphicsPipelines(m_device.getDevice(), VK_NULL_HANDLE, 1, &createInfo, nullptr, &m_pipeline))
 		throw std::runtime_error{ "failed to create vulkan pipeline" };
@@ -157,10 +172,12 @@ VkShaderModule Pipeline::createShaderModule(const std::vector<char>& code)
 
 void Pipeline::bind(VkCommandBuffer commandBuffer)
 {
+	assert(m_initialized);
 	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline);
 }
 
 VkPipelineLayout Pipeline::getLayout()
 {
+	assert(m_initialized);
 	return m_layout;
 }
