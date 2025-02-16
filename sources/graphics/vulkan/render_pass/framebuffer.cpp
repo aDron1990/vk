@@ -24,10 +24,12 @@ void Framebuffer::destroy()
 	m_initialized = false;
 }
 
-void Framebuffer::init(const FramebufferProps& props, RenderPass& renderPass)
+void Framebuffer::init(const FramebufferProps& props, RenderPass& renderPass, uint32_t width, uint32_t height)
 {
 	assert(!m_initialized);
 	m_props = props;
+	m_width = width;
+	m_height = height;
 	m_renderPass = &renderPass;
 	createTextures();
 	createFramebuffer();
@@ -37,9 +39,7 @@ void Framebuffer::init(const FramebufferProps& props, RenderPass& renderPass)
 void Framebuffer::resize(uint32_t newWidth, uint32_t newHeight)
 {
 	destroy();
-	m_props.width = newWidth;
-	m_props.height = newHeight;
-	init(m_props, *m_renderPass);
+	init(m_props, *m_renderPass, newWidth, newHeight);
 }
 
 void Framebuffer::createTextures()
@@ -48,14 +48,14 @@ void Framebuffer::createTextures()
 	for (auto& colorAttachment : m_colorAttachments)
 	{
 		colorAttachment.init(
-			AttachmentType::Color, m_props.width, m_props.height, m_props.colorFormat, 
+			AttachmentType::Color, m_width, m_height, m_props.colorFormat, 
 			m_device.createDescriptorSet(m_device.getSamplerFragmentLayout())
 		);
 	}
 	if (m_props.useDepthAttachment)
 	{
 		m_depthAttachment.init(
-			AttachmentType::Depth, m_props.width, m_props.height, m_props.depthFormat,
+			AttachmentType::Depth, m_width, m_height, m_props.depthFormat,
 			m_device.createDescriptorSet(m_device.getSamplerFragmentLayout())
 		);
 	}
@@ -79,8 +79,8 @@ void Framebuffer::createFramebuffer()
 	createInfo.renderPass = m_renderPass->getRenderPass();
 	createInfo.pAttachments = imageViews.data();
 	createInfo.attachmentCount = static_cast<uint32_t>(imageViews.size());
-	createInfo.width = m_props.width;
-	createInfo.height = m_props.height;
+	createInfo.width = m_width;
+	createInfo.height = m_height;
 	createInfo.layers = 1;
 	if (vkCreateFramebuffer(m_device.getDevice(), &createInfo, nullptr, &m_framebuffer) != VK_SUCCESS)
 		throw std::runtime_error{ "failed to create framebuffer" };
@@ -106,5 +106,5 @@ Texture& Framebuffer::getDepthTexture()
 
 VkExtent2D Framebuffer::getExtent()
 {
-	return { m_props.width, m_props.height };
+	return { m_width, m_height };
 }

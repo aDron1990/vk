@@ -14,9 +14,8 @@ public:
 	~OffscreenPass();
 	void init(const FramebufferProps& framebufferProps);
 	void destroy();
-	void resize(uint32_t newWidth, uint32_t newHeight);
 
-	Framebuffer createFramebuffer();
+	Framebuffer createFramebuffer(uint32_t width, uint32_t height);
 	void begin(VkCommandBuffer commandBuffer, Framebuffer* framebuffer) override;
 	void end(VkCommandBuffer commandBuffer) override;
 	VkRenderPass getRenderPass() override;

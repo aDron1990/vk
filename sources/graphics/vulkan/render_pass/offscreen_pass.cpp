@@ -108,10 +108,10 @@ void OffscreenPass::createRenderPass()
 		throw std::runtime_error{ "failed to create vulkan render pass" };
 }
 
-Framebuffer OffscreenPass::createFramebuffer()
+Framebuffer OffscreenPass::createFramebuffer(uint32_t width, uint32_t height)
 {
 	auto framebuffer = Framebuffer{};
-	framebuffer.init(m_framebufferProps, *this);
+	framebuffer.init(m_framebufferProps, *this, width, height);
 	return framebuffer;
 }
 
@@ -136,12 +136,6 @@ void OffscreenPass::begin(VkCommandBuffer commandBuffer, Framebuffer* framebuffe
 void OffscreenPass::end(VkCommandBuffer commandBuffer)
 {
 	vkCmdEndRenderPass(commandBuffer);
-}
-
-void OffscreenPass::resize(uint32_t newWidth, uint32_t newHeight)
-{
-	m_framebufferProps.width = newWidth;
-	m_framebufferProps.height = newHeight;
 }
 
 VkRenderPass OffscreenPass::getRenderPass()

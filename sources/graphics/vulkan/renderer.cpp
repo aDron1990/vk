@@ -130,8 +130,6 @@ void Renderer::createRenderPass()
 	m_swapchainPass.reset(new SwapchainPass{ *m_device });
 	FramebufferProps props{};
 	props.colorAttachmentCount = 1;
-	props.width = 1280;
-	props.height = 720;
 	props.useDepthAttachment = true;
 	props.colorFormat = VK_FORMAT_B8G8R8A8_UNORM;
 	props.depthFormat = VK_FORMAT_D32_SFLOAT;
@@ -139,7 +137,7 @@ void Renderer::createRenderPass()
 	m_testPass.reset(new OffscreenPass);
 	m_testPass->init(props);
 
-	m_testFramebuffer.reset(new Framebuffer{ m_testPass->createFramebuffer() });
+	m_testFramebuffer.reset(new Framebuffer{ m_testPass->createFramebuffer(1280, 720) });
 }
 
 void Renderer::createSwapchain()
@@ -151,7 +149,7 @@ void Renderer::createSwapchain()
 	createProps.renderPass = m_swapchainPass->getRenderPass();
 	m_swapchain.reset(new Swapchain{ *m_device, createProps, [&](uint32_t width, uint32_t height) 
 	{
-		m_testPass->resize(width, height);
+		m_testFramebuffer->resize(width, height);
 	}});
 	m_swapchainPass->setSwapchain(m_swapchain.get());
 }
