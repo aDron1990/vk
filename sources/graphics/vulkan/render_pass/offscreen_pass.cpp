@@ -1,33 +1,46 @@
 #include "graphics/vulkan/render_pass/offscreen_pass.hpp"
 #include "graphics/vulkan/swapchain.hpp"
-
+#include "graphics/vulkan/locator.hpp"
 
 #include <stdexcept>
 
-OffscreenPass::OffscreenPass(Device& device, uint32_t width, uint32_t height, uint32_t colorImageCount, bool storeDepth) : m_device{ device }, m_width{width}, m_height{height}, m_storeDepth{storeDepth}
-{
-	m_colorImages.resize(colorImageCount);
-	createRenderPass();
-	createResources();
-}
+OffscreenPass::OffscreenPass() : m_device{ Locator::getDevice() } {}
 
 OffscreenPass::~OffscreenPass()
 {
-	clearResources();
-	vkDestroyRenderPass(m_device.getDevice(), m_renderPass, nullptr);
+	destroy();
+}
+
+void OffscreenPass::destroy()
+{
+	if (m_initialized)
+	{
+		vkDestroyRenderPass(m_device.getDevice(), m_renderPass, nullptr);
+	}
+	m_initialized = false;
+}
+
+void OffscreenPass::init(const FramebufferProps& framebufferProps)
+{
+	assert(!m_initialized);
+	m_framebufferProps = framebufferProps;
+	createRenderPass();
+	m_framebuffer.init(framebufferProps, *this);
+	m_initialized = true;
 }
 
 void OffscreenPass::createRenderPass()
 {
 	auto details = m_device.querySwapchainSupport(m_device.getGpu());
 	auto format = Swapchain::chooseSwapchainSurfaceFormat(details.formats).format;
+	auto attachmentsCount = m_framebufferProps.colorAttachmentCount + static_cast<int>(m_framebufferProps.colorAttachmentCount);
 
 	auto attachments = std::vector<VkAttachmentDescription>{};
-	attachments.reserve(m_colorImages.size() + 1);
+	attachments.reserve(attachmentsCount);
 	auto attachmentRefs = std::vector<VkAttachmentReference>{};
-	attachmentRefs.reserve(m_colorImages.size() + 1);
+	attachmentRefs.reserve(attachments.size());
 
-	for (size_t i = 0; i < m_colorImages.size(); i++)
+	for (size_t i = 0; i < m_framebufferProps.colorAttachmentCount; i++)
 	{
 		auto colorAttachment = VkAttachmentDescription{};
 		colorAttachment.format = format;
@@ -50,7 +63,7 @@ void OffscreenPass::createRenderPass()
 	depthAttachment.format = m_device.findDepthFormat();
 	depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
 	depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-	depthAttachment.storeOp = m_storeDepth ? VK_ATTACHMENT_STORE_OP_STORE : VK_ATTACHMENT_STORE_OP_DONT_CARE;
+	depthAttachment.storeOp = m_framebufferProps.useDepthAttachment ? VK_ATTACHMENT_STORE_OP_STORE : VK_ATTACHMENT_STORE_OP_DONT_CARE;
 	depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 	depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 	depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
@@ -58,7 +71,7 @@ void OffscreenPass::createRenderPass()
 	attachments.push_back(depthAttachment);
 
 	auto depthAttachmentRef = VkAttachmentReference{};
-	depthAttachmentRef.attachment = m_colorImages.size();
+	depthAttachmentRef.attachment = m_framebufferProps.colorAttachmentCount;
 	depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
 	auto subpass = VkSubpassDescription{};
@@ -95,187 +108,20 @@ void OffscreenPass::createRenderPass()
 		throw std::runtime_error{ "failed to create vulkan render pass" };
 }
 
-void OffscreenPass::clearResources()
-{
-	if (m_storeDepth)
-	{
-		vkDestroySampler(m_device.getDevice(), m_depthImage.sampler, nullptr);
-	}
-	vkDestroyImageView(m_device.getDevice(), m_depthImage.view, nullptr);
-	vkDestroyImage(m_device.getDevice(), m_depthImage.image, nullptr);
-	vkFreeMemory(m_device.getDevice(), m_depthImage.memory, nullptr);
-	for (auto& colorImage : m_colorImages)
-	{
-		vkDestroySampler(m_device.getDevice(), colorImage.sampler, nullptr);
-		vkDestroyImageView(m_device.getDevice(), colorImage.view, nullptr);
-		vkDestroyImage(m_device.getDevice(), colorImage.image, nullptr);
-		vkFreeMemory(m_device.getDevice(), colorImage.memory, nullptr);
-	}
-	vkDestroyFramebuffer(m_device.getDevice(), m_framebuffer, nullptr);
-}
-
-void OffscreenPass::createResources()
-{
-	createImages();
-	createDepthImages();
-	createFramebuffers();
-	createSamplers();
-	createDescriptorSets();
-}
-
-void OffscreenPass::createImages()
-{
-	for (auto& colorImage : m_colorImages)
-	{
-		auto details = m_device.querySwapchainSupport(m_device.getGpu());
-		auto format = Swapchain::chooseSwapchainSurfaceFormat(details.formats).format;
-		m_device.createImage(m_width, m_height, 1, format, VK_IMAGE_TILING_OPTIMAL,
-			VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, colorImage.image, colorImage.memory);
-		colorImage.view = m_device.createImageView(colorImage.image, format, VK_IMAGE_ASPECT_COLOR_BIT, 1);
-		m_device.transitionImageLayout(colorImage.image, format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 1);
-	}
-}
-
-void OffscreenPass::createDepthImages()
-{
-	auto depthFormat = m_device.findDepthFormat();
-	m_device.createImage(m_width, m_height, 1, depthFormat, VK_IMAGE_TILING_OPTIMAL,
-		VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_depthImage.image, m_depthImage.memory);
-	m_depthImage.view = m_device.createImageView(m_depthImage.image, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT, 1);
-	m_device.transitionImageLayout(m_depthImage.image, depthFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 1, VK_IMAGE_ASPECT_DEPTH_BIT);
-}
-
-void OffscreenPass::createFramebuffers()
-{
-	auto imageViews = std::vector<VkImageView>();
-	imageViews.reserve(m_colorImages.size() + 1);
-	for (auto& colorImage : m_colorImages)
-	{
-		imageViews.push_back(colorImage.view);
-	}
-	imageViews.push_back(m_depthImage.view);
-
-	auto createInfo = VkFramebufferCreateInfo{};
-	createInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-	createInfo.renderPass = m_renderPass;
-	createInfo.pAttachments = imageViews.data();
-	createInfo.attachmentCount = static_cast<uint32_t>(imageViews.size());
-	createInfo.width = m_width;
-	createInfo.height = m_height;
-	createInfo.layers = 1;
-	if (vkCreateFramebuffer(m_device.getDevice(), &createInfo, nullptr, &m_framebuffer) != VK_SUCCESS)
-		throw std::runtime_error{ "failed to create framebuffer" };
-}
-
-void OffscreenPass::createSamplers()
-{
-	for (auto& colorImage : m_colorImages)
-	{
-		auto gpuProps = VkPhysicalDeviceProperties{};
-		vkGetPhysicalDeviceProperties(m_device.getGpu(), &gpuProps);
-
-		auto createInfo = VkSamplerCreateInfo{};
-		createInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-		createInfo.magFilter = VK_FILTER_LINEAR;
-		createInfo.minFilter = VK_FILTER_LINEAR;
-		createInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-		createInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-		createInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-		createInfo.anisotropyEnable = VK_TRUE;
-		createInfo.maxAnisotropy = gpuProps.limits.maxSamplerAnisotropy;
-		createInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
-		createInfo.unnormalizedCoordinates = VK_FALSE;
-		createInfo.compareEnable = VK_FALSE;
-		createInfo.compareOp = VK_COMPARE_OP_ALWAYS;
-		createInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-		createInfo.mipLodBias = 0.0f;
-		createInfo.minLod = 0.0f;
-		createInfo.maxLod = 1;
-		if (vkCreateSampler(m_device.getDevice(), &createInfo, nullptr, &colorImage.sampler) != VK_SUCCESS)
-			throw std::runtime_error("failed to create texture sampler!");
-	}
-	if (m_storeDepth)
-	{
-		auto gpuProps = VkPhysicalDeviceProperties{};
-		vkGetPhysicalDeviceProperties(m_device.getGpu(), &gpuProps);
-
-		auto createInfo = VkSamplerCreateInfo{};
-		createInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-		createInfo.magFilter = VK_FILTER_LINEAR;
-		createInfo.minFilter = VK_FILTER_LINEAR;
-		createInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-		createInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-		createInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-		createInfo.anisotropyEnable = VK_TRUE;
-		createInfo.maxAnisotropy = gpuProps.limits.maxSamplerAnisotropy;
-		createInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
-		createInfo.unnormalizedCoordinates = VK_FALSE;
-		createInfo.compareEnable = VK_FALSE;
-		createInfo.compareOp = VK_COMPARE_OP_ALWAYS;
-		createInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-		createInfo.mipLodBias = 0.0f;
-		createInfo.minLod = 0.0f;
-		createInfo.maxLod = 1;
-		if (vkCreateSampler(m_device.getDevice(), &createInfo, nullptr, &m_depthImage.sampler) != VK_SUCCESS)
-			throw std::runtime_error("failed to create texture sampler!");
-	}
-}
-
-void OffscreenPass::createDescriptorSets()
-{
-	for (auto& colorImage : m_colorImages)
-	{
-		colorImage.descriptorSet = m_device.createDescriptorSet(m_device.getSamplerFragmentLayout());
-
-		auto samplerInfo = VkDescriptorImageInfo{};
-		samplerInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		samplerInfo.imageView = colorImage.view;
-		samplerInfo.sampler = colorImage.sampler;
-
-		auto descriptorWrite = VkWriteDescriptorSet{};
-		descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		descriptorWrite.dstSet = colorImage.descriptorSet->getSet();
-		descriptorWrite.dstBinding = 0;
-		descriptorWrite.dstArrayElement = 0;
-		descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		descriptorWrite.pImageInfo = &samplerInfo;
-		descriptorWrite.descriptorCount = 1;
-		vkUpdateDescriptorSets(m_device.getDevice(), 1, &descriptorWrite, 0, nullptr);
-	}
-	if (m_storeDepth)
-	{
-		m_depthImage.descriptorSet = m_device.createDescriptorSet(m_device.getSamplerFragmentLayout());
-
-		auto samplerInfo = VkDescriptorImageInfo{};
-		samplerInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		samplerInfo.imageView = m_depthImage.view;
-		samplerInfo.sampler = m_depthImage.sampler;
-
-		auto descriptorWrite = VkWriteDescriptorSet{};
-		descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		descriptorWrite.dstSet = m_depthImage.descriptorSet->getSet();
-		descriptorWrite.dstBinding = 0;
-		descriptorWrite.dstArrayElement = 0;
-		descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		descriptorWrite.pImageInfo = &samplerInfo;
-		descriptorWrite.descriptorCount = 1;
-		vkUpdateDescriptorSets(m_device.getDevice(), 1, &descriptorWrite, 0, nullptr);
-	}
-}
-
 void OffscreenPass::begin(VkCommandBuffer commandBuffer)
 {
-	auto clearValues = std::vector<VkClearValue>( m_colorImages.size() + 1,
+	auto attachmentsCount = m_framebufferProps.colorAttachmentCount + static_cast<int>(m_framebufferProps.colorAttachmentCount);
+	auto clearValues = std::vector<VkClearValue>(attachmentsCount,
 			VkClearValue{.color = {{0.0f, 0.0f, 0.0f, 1.0f}}});
 	clearValues.back() = VkClearValue{ .depthStencil = {1.0f, 0} };
 
 	auto extent = VkExtent2D{};
-	extent.width = m_width;
-	extent.height = m_height;
+	extent.width = m_framebufferProps.width;
+	extent.height = m_framebufferProps.height;
 	auto renderPassInfo = VkRenderPassBeginInfo{};
 	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 	renderPassInfo.renderPass = m_renderPass;
-	renderPassInfo.framebuffer = m_framebuffer;
+	renderPassInfo.framebuffer = m_framebuffer.getFramebuffer();
 	renderPassInfo.renderArea.offset = { 0, 0 };
 	renderPassInfo.renderArea.extent = extent;
 	renderPassInfo.pClearValues = clearValues.data();
@@ -290,25 +136,22 @@ void OffscreenPass::end(VkCommandBuffer commandBuffer)
 
 void OffscreenPass::bindColorImage(VkCommandBuffer commandBuffer, VkPipelineLayout layout, uint32_t setId, uint32_t index)
 {
-	auto set = m_colorImages[index].descriptorSet->getSet();
-	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, layout, setId, 1, &set, 0, nullptr);
+	m_framebuffer.getColorTexture(index).bind(commandBuffer, layout, setId);
 }
 
 void OffscreenPass::bindDepthImage(VkCommandBuffer commandBuffer, VkPipelineLayout layout, uint32_t setId)
 {
-	if (m_storeDepth)
+	if (m_framebufferProps.useDepthAttachment)
 	{
-		auto set = m_depthImage.descriptorSet->getSet();
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, layout, setId, 1, &set, 0, nullptr);
+		m_framebuffer.getDepthTexture().bind(commandBuffer, layout, setId);
 	}
 }
 
 void OffscreenPass::resize(uint32_t newWidth, uint32_t newHeight)
 {
-	clearResources();
-	m_width = newWidth;
-	m_height = newHeight;
-	createResources();
+	m_framebuffer.resize(newWidth, newHeight);
+	m_framebufferProps.width = newWidth;
+	m_framebufferProps.height = newHeight;
 }
 
 VkRenderPass OffscreenPass::getRenderPass()

@@ -29,6 +29,7 @@ Renderer::Renderer(Window& window) : m_window{window}
 	createSyncObjects();
 	createCommandBuffers();
 	createRenderPass();
+
 	createSwapchain();
 	createGraphicsPipeline();
 	m_specularMap.reset(new Texture);
@@ -48,7 +49,7 @@ Renderer::Renderer(Window& window) : m_window{window}
 	initInfo.Device = m_device->getDevice();
 	initInfo.QueueFamily = m_device->findQueueFamilies(m_device->getGpu()).graphics.value();
 	initInfo.Queue = m_device->getGraphicsQueue();
-	initInfo.RenderPass = m_renderPass->getRenderPass();
+	initInfo.RenderPass = m_swapchainPass->getRenderPass();
 	initInfo.MinImageCount = 2;
 	initInfo.ImageCount = 3;
 	initInfo.DescriptorPoolSize = 128;
@@ -65,16 +66,7 @@ Renderer::Renderer(Window& window) : m_window{window}
 
 
 
-	FramebufferProps props{};
-	props.colorAttachmentCount = 1;
-	props.height = 1280;
-	props.width = 720;
-	props.useDepthAttachment = true;
-	props.colorFormat = m_swapchain->getFormat();
-	props.depthFormat = VK_FORMAT_D32_SFLOAT;
-
-	Framebuffer framebuffer{};
-	framebuffer.init(props, *m_renderPass);
+	
 }
 
 Renderer::~Renderer()
@@ -90,8 +82,10 @@ Renderer::~Renderer()
 	vkDestroyFence(m_device->getDevice(), m_inFlightFence, nullptr);
 
 	m_object.reset();
-	m_renderPass.reset();
-	m_pipeline.reset();
+	m_swapchainPass.reset();
+	m_testPass.reset();
+	m_combinePipeline.reset();
+	m_testPipeline.reset();
 
 	m_swapchain.reset();
 	m_specularMap.reset();
@@ -137,7 +131,17 @@ void Renderer::createDevice()
 
 void Renderer::createRenderPass()
 {
-	m_renderPass.reset(new SwapchainPass{ *m_device });
+	m_swapchainPass.reset(new SwapchainPass{ *m_device });
+	FramebufferProps props{};
+	props.colorAttachmentCount = 1;
+	props.width = 1280;
+	props.height = 720;
+	props.useDepthAttachment = true;
+	props.colorFormat = VK_FORMAT_B8G8R8A8_UNORM;
+	props.depthFormat = VK_FORMAT_D32_SFLOAT;
+
+	m_testPass.reset(new OffscreenPass);
+	m_testPass->init(props);
 }
 
 void Renderer::createSwapchain()
@@ -146,24 +150,38 @@ void Renderer::createSwapchain()
 	glfwGetFramebufferSize(m_window.getWindow(), &width, &height);
 	auto extent = VkExtent2D{ static_cast<uint32_t>(width), static_cast<uint32_t>(height) };
 	auto createProps = SwapchainProperties{};
-	createProps.renderPass = m_renderPass->getRenderPass();
+	createProps.renderPass = m_swapchainPass->getRenderPass();
 	m_swapchain.reset(new Swapchain{ *m_device, createProps, [&](uint32_t width, uint32_t height) 
-		{
-		} });
-	m_renderPass->setSwapchain(m_swapchain.get());
+	{
+		m_testPass->resize(width, height);
+	}});
+	m_swapchainPass->setSwapchain(m_swapchain.get());
 }
 
 void Renderer::createGraphicsPipeline()
 {
-	auto pipelineInfo = PipelineInfo{};
-	pipelineInfo.vertexPath = "resources/shaders/main/shader.vert.spv";
-	pipelineInfo.fragmentPath = "resources/shaders/main/shader.frag.spv";
-	pipelineInfo.renderPass = m_renderPass->getRenderPass();
-	pipelineInfo.descriptorSetLayouts = { m_device->getUboVertexLayout(), m_device->getUboFragmentLayout(), m_device->getUboFragmentLayout(), m_device->getSamplerFragmentLayout(), m_device->getSamplerFragmentLayout() };
-	pipelineInfo.vertexInput = true;
-	pipelineInfo.culling = VK_CULL_MODE_BACK_BIT;
-	pipelineInfo.attachmentCount = 1;
-	m_pipeline.reset(new Pipeline{ *m_device, pipelineInfo });
+	{
+		auto pipelineInfo = PipelineInfo{};
+		pipelineInfo.vertexPath = "resources/shaders/main/shader.vert.spv";
+		pipelineInfo.fragmentPath = "resources/shaders/main/shader.frag.spv";
+		pipelineInfo.renderPass = m_testPass->getRenderPass();
+		pipelineInfo.descriptorSetLayouts = { m_device->getUboVertexLayout(), m_device->getUboFragmentLayout(), m_device->getUboFragmentLayout(), m_device->getSamplerFragmentLayout(), m_device->getSamplerFragmentLayout() };
+		pipelineInfo.vertexInput = true;
+		pipelineInfo.culling = VK_CULL_MODE_BACK_BIT;
+		pipelineInfo.attachmentCount = 1;
+		m_testPipeline.reset(new Pipeline{ *m_device, pipelineInfo });
+	}
+	{
+		auto pipelineInfo = PipelineInfo{};
+		pipelineInfo.vertexPath = "resources/shaders/combine/shader.vert.spv";
+		pipelineInfo.fragmentPath = "resources/shaders/combine/shader.frag.spv";
+		pipelineInfo.renderPass = m_swapchainPass->getRenderPass();
+		pipelineInfo.descriptorSetLayouts = { m_device->getSamplerFragmentLayout() };
+		pipelineInfo.vertexInput = false;
+		pipelineInfo.culling = VK_CULL_MODE_NONE;
+		pipelineInfo.attachmentCount = 1;
+		m_combinePipeline.reset(new Pipeline{ *m_device, pipelineInfo });
+	}
 }
 
 void Renderer::createSyncObjects()
@@ -247,6 +265,16 @@ void Renderer::renderScene(VkCommandBuffer commandBuffer, RenderPass& renderPass
 	renderPass.end(commandBuffer);
 }
 
+void Renderer::combine(VkCommandBuffer commandBuffer, RenderPass& renderPass, Pipeline& pipeline)
+{
+	renderPass.begin(commandBuffer);
+	setViewport(commandBuffer);
+	pipeline.bind(commandBuffer);
+	m_testPass->bindColorImage(commandBuffer, pipeline.getLayout(), 0, 0);
+	vkCmdDraw(commandBuffer, 6, 1, 0, 0);
+	renderPass.end(commandBuffer);
+}
+
 void Renderer::render()
 {
 	ImGui_ImplVulkan_NewFrame();
@@ -282,7 +310,8 @@ void Renderer::render()
 	if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS)
 		throw std::runtime_error{ "failed to record command buffer" };
 
-	renderScene(commandBuffer, *m_renderPass, *m_pipeline);
+	renderScene(commandBuffer, *m_testPass, *m_testPipeline);
+	combine(commandBuffer, *m_swapchainPass, *m_combinePipeline);
 
 	if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS)
 		throw std::runtime_error{ "failed to end command buffer" };

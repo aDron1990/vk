@@ -15,6 +15,7 @@ public:
 
 	void init(const FramebufferProps& props, RenderPass& renderPass);
 	void destroy();
+	void resize(uint32_t newWidth, uint32_t newHeight);
 
 	VkFramebuffer getFramebuffer();
 	Texture& getColorTexture(uint32_t id);

@@ -34,6 +34,14 @@ void Framebuffer::init(const FramebufferProps& props, RenderPass& renderPass)
 	m_initialized = true;
 }
 
+void Framebuffer::resize(uint32_t newWidth, uint32_t newHeight)
+{
+	destroy();
+	m_props.width = newWidth;
+	m_props.height = newHeight;
+	init(m_props, *m_renderPass);
+}
+
 void Framebuffer::createTextures()
 {
 	m_colorAttachments.resize(m_props.colorAttachmentCount);

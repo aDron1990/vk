@@ -50,6 +50,7 @@ private:
 		Vertical
 	};
 	void renderScene(VkCommandBuffer commandBuffer, RenderPass& renderPass, Pipeline& pipeline);
+	void combine(VkCommandBuffer commandBuffer, RenderPass& renderPass, Pipeline& pipeline);
 
 private:
 	void setViewport(VkCommandBuffer commandBuffer);
@@ -65,9 +66,11 @@ private:
 
 	std::unique_ptr<Context> m_context;
 	std::unique_ptr<Device> m_device;
-	std::unique_ptr<SwapchainPass> m_renderPass;
+	std::unique_ptr<SwapchainPass> m_swapchainPass;
+	std::unique_ptr<OffscreenPass> m_testPass;
 	std::unique_ptr<Swapchain> m_swapchain;
-	std::unique_ptr<Pipeline> m_pipeline;
+	std::unique_ptr<Pipeline> m_combinePipeline;
+	std::unique_ptr<Pipeline> m_testPipeline;
 	std::unique_ptr<LightBuffer> m_light;
 	std::unique_ptr<Model> m_model;
 	std::unique_ptr<Object> m_object;
