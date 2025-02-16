@@ -37,6 +37,7 @@ private:
 
 private:
 	Device& m_device;
+	std::unique_ptr<DescriptorPool> m_descriptorPool;
 	PipelineInfo m_info;
 	VkPipelineLayout m_layout;
 	VkPipeline m_pipeline;

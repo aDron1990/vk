@@ -9,6 +9,7 @@ DescriptorPool::DescriptorPool(Device& device, const DescriptorPoolProps& props)
 : m_device{device}, m_props{props}
 {
 	createPool();
+	createDescriptorSetLayouts();
 }
 
 DescriptorPool::~DescriptorPool()
@@ -47,6 +48,34 @@ void DescriptorPool::createPool()
 	createInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
 	if (vkCreateDescriptorPool(m_device.getDevice(), &createInfo, nullptr, &m_pool) != VK_SUCCESS)
 		throw std::runtime_error{ "failed to create descriptor pool" };
+}
+
+void DescriptorPool::createDescriptorSetLayouts()
+{
+	const auto setCount = m_props.setInfos.size();
+	m_setLayouts.resize(setCount);
+	for (size_t setId = 0; setId < setCount; setId++)
+	{
+		auto& setInfo = m_props.setInfos[setId];
+		auto bindings = std::vector<VkDescriptorSetLayoutBinding>{};
+		bindings.resize(setInfo.bindings.size());
+		for (size_t i = 0; i < bindings.size(); i++)
+		{
+			auto bind = VkDescriptorSetLayoutBinding{};
+			bind.binding = i;
+			bind.descriptorType = setInfo.bindings[i].descriptorType;
+			bind.descriptorCount = 1;
+			bind.stageFlags = setInfo.stages;
+			bindings[i] = bind;
+		}
+
+		auto createInfo = VkDescriptorSetLayoutCreateInfo{};
+		createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+		createInfo.pBindings = bindings.data();
+		createInfo.bindingCount = static_cast<uint32_t>(bindings.size());
+		if (vkCreateDescriptorSetLayout(m_device.getDevice(), &createInfo, nullptr, &m_setLayouts[setId]) != VK_SUCCESS)
+			throw std::runtime_error{ "failed to create descriptor set layout" };
+	}
 }
 
 DescriptorSet DescriptorPool::createDescriptorSet(VkDescriptorSetLayout descriptorSetLayout)
