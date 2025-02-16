@@ -1,4 +1,5 @@
 #include "graphics/vulkan/swapchain.hpp"
+#include "graphics/vulkan/locator.hpp"
 
 #include <stdexcept>
 #include <algorithm>
@@ -10,6 +11,7 @@ Swapchain::Swapchain(Device& device, SwapchainProperties properties, std::functi
 	createImageViews();
 	createDepthResources();
 	createFramebuffers();
+	Locator::setSwapchain(this);
 }
 
 Swapchain::~Swapchain()

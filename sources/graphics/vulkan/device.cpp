@@ -1,4 +1,5 @@
 #include "graphics/vulkan/device.hpp"
+#include "graphics/vulkan/locator.hpp"
 
 #include <print>
 #include <set>
@@ -11,6 +12,7 @@ Device::Device(Context& context, VkSurfaceKHR surface, const DescriptorPoolProps
 	createDevice();
 	createCommandPool();
 	m_descriptorPool.reset(new DescriptorPool{ *this, poolProps });
+	Locator::setDevice(this);
 }
 
 Device::~Device()

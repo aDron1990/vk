@@ -50,6 +50,9 @@ add_executable(vk
 	"sources/graphics/vulkan/swapchain_pass.hpp"
 	"sources/graphics/vulkan/swapchain_pass.cpp"
 
+	"sources/graphics/vulkan/locator.hpp"
+	"sources/graphics/vulkan/locator.cpp"
+
 	"sources/graphics/vulkan/descriptor/descriptor_pool.hpp"
 	"sources/graphics/vulkan/descriptor/descriptor_pool.cpp"
 	"sources/graphics/vulkan/descriptor/descriptor_pool_props.hpp"

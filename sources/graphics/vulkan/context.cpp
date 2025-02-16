@@ -1,4 +1,5 @@
 #include "graphics/vulkan/context.hpp"
+#include "graphics/vulkan/locator.hpp"
 
 #include <GLFW/glfw3.h>
 
@@ -9,6 +10,7 @@ Context::Context()
 {
 	createInstance();
 	setupDebugMessenger();
+	Locator::setContext(this);
 }
 
 Context::~Context()
