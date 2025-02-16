@@ -11,7 +11,7 @@
 class Device
 {
 public:
-	Device(Context& context, VkSurfaceKHR surface);
+	Device(Context& context, VkSurfaceKHR surface, const DescriptorPoolProps& poolProps);
 	~Device();
 	
 	void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& memory);

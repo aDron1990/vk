@@ -40,8 +40,6 @@ add_executable(vk
 	"sources/graphics/vulkan/mesh.cpp"
 	"sources/graphics/vulkan/model.hpp"
 	"sources/graphics/vulkan/model.cpp"
-	"sources/graphics/vulkan/descriptor/descriptor_pool.hpp"
-	"sources/graphics/vulkan/descriptor/descriptor_pool.cpp"
 	"sources/graphics/vulkan/camera.hpp"
 	"sources/graphics/vulkan/camera.cpp"
 	"sources/graphics/vulkan/object.hpp"
@@ -51,6 +49,10 @@ add_executable(vk
 	"sources/graphics/vulkan/offscreen_pass.cpp"
 	"sources/graphics/vulkan/swapchain_pass.hpp"
 	"sources/graphics/vulkan/swapchain_pass.cpp"
+
+	"sources/graphics/vulkan/descriptor/descriptor_pool.hpp"
+	"sources/graphics/vulkan/descriptor/descriptor_pool.cpp"
+	"sources/graphics/vulkan/descriptor/descriptor_pool_props.hpp"
 )
 
 set_property(TARGET vk PROPERTY CXX_STANDARD 23)

@@ -120,7 +120,38 @@ void Renderer::createDevice()
 	if (glfwCreateWindowSurface(m_context->getInstance(), m_window.getWindow(), nullptr, &surface) != VK_SUCCESS)
 		throw std::runtime_error{ "failed to create vulkan surface" };
 
-	m_device.reset(new Device{*m_context, surface});
+	auto poolProps = DescriptorPoolProps{};
+	poolProps.setCountMultiplier = 128;
+	poolProps.setInfos =
+	{
+		DescriptorSetInfo
+		{{
+			BindingInfo
+			{
+				.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+			},
+			BindingInfo
+			{
+				.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+			},
+		}, VK_SHADER_STAGE_ALL_GRAPHICS },
+		DescriptorSetInfo
+		{{
+			BindingInfo
+			{
+				.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+			}
+		}, VK_SHADER_STAGE_ALL_GRAPHICS },
+		DescriptorSetInfo
+		{{
+			BindingInfo
+			{
+				.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+			}
+		}, VK_SHADER_STAGE_ALL_GRAPHICS }
+	};
+
+	m_device.reset(new Device{*m_context, surface, poolProps});
 }
 
 void Renderer::createRenderPass()

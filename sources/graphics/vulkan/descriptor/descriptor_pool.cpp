@@ -2,9 +2,11 @@
 #include "graphics/vulkan/device.hpp"	
 
 #include <stdexcept>
+#include <vector>
+#include <ranges>
 
-DescriptorPool::DescriptorPool(Device& device)
-: m_device{device}
+DescriptorPool::DescriptorPool(Device& device, const DescriptorPoolProps& props)
+: m_device{device}, m_props{props}
 {
 	createPool();
 }
@@ -16,17 +18,32 @@ DescriptorPool::~DescriptorPool()
 
 void DescriptorPool::createPool()
 {
-	auto poolSizes = std::vector<VkDescriptorPoolSize>(2);
-	poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	poolSizes[0].descriptorCount = 1;
-	poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	poolSizes[1].descriptorCount = 1;
+	// Calculate each descriptor type count
+	auto bindingCount = 0;
+	auto poolSizesMap = std::unordered_map<VkDescriptorType, uint32_t>{};
+	for (auto& set : m_props.setInfos)
+	{
+		for (auto& binding : set.bindings)
+		{
+			bindingCount++;
+			if (poolSizesMap.count(binding.descriptorType) == 0) poolSizesMap[binding.descriptorType] = 1;
+			else poolSizesMap[binding.descriptorType]++;
+		}
+	}
+
+	auto poolSizes = std::vector<VkDescriptorPoolSize>(poolSizesMap.size());
+	for (auto size : std::views::zip(poolSizesMap, poolSizes))
+	{
+		auto& poolSize = std::get<1>(size);
+		poolSize.type = std::get<0>(size).first;
+		poolSize.descriptorCount = std::get<0>(size).second * m_props.setCountMultiplier;
+	}
 
 	auto createInfo = VkDescriptorPoolCreateInfo{};
 	createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
 	createInfo.pPoolSizes = poolSizes.data();
 	createInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
-	createInfo.maxSets = 4096;
+	createInfo.maxSets = static_cast<uint32_t>(m_props.setCountMultiplier * bindingCount);
 	createInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
 	if (vkCreateDescriptorPool(m_device.getDevice(), &createInfo, nullptr, &m_pool) != VK_SUCCESS)
 		throw std::runtime_error{ "failed to create descriptor pool" };

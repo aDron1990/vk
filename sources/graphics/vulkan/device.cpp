@@ -5,13 +5,13 @@
 #include <string>
 #include <stdexcept>
 
-Device::Device(Context& context, VkSurfaceKHR surface) : m_context{context}, m_surface{surface}
+Device::Device(Context& context, VkSurfaceKHR surface, const DescriptorPoolProps& poolProps) : m_context{context}, m_surface{surface}
 {
 	pickGpu();
 	createDevice();
 	createCommandPool();
 	createDescriptorSetLayouts();
-	m_descriptorPool.reset(new DescriptorPool{ *this });
+	m_descriptorPool.reset(new DescriptorPool{ *this, poolProps });
 }
 
 Device::~Device()
