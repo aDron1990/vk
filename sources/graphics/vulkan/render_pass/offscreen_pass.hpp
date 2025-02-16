@@ -1,6 +1,6 @@
 #pragma once
 
-#include "graphics/vulkan/render_pass.hpp"
+#include "graphics/vulkan/render_pass/render_pass.hpp"
 #include "graphics/vulkan/device.hpp"
 
 #include <vector>
