@@ -26,7 +26,7 @@ layout(location = 2) in vec3 fragNormal;
 layout(location = 3) in vec2 fragTexCoord;
 
 layout(location = 0) out vec4 outColor0;
-layout(location = 1) out vec4 outColor1;
+//layout(location = 1) out vec4 outColor1;
 
 void main()
 {
@@ -48,5 +48,5 @@ void main()
     // result
     vec4 result = vec4((ambient + diffuse + specular), 1.0);
     outColor0 = vec4(result);
-    outColor1 = vec4(result);
+    //outColor1 = vec4(result);
 }

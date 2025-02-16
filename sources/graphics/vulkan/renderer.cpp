@@ -33,9 +33,7 @@ Renderer::Renderer(Window& window) : m_window{window}
 	m_specularMap.reset(new Texture{ *m_device, "resources/images/container2_specular.png" });
 	m_model.reset(new Model{ *m_device, MODEL_PATH, TEXTURE_PATH });
 	m_object.reset(new Object{ *m_device, *m_model });
-	m_emiter.reset(new Object{ *m_device, *m_model });
 	m_light.reset(new LightBuffer{ *m_device, m_device->getUboFragmentLayout()});
-	m_emiterBuffer.reset(new UniformBuffer<Emiter>{ *m_device, m_device->getUboFragmentLayout() });
 
 	ImGui::CreateContext();
 	ImGuiIO& io = ImGui::GetIO(); (void)io;
@@ -48,7 +46,7 @@ Renderer::Renderer(Window& window) : m_window{window}
 	initInfo.Device = m_device->getDevice();
 	initInfo.QueueFamily = m_device->findQueueFamilies(m_device->getGpu()).graphics.value();
 	initInfo.Queue = m_device->getGraphicsQueue();
-	initInfo.RenderPass = m_combinePass->getRenderPass();
+	initInfo.RenderPass = m_renderPass->getRenderPass();
 	initInfo.MinImageCount = 2;
 	initInfo.ImageCount = 3;
 	initInfo.DescriptorPoolSize = 128;
@@ -57,17 +55,10 @@ Renderer::Renderer(Window& window) : m_window{window}
 	
 	ImGui_ImplVulkan_CreateFontsTexture();
 
-
-
 	light.direction = { -0.2f, -1.0f, -0.3f };
 	light.ambient = { 0.2f, 0.2f, 0.2f };
 	light.diffuse = { 0.5f, 0.5f, 0.5f };
 	light.specular = { 1.0f, 1.0f, 1.0f };
-
-	m_emiter->setPosition({ 3.0f, 3.0f, 0.0f });
-
-	test.reset(new Texture{ *m_device, TEXTURE_PATH });
-	test2.reset(new Texture{ *m_device, TEXTURE_PATH });
 }
 
 Renderer::~Renderer()
@@ -82,24 +73,9 @@ Renderer::~Renderer()
 	vkDestroySemaphore(m_device->getDevice(), m_renderFinishedSemaphore, nullptr);
 	vkDestroyFence(m_device->getDevice(), m_inFlightFence, nullptr);
 
-
-	test.reset();
-	test2.reset();
 	m_object.reset();
-	m_emiterBuffer.reset();
-	m_emiter.reset();
-	m_combinePass.reset();
-	m_brightPass.reset();
-	m_hblurPass.reset();
-	m_vblurPass.reset();
 	m_renderPass.reset();
-	
 	m_pipeline.reset();
-	m_emitPipeline.reset();
-	m_brightPipeline.reset();
-	m_hblurPipeline.reset();
-	m_vblurPipeline.reset();
-	m_combinePipeline.reset();
 
 	m_swapchain.reset();
 	m_specularMap.reset();
@@ -145,11 +121,7 @@ void Renderer::createDevice()
 
 void Renderer::createRenderPass()
 {
-	m_combinePass.reset(new SwapchainPass{ *m_device });
-	m_brightPass.reset(new OffscreenPass{ *m_device, 1280, 720 });
-	m_hblurPass.reset(new OffscreenPass{ *m_device, 1280, 720 });
-	m_vblurPass.reset(new OffscreenPass{ *m_device, 1280, 720 });
-	m_renderPass.reset(new OffscreenPass{ *m_device, 1280, 720, 2 });
+	m_renderPass.reset(new SwapchainPass{ *m_device });
 }
 
 void Renderer::createSwapchain()
@@ -158,85 +130,24 @@ void Renderer::createSwapchain()
 	glfwGetFramebufferSize(m_window.getWindow(), &width, &height);
 	auto extent = VkExtent2D{ static_cast<uint32_t>(width), static_cast<uint32_t>(height) };
 	auto createProps = SwapchainProperties{};
-	createProps.renderPass = m_combinePass->getRenderPass();
+	createProps.renderPass = m_renderPass->getRenderPass();
 	m_swapchain.reset(new Swapchain{ *m_device, createProps, [&](uint32_t width, uint32_t height) 
 		{
-			m_renderPass->resize(width, height);
-			m_brightPass->resize(width, height);
-			m_hblurPass->resize(width, height);
-			m_vblurPass->resize(width, height);
 		} });
-	m_combinePass->setSwapchain(m_swapchain.get());
+	m_renderPass->setSwapchain(m_swapchain.get());
 }
 
 void Renderer::createGraphicsPipeline()
 {
-	{
-		auto pipelineInfo = PipelineInfo{};
-		pipelineInfo.vertexPath = "resources/shaders/main/shader.vert.spv";
-		pipelineInfo.fragmentPath = "resources/shaders/main/shader.frag.spv";
-		pipelineInfo.renderPass = m_renderPass->getRenderPass();
-		pipelineInfo.descriptorSetLayouts = { m_device->getUboVertexLayout(), m_device->getUboFragmentLayout(), m_device->getUboFragmentLayout(), m_device->getSamplerFragmentLayout(), m_device->getSamplerFragmentLayout() };
-		pipelineInfo.vertexInput = true;
-		pipelineInfo.culling = VK_CULL_MODE_BACK_BIT;
-		pipelineInfo.attachmentCount = 2;
-		m_pipeline.reset(new Pipeline{ *m_device, pipelineInfo });
-	}
-	{
-		auto pipelineInfo = PipelineInfo{};
-		pipelineInfo.vertexPath = "resources/shaders/emiter/shader.vert.spv";
-		pipelineInfo.fragmentPath = "resources/shaders/emiter/shader.frag.spv";
-		pipelineInfo.renderPass = m_renderPass->getRenderPass();
-		pipelineInfo.descriptorSetLayouts = { m_device->getUboVertexLayout(), m_device->getUboFragmentLayout(), m_device->getUboFragmentLayout(), m_device->getSamplerFragmentLayout(), m_device->getSamplerFragmentLayout() };
-		pipelineInfo.vertexInput = true;
-		pipelineInfo.culling = VK_CULL_MODE_BACK_BIT;
-		pipelineInfo.attachmentCount = 2;
-		m_emitPipeline.reset(new Pipeline{ *m_device, pipelineInfo });
-	}
-	{
-		auto pipelineInfo = PipelineInfo{};
-		pipelineInfo.vertexPath = "resources/shaders/blur/horizontal.vert.spv";
-		pipelineInfo.fragmentPath = "resources/shaders/blur/horizontal.frag.spv";
-		pipelineInfo.renderPass = m_hblurPass->getRenderPass();
-		pipelineInfo.descriptorSetLayouts = { m_device->getSamplerFragmentLayout() };
-		pipelineInfo.vertexInput = false;
-		pipelineInfo.culling = VK_CULL_MODE_NONE;
-		pipelineInfo.attachmentCount = 1;
-		m_hblurPipeline.reset(new Pipeline{ *m_device, pipelineInfo });
-	}
-	{
-		auto pipelineInfo = PipelineInfo{};
-		pipelineInfo.vertexPath = "resources/shaders/blur/vertical.vert.spv";
-		pipelineInfo.fragmentPath = "resources/shaders/blur/vertical.frag.spv";
-		pipelineInfo.renderPass = m_vblurPass->getRenderPass();
-		pipelineInfo.descriptorSetLayouts = { m_device->getSamplerFragmentLayout() };
-		pipelineInfo.vertexInput = false;
-		pipelineInfo.culling = VK_CULL_MODE_NONE;
-		pipelineInfo.attachmentCount = 1;
-		m_vblurPipeline.reset(new Pipeline{ *m_device, pipelineInfo });
-	}
-	{
-		auto pipelineInfo = PipelineInfo{};
-		pipelineInfo.vertexPath = "resources/shaders/pick_bright/shader.vert.spv";
-		pipelineInfo.fragmentPath = "resources/shaders/pick_bright/shader.frag.spv";
-		pipelineInfo.renderPass = m_brightPass->getRenderPass();
-		pipelineInfo.descriptorSetLayouts = { m_device->getSamplerFragmentLayout() };
-		pipelineInfo.vertexInput = false;
-		pipelineInfo.culling = VK_CULL_MODE_NONE;
-		pipelineInfo.attachmentCount = 1;
-		m_brightPipeline.reset(new Pipeline{ *m_device, pipelineInfo });
-	}
-	{
-		auto pipelineInfo = PipelineInfo{};
-		pipelineInfo.vertexPath = "resources/shaders/combine/shader.vert.spv";
-		pipelineInfo.fragmentPath = "resources/shaders/combine/shader.frag.spv";
-		pipelineInfo.renderPass = m_combinePass->getRenderPass();
-		pipelineInfo.descriptorSetLayouts = { m_device->getSamplerFragmentLayout(), m_device->getSamplerFragmentLayout() };
-		pipelineInfo.vertexInput = false;
-		pipelineInfo.culling = VK_CULL_MODE_NONE;
-		pipelineInfo.attachmentCount = 1;
-		m_combinePipeline.reset(new Pipeline{ *m_device, pipelineInfo });
-	}
+	auto pipelineInfo = PipelineInfo{};
+	pipelineInfo.vertexPath = "resources/shaders/main/shader.vert.spv";
+	pipelineInfo.fragmentPath = "resources/shaders/main/shader.frag.spv";
+	pipelineInfo.renderPass = m_renderPass->getRenderPass();
+	pipelineInfo.descriptorSetLayouts = { m_device->getUboVertexLayout(), m_device->getUboFragmentLayout(), m_device->getUboFragmentLayout(), m_device->getSamplerFragmentLayout(), m_device->getSamplerFragmentLayout() };
+	pipelineInfo.vertexInput = true;
+	pipelineInfo.culling = VK_CULL_MODE_BACK_BIT;
+	pipelineInfo.attachmentCount = 1;
+	m_pipeline.reset(new Pipeline{ *m_device, pipelineInfo });
 }
 
 void Renderer::createSyncObjects()
@@ -317,49 +228,6 @@ void Renderer::renderScene(VkCommandBuffer commandBuffer, RenderPass& renderPass
 	m_object->bindMesh(commandBuffer);
 	m_object->draw(commandBuffer, pipeline.getLayout());
 
-	m_emitPipeline->bind(commandBuffer);
-	m_emiterBuffer->write(Emiter{ .color = {1.0f, 1.0f, 1.0f} });
-	m_emiterBuffer->bind(commandBuffer, m_emitPipeline->getLayout(), 1);
-	m_emiter->bindMVP(commandBuffer, m_emitPipeline->getLayout(), view, proj);
-	m_emiter->bindMesh(commandBuffer);
-	m_emiter->draw(commandBuffer, m_emitPipeline->getLayout());
-
-	renderPass.end(commandBuffer);
-}
-
-void Renderer::pickBright(VkCommandBuffer commandBuffer, RenderPass& renderPass, Pipeline& pipeline)
-{
-	renderPass.begin(commandBuffer);
-	setViewport(commandBuffer);
-	pipeline.bind(commandBuffer);
-	m_renderPass->bindColorImage(commandBuffer, pipeline.getLayout(), 0, 1);
-	vkCmdDraw(commandBuffer, 6, 1, 0, 0);
-	renderPass.end(commandBuffer);
-}
-
-void Renderer::blur(VkCommandBuffer commandBuffer, RenderPass& renderPass, Pipeline& pipeline, Blur direction)
-{
-	renderPass.begin(commandBuffer);
-	setViewport(commandBuffer);
-	pipeline.bind(commandBuffer);
-	if (direction == Blur::Horizontal)
-		m_brightPass->bindColorImage(commandBuffer, pipeline.getLayout(), 0, 0);
-	else
-		m_hblurPass->bindColorImage(commandBuffer, pipeline.getLayout(), 0, 0);
-	vkCmdDraw(commandBuffer, 6, 1, 0, 0);
-	renderPass.end(commandBuffer);
-}
-
-void Renderer::combine(VkCommandBuffer commandBuffer, RenderPass& renderPass, Pipeline& pipeline)
-{
-	renderPass.begin(commandBuffer);
-	setViewport(commandBuffer);
-	pipeline.bind(commandBuffer);
-	m_renderPass->bindColorImage(commandBuffer, pipeline.getLayout(), 0, 0);
-	m_vblurPass->bindColorImage(commandBuffer, pipeline.getLayout(), 1, 0);
-
-	vkCmdDraw(commandBuffer, 6, 1, 0, 0);
-	ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commandBuffer);
 	renderPass.end(commandBuffer);
 }
 
@@ -399,10 +267,6 @@ void Renderer::render()
 		throw std::runtime_error{ "failed to record command buffer" };
 
 	renderScene(commandBuffer, *m_renderPass, *m_pipeline);
-	pickBright(commandBuffer, *m_brightPass, *m_brightPipeline);
-	blur(commandBuffer, *m_hblurPass, *m_hblurPipeline, Blur::Horizontal);
-	blur(commandBuffer, *m_vblurPass, *m_vblurPipeline, Blur::Vertical);
-	combine(commandBuffer, *m_combinePass, *m_combinePipeline);
 
 	if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS)
 		throw std::runtime_error{ "failed to end command buffer" };
