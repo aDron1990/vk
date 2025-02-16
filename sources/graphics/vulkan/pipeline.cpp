@@ -25,10 +25,12 @@ void Pipeline::destroy()
 	m_initialized = false;
 }
 
-void Pipeline::init(const PipelineProps& props)
+void Pipeline::init(const PipelineProps& props, const FramebufferProps& framebufferProps, RenderPass& renderPass)
 {
 	assert(!m_initialized);
 	m_props = props;
+	m_framebufferProps = framebufferProps;
+	m_renderPass = &renderPass;
 	createPipeline();
 	m_initialized = true;
 }
@@ -102,8 +104,8 @@ void Pipeline::createPipeline()
 	multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
 
 	auto blendingAttachments = std::vector<VkPipelineColorBlendAttachmentState>();
-	blendingAttachments.reserve(m_props.attachmentCount);
-	for (size_t i = 0; i < m_props.attachmentCount; i++)
+	blendingAttachments.reserve(m_framebufferProps.colorAttachmentCount);
+	for (size_t i = 0; i < m_framebufferProps.colorAttachmentCount; i++)
 	{
 		auto blendingAttachment = VkPipelineColorBlendAttachmentState{};
 		blendingAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT |
@@ -123,8 +125,8 @@ void Pipeline::createPipeline()
 
 	auto depthStencil = VkPipelineDepthStencilStateCreateInfo{};
 	depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-	depthStencil.depthTestEnable = VK_TRUE;
-	depthStencil.depthWriteEnable = VK_TRUE;
+	depthStencil.depthTestEnable = m_framebufferProps.useDepthAttachment ? VK_TRUE : VK_FALSE;
+	depthStencil.depthWriteEnable = m_framebufferProps.useDepthAttachment ? VK_TRUE : VK_FALSE;
 	depthStencil.depthCompareOp = VK_COMPARE_OP_LESS;
 
 	auto pipelineLayoutInfo = VkPipelineLayoutCreateInfo{};
@@ -148,7 +150,7 @@ void Pipeline::createPipeline()
 	createInfo.pDynamicState = &dynamicInfo;
 	createInfo.pDepthStencilState = &depthStencil;
 	createInfo.layout = m_layout;
-	createInfo.renderPass = m_props.renderPass;
+	createInfo.renderPass = m_renderPass->getRenderPass();
 	createInfo.subpass = 0;
 	if (vkCreateGraphicsPipelines(m_device.getDevice(), VK_NULL_HANDLE, 1, &createInfo, nullptr, &m_pipeline))
 		throw std::runtime_error{ "failed to create vulkan pipeline" };

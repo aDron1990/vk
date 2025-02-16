@@ -128,17 +128,16 @@ void Renderer::createDevice()
 void Renderer::createRenderPass()
 {
 	m_swapchainPass.reset(new SwapchainPass{ *m_device });
-	FramebufferProps props{};
-	props.colorAttachmentCount = 1;
-	props.useDepthAttachment = true;
-	props.colorFormat = VK_FORMAT_B8G8R8A8_UNORM;
-	props.depthFormat = VK_FORMAT_D32_SFLOAT;
+	m_framebufferProps.colorAttachmentCount = 1;
+	m_framebufferProps.useDepthAttachment = true;
+	m_framebufferProps.colorFormat = VK_FORMAT_B8G8R8A8_UNORM;
+	m_framebufferProps.depthFormat = VK_FORMAT_D32_SFLOAT;
 
 	m_testPass.reset(new OffscreenPass);
-	m_testPass->init(props);
+	m_testPass->init(m_framebufferProps);
 
 	m_testFramebuffer.reset(new Framebuffer);
-	m_testFramebuffer->init(props, *m_testPass, 1280, 720);
+	m_testFramebuffer->init(m_framebufferProps, *m_testPass, 1280, 720);
 }
 
 void Renderer::createSwapchain()
@@ -161,26 +160,21 @@ void Renderer::createGraphicsPipeline()
 		auto pipelineInfo = PipelineProps{};
 		pipelineInfo.vertexPath = "resources/shaders/main/shader.vert.spv";
 		pipelineInfo.fragmentPath = "resources/shaders/main/shader.frag.spv";
-		pipelineInfo.renderPass = m_testPass->getRenderPass();
 		pipelineInfo.descriptorSetLayouts = { m_device->getUboVertexLayout(), m_device->getUboFragmentLayout(), m_device->getUboFragmentLayout(), m_device->getSamplerFragmentLayout(), m_device->getSamplerFragmentLayout() };
 		pipelineInfo.vertexInput = true;
 		pipelineInfo.culling = VK_CULL_MODE_BACK_BIT;
-		pipelineInfo.attachmentCount = 1;
 		m_testPipeline.reset(new Pipeline);
-		m_testPipeline->init(pipelineInfo);
+		m_testPipeline->init(pipelineInfo, m_framebufferProps, *m_testPass);
 	}
 	{
 		auto pipelineInfo = PipelineProps{};
 		pipelineInfo.vertexPath = "resources/shaders/combine/shader.vert.spv";
 		pipelineInfo.fragmentPath = "resources/shaders/combine/shader.frag.spv";
-		pipelineInfo.renderPass = m_swapchainPass->getRenderPass();
 		pipelineInfo.descriptorSetLayouts = { m_device->getSamplerFragmentLayout() };
 		pipelineInfo.vertexInput = false;
 		pipelineInfo.culling = VK_CULL_MODE_NONE;
-		pipelineInfo.attachmentCount = 1;
 		m_combinePipeline.reset(new Pipeline);
-		m_combinePipeline->init(pipelineInfo);
-
+		m_combinePipeline->init(pipelineInfo, m_framebufferProps, *m_swapchainPass);
 	}
 }
 

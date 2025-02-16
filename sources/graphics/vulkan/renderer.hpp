@@ -78,4 +78,5 @@ private:
 	std::unique_ptr<Texture> m_specularMap;
 
 	Light light{};
+	FramebufferProps m_framebufferProps{};
 };
