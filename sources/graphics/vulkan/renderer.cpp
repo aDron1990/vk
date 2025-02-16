@@ -129,17 +129,6 @@ void Renderer::createDevice()
 			BindingInfo
 			{
 				.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-			},
-			BindingInfo
-			{
-				.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-			},
-		}, VK_SHADER_STAGE_ALL_GRAPHICS },
-		DescriptorSetInfo
-		{{
-			BindingInfo
-			{
-				.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
 			}
 		}, VK_SHADER_STAGE_ALL_GRAPHICS },
 		DescriptorSetInfo

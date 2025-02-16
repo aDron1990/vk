@@ -19,9 +19,10 @@ class DescriptorPool
 public:
 	DescriptorPool(Device& device, const DescriptorPoolProps& props);
 	~DescriptorPool();
-
-	DescriptorSet createDescriptorSet(VkDescriptorSetLayout descriptorSetLayout);
+	DescriptorSet createSet(VkDescriptorSetLayout descriptorSetLayout);
 	VkDescriptorPool getPool();
+	VkDescriptorSetLayout getLayout(uint32_t setId);
+	std::vector<VkDescriptorSetLayout> getLayouts();
 
 private:
 	void createPool();
@@ -31,5 +32,5 @@ private:
 	Device& m_device;
 	VkDescriptorPool m_pool;
 	DescriptorPoolProps m_props;
-	std::vector<VkDescriptorSetLayout> m_setLayouts;
+	std::vector<VkDescriptorSetLayout> m_layouts;
 };

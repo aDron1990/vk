@@ -15,6 +15,8 @@ DescriptorPool::DescriptorPool(Device& device, const DescriptorPoolProps& props)
 DescriptorPool::~DescriptorPool()
 {
 	vkDestroyDescriptorPool(m_device.getDevice(), m_pool, nullptr);
+	for (auto layout : m_layouts)
+		vkDestroyDescriptorSetLayout(m_device.getDevice(), layout, nullptr);
 }
 
 void DescriptorPool::createPool()
@@ -53,7 +55,7 @@ void DescriptorPool::createPool()
 void DescriptorPool::createDescriptorSetLayouts()
 {
 	const auto setCount = m_props.setInfos.size();
-	m_setLayouts.resize(setCount);
+	m_layouts.resize(setCount);
 	for (size_t setId = 0; setId < setCount; setId++)
 	{
 		auto& setInfo = m_props.setInfos[setId];
@@ -73,12 +75,12 @@ void DescriptorPool::createDescriptorSetLayouts()
 		createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
 		createInfo.pBindings = bindings.data();
 		createInfo.bindingCount = static_cast<uint32_t>(bindings.size());
-		if (vkCreateDescriptorSetLayout(m_device.getDevice(), &createInfo, nullptr, &m_setLayouts[setId]) != VK_SUCCESS)
+		if (vkCreateDescriptorSetLayout(m_device.getDevice(), &createInfo, nullptr, &m_layouts[setId]) != VK_SUCCESS)
 			throw std::runtime_error{ "failed to create descriptor set layout" };
 	}
 }
 
-DescriptorSet DescriptorPool::createDescriptorSet(VkDescriptorSetLayout descriptorSetLayout)
+DescriptorSet DescriptorPool::createSet(VkDescriptorSetLayout descriptorSetLayout)
 {
 	auto descriptorSet = DescriptorSet{};
 	auto allocInfo = VkDescriptorSetAllocateInfo{};
@@ -94,6 +96,16 @@ DescriptorSet DescriptorPool::createDescriptorSet(VkDescriptorSetLayout descript
 		vkFreeDescriptorSets(device, pool, 1, &set);
 	};
 	return descriptorSet;
+}
+
+VkDescriptorSetLayout DescriptorPool::getLayout(uint32_t setId)
+{
+	return m_layouts[setId];
+}
+
+std::vector<VkDescriptorSetLayout> DescriptorPool::getLayouts()
+{
+	return m_layouts;
 }
 
 VkDescriptorPool DescriptorPool::getPool()

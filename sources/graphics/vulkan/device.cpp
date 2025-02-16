@@ -10,16 +10,12 @@ Device::Device(Context& context, VkSurfaceKHR surface, const DescriptorPoolProps
 	pickGpu();
 	createDevice();
 	createCommandPool();
-	createDescriptorSetLayouts();
 	m_descriptorPool.reset(new DescriptorPool{ *this, poolProps });
 }
 
 Device::~Device()
 {
 	m_descriptorPool.reset();
-	vkDestroyDescriptorSetLayout(m_device, m_uboVertexLayout, nullptr);
-	vkDestroyDescriptorSetLayout(m_device, m_uboFragmentLayout, nullptr);
-	vkDestroyDescriptorSetLayout(m_device, m_samplerFragmentLayout, nullptr);
 	vkDestroyCommandPool(m_device, m_commandPool, nullptr);
 	vkDestroyDevice(m_device, nullptr);
 	vkDestroySurfaceKHR(m_context.getInstance(), m_surface, nullptr);
@@ -228,52 +224,6 @@ void Device::createCommandPool()
 		throw std::runtime_error{ "failed to create vulkan command pool" };
 }
 
-void Device::createDescriptorSetLayouts()
-{
-	{
-		auto mvpBind = VkDescriptorSetLayoutBinding{};
-		mvpBind.binding = 0;
-		mvpBind.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		mvpBind.descriptorCount = 1;
-		mvpBind.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-
-		auto createInfo = VkDescriptorSetLayoutCreateInfo{};
-		createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-		createInfo.pBindings = &mvpBind;
-		createInfo.bindingCount = 1;
-		if (vkCreateDescriptorSetLayout(m_device, &createInfo, nullptr, &m_uboVertexLayout) != VK_SUCCESS)
-			throw std::runtime_error{ "failed to create descriptor set layout" };
-	}
-	{
-		auto lightBind = VkDescriptorSetLayoutBinding{};
-		lightBind.binding = 0;
-		lightBind.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		lightBind.descriptorCount = 1;
-		lightBind.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-
-		auto createInfo = VkDescriptorSetLayoutCreateInfo{};
-		createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-		createInfo.pBindings = &lightBind;
-		createInfo.bindingCount = 1;
-		if (vkCreateDescriptorSetLayout(m_device, &createInfo, nullptr, &m_uboFragmentLayout) != VK_SUCCESS)
-			throw std::runtime_error{ "failed to create descriptor set layout" };
-	}
-	{
-		auto samplerBind = VkDescriptorSetLayoutBinding{};
-		samplerBind.binding = 0;
-		samplerBind.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		samplerBind.descriptorCount = 1;
-		samplerBind.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-
-		auto createInfo = VkDescriptorSetLayoutCreateInfo{};
-		createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-		createInfo.pBindings = &samplerBind;
-		createInfo.bindingCount = 1;
-		if (vkCreateDescriptorSetLayout(m_device, &createInfo, nullptr, &m_samplerFragmentLayout) != VK_SUCCESS)
-			throw std::runtime_error{ "failed to create descriptor set layout" };
-	}
-}
-
 void Device::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& memory)
 {
 	auto createInfo = VkBufferCreateInfo{};
@@ -400,7 +350,7 @@ std::vector<VkCommandBuffer> Device::createCommandBuffers(uint32_t count)
 
 DescriptorSet Device::createDescriptorSet(VkDescriptorSetLayout layout)
 {
-	return m_descriptorPool->createDescriptorSet(layout);
+	return m_descriptorPool->createSet(layout);
 }
 
 VkCommandBuffer Device::beginSingleTimeCommands()
@@ -565,15 +515,15 @@ VkDescriptorPool Device::getDescriptorPool()
 
 VkDescriptorSetLayout Device::getUboVertexLayout()
 {
-	return m_uboVertexLayout;
+	return m_descriptorPool->getLayout(0);
 }
 
 VkDescriptorSetLayout Device::getUboFragmentLayout()
 {
-	return m_uboFragmentLayout;
+	return m_descriptorPool->getLayout(0);
 }
 
 VkDescriptorSetLayout Device::getSamplerFragmentLayout()
 {
-	return m_samplerFragmentLayout;
+	return m_descriptorPool->getLayout(1);
 }

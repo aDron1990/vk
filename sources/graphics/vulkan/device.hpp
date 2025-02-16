@@ -43,7 +43,6 @@ public:
 
 	VkDescriptorSetLayout getUboVertexLayout();
 	VkDescriptorSetLayout getUboFragmentLayout();
-	//VkDescriptorSetLayout getSamplerVertexLayout();
 	VkDescriptorSetLayout getSamplerFragmentLayout();
 
 private:
@@ -54,7 +53,6 @@ private:
 	bool isGpuSuitable(VkPhysicalDevice gpu);
 	void createDevice();
 	void createCommandPool();
-	void createDescriptorSetLayouts();
 
 private:
 	Context& m_context;
@@ -65,9 +63,4 @@ private:
 	VkQueue m_graphicsQueue;
 	VkQueue m_presentQueue;
 	VkCommandPool m_commandPool;
-
-	VkDescriptorSetLayout m_uboVertexLayout;
-	VkDescriptorSetLayout m_uboFragmentLayout;
-	//VkDescriptorSetLayout m_samplerVertexLayout;
-	VkDescriptorSetLayout m_samplerFragmentLayout;
 };
