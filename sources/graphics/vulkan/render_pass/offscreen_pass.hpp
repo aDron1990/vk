@@ -15,7 +15,6 @@ public:
 	void init(const FramebufferProps& framebufferProps);
 	void destroy();
 
-	Framebuffer createFramebuffer(uint32_t width, uint32_t height);
 	void begin(VkCommandBuffer commandBuffer, Framebuffer* framebuffer) override;
 	void end(VkCommandBuffer commandBuffer) override;
 	VkRenderPass getRenderPass() override;

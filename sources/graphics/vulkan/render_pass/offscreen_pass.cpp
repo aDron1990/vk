@@ -108,13 +108,6 @@ void OffscreenPass::createRenderPass()
 		throw std::runtime_error{ "failed to create vulkan render pass" };
 }
 
-Framebuffer OffscreenPass::createFramebuffer(uint32_t width, uint32_t height)
-{
-	auto framebuffer = Framebuffer{};
-	framebuffer.init(m_framebufferProps, *this, width, height);
-	return framebuffer;
-}
-
 void OffscreenPass::begin(VkCommandBuffer commandBuffer, Framebuffer* framebuffer)
 {
 	auto attachmentsCount = m_framebufferProps.colorAttachmentCount + static_cast<int>(m_framebufferProps.colorAttachmentCount);

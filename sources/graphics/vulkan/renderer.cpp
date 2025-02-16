@@ -137,7 +137,8 @@ void Renderer::createRenderPass()
 	m_testPass.reset(new OffscreenPass);
 	m_testPass->init(props);
 
-	m_testFramebuffer.reset(new Framebuffer{ m_testPass->createFramebuffer(1280, 720) });
+	m_testFramebuffer.reset(new Framebuffer);
+	m_testFramebuffer->init(props, *m_testPass, 1280, 720);
 }
 
 void Renderer::createSwapchain()
@@ -266,7 +267,6 @@ void Renderer::combine(VkCommandBuffer commandBuffer, RenderPass& renderPass, Pi
 	renderPass.begin(commandBuffer, nullptr);
 	setViewport(commandBuffer);
 	pipeline.bind(commandBuffer);
-	//m_testPass->bindColorImage(commandBuffer, pipeline.getLayout(), 0, 0);
 	m_testFramebuffer->getColorTexture(0).bind(commandBuffer, pipeline.getLayout(), 0);
 	vkCmdDraw(commandBuffer, 6, 1, 0, 0);
 	renderPass.end(commandBuffer);
