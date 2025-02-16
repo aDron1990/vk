@@ -8,27 +8,39 @@
 CMRC_DECLARE(images);
 
 #include <stdexcept>
+#include <cassert>
 
-Texture::Texture() : m_device{ Locator::getDevice() }
-{
-
-}
+Texture::Texture() : m_device{ Locator::getDevice() } {}
 
 Texture::~Texture()
 {
-	vkDestroySampler(m_device.getDevice(), m_sampler, nullptr);
-	vkDestroyImageView(m_device.getDevice(), m_imageView, nullptr);
-	vkDestroyImage(m_device.getDevice(), m_image, nullptr);
-	vkFreeMemory(m_device.getDevice(), m_imageMemory, nullptr);
+    destroy();
+}
+
+void Texture::destroy()
+{
+    if (m_initialized)
+    {
+        vkDestroySampler(m_device.getDevice(), m_sampler, nullptr);
+        vkDestroyImageView(m_device.getDevice(), m_imageView, nullptr);
+        vkDestroyImage(m_device.getDevice(), m_image, nullptr);
+        vkFreeMemory(m_device.getDevice(), m_imageMemory, nullptr);
+    }
 }
 
 void Texture::init(const std::string& imagePath, DescriptorSetPtr descriptorSet, uint32_t binding)
 {
+    if (m_initialized)
+    {
+        destroy();
+        m_initialized = false;
+    }
     m_descriptorSet = descriptorSet;
     createImage(imagePath);
     createImageView();
     createImageSampler();
     writeDescriptorSet(binding);
+    m_initialized = true;
 }
 
 void Texture::createImage(const std::string& imagePath)
@@ -36,28 +48,62 @@ void Texture::createImage(const std::string& imagePath)
     int width, height, channels;
     auto imageFile = cmrc::images::get_filesystem().open(imagePath);
     auto* pixels = stbi_load_from_memory(reinterpret_cast<const stbi_uc*>(imageFile.begin()), imageFile.size(), &width, &height, &channels, STBI_rgb_alpha);
-	VkDeviceSize size = width * height * 4;
-	if (pixels == nullptr)
-		throw std::runtime_error{ "failed to load image" };
+    VkDeviceSize size = width * height * 4;
+    if (pixels == nullptr)
+        throw std::runtime_error{ "failed to load image" };
 
-	auto stagingBuffer = Buffer{ m_device, size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
-	};
-	auto* data = stagingBuffer.map();
-	memcpy(data, pixels, static_cast<size_t>(size));
-	stagingBuffer.unmap();
-	stbi_image_free(pixels);
+    auto stagingBuffer = Buffer{ m_device, size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
+    };
+    auto* data = stagingBuffer.map();
+    memcpy(data, pixels, static_cast<size_t>(size));
+    stagingBuffer.unmap();
+    stbi_image_free(pixels);
 
-	m_mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(width, height)))) + 1;
-	m_device.createImage(width, height, m_mipLevels, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_TILING_OPTIMAL,
-		VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_image, m_imageMemory
-	);
+    m_mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(width, height)))) + 1;
+    m_device.createImage(width, height, m_mipLevels, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_TILING_OPTIMAL,
+        VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_image, m_imageMemory
+    );
 
-	m_device.transitionImageLayout(m_image, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, m_mipLevels);
-	m_device.copyBufferToImage(stagingBuffer, m_image, static_cast<uint32_t>(width), static_cast<uint32_t>(height));
+    m_device.transitionImageLayout(m_image, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, m_mipLevels);
+    m_device.copyBufferToImage(stagingBuffer, m_image, static_cast<uint32_t>(width), static_cast<uint32_t>(height));
 
-	generateMipmaps(m_image, VK_FORMAT_R8G8B8A8_UNORM, width, height, m_mipLevels);
+    generateMipmaps(m_image, VK_FORMAT_R8G8B8A8_UNORM, width, height, m_mipLevels);
+}
+
+void Texture::init(AttachmentType attachmentType, uint32_t width, uint32_t height, VkFormat format, DescriptorSetPtr descriptorSet, uint32_t binding)
+{
+    if (m_initialized)
+    {
+        destroy();
+        m_initialized = false;
+    }
+    m_descriptorSet = descriptorSet;
+    createImage(attachmentType, width, height, format);
+    createImageView();
+    createImageSampler();
+    writeDescriptorSet(binding);
+    m_initialized = true;
+}
+
+void Texture::createImage(AttachmentType attachmentType, uint32_t width, uint32_t height, VkFormat format)
+{
+    auto usage = VkImageUsageFlags{};
+    usage |= VK_IMAGE_USAGE_SAMPLED_BIT;
+    if (attachmentType == AttachmentType::Color)
+        usage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+    else if (attachmentType == AttachmentType::Depth)
+        usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+    else assert(false && "wrong attachment type");
+
+    m_device.createImage(
+        width, height, m_mipLevels, format, VK_IMAGE_TILING_OPTIMAL, 
+        usage, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_image, m_imageMemory
+    );
+
+    m_device.transitionImageLayout(m_image, format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, m_mipLevels);
+    generateMipmaps(m_image, format, width, height, m_mipLevels);
 }
 
 void Texture::generateMipmaps(VkImage image, VkFormat imageFormat, int32_t width, int32_t height, uint32_t mipLevels)
@@ -194,16 +240,19 @@ void Texture::writeDescriptorSet(uint32_t binding)
 
 void Texture::bind(VkCommandBuffer commandBuffer, VkPipelineLayout layout, uint32_t setId)
 {
+    assert(m_initialized);
     auto set = m_descriptorSet->getSet();
     vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, layout, setId, 1, &set, 0, nullptr);
 }
 
 VkImageView Texture::getImageView()
 {
+    assert(m_initialized);
 	return m_imageView;
 }
 
 VkSampler Texture::getSampler()
 {
-	return m_sampler;
+    assert(m_initialized);
+    return m_sampler;
 }

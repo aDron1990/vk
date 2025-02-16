@@ -4,12 +4,22 @@
 
 #include <string>
 
+enum AttachmentType
+{
+	Color,
+	Depth
+};
+
 class Texture
 {
 public:
 	Texture();
 	~Texture();
 	void init(const std::string& imagePath, DescriptorSetPtr descriptorSet, uint32_t binding = 0);
+	void destroy();
+
+	// init for using as render texture
+	void init(AttachmentType attachmentType, uint32_t width, uint32_t height, VkFormat format, DescriptorSetPtr descriptorSet, uint32_t binding = 0);
 
 	void bind(VkCommandBuffer commandBuffer, VkPipelineLayout layout, uint32_t setId);
 	VkImageView getImageView();
@@ -17,6 +27,7 @@ public:
 
 private:
 	void createImage(const std::string& imagePath);
+	void createImage(AttachmentType attachmentType, uint32_t width, uint32_t height, VkFormat format);
 	void createImageView();
 	void createImageSampler();
 	void generateMipmaps(VkImage image, VkFormat imageFormat, int32_t width, int32_t height, uint32_t mipLevels);
@@ -24,6 +35,8 @@ private:
 
 private:
 	Device& m_device;
+	bool m_initialized = false;
+
 	VkImage m_image{};
 	VkDeviceMemory m_imageMemory{};
 	VkImageView m_imageView{};
