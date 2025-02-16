@@ -1,4 +1,4 @@
-#include "graphics/vulkan/descriptor_pool.hpp"
+#include "graphics/vulkan/descriptor/descriptor_pool.hpp"
 #include "graphics/vulkan/device.hpp"	
 
 #include <stdexcept>

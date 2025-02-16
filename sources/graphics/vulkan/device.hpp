@@ -3,7 +3,7 @@
 #include "graphics/vulkan/config.hpp"
 #include "graphics/vulkan/types.hpp"
 #include "graphics/vulkan/context.hpp"
-#include "graphics/vulkan/descriptor_pool.hpp"
+#include "graphics/vulkan/descriptor/descriptor_pool.hpp"
 #include "graphics/vulkan/buffer.hpp"
 
 #include <memory>
