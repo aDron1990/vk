@@ -1,4 +1,5 @@
 #include "graphics/vulkan/renderer.hpp"
+#include "graphics/vulkan/render_pass/framebuffer.hpp"
 #include "window/window.hpp"
 
 #include <glm/gtc/matrix_transform.hpp>
@@ -60,6 +61,20 @@ Renderer::Renderer(Window& window) : m_window{window}
 	light.ambient = { 0.2f, 0.2f, 0.2f };
 	light.diffuse = { 0.5f, 0.5f, 0.5f };
 	light.specular = { 1.0f, 1.0f, 1.0f };
+
+
+
+
+	FramebufferProps props{};
+	props.colorAttachmentCount = 1;
+	props.height = 1280;
+	props.width = 720;
+	props.useDepthAttachment = true;
+	props.colorFormat = m_swapchain->getFormat();
+	props.depthFormat = VK_FORMAT_D32_SFLOAT;
+
+	Framebuffer framebuffer{};
+	framebuffer.init(props, *m_renderPass);
 }
 
 Renderer::~Renderer()

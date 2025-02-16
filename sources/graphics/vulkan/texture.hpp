@@ -27,8 +27,8 @@ public:
 
 private:
 	void createImage(const std::string& imagePath);
-	void createImage(AttachmentType attachmentType, uint32_t width, uint32_t height, VkFormat format);
-	void createImageView();
+	void createImage(AttachmentType attachmentType, uint32_t width, uint32_t height);
+	void createImageView(VkImageAspectFlags aspect);
 	void createImageSampler();
 	void generateMipmaps(VkImage image, VkFormat imageFormat, int32_t width, int32_t height, uint32_t mipLevels);
 	void writeDescriptorSet(uint32_t binding);
@@ -36,6 +36,7 @@ private:
 private:
 	Device& m_device;
 	bool m_initialized = false;
+	VkFormat m_format;
 
 	VkImage m_image{};
 	VkDeviceMemory m_imageMemory{};

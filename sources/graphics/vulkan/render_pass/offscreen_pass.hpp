@@ -15,7 +15,7 @@ public:
 	void bindColorImage(VkCommandBuffer commandBuffer, VkPipelineLayout layout, uint32_t setId, uint32_t index);
 	void bindDepthImage(VkCommandBuffer commandBuffer, VkPipelineLayout layout, uint32_t setId);
 	void resize(uint32_t newWidth, uint32_t newHeight);
-	VkRenderPass getRenderPass();
+	VkRenderPass getRenderPass() override;
 
 private:
 	void createRenderPass();

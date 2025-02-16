@@ -26,18 +26,16 @@ void Texture::destroy()
         vkDestroyImage(m_device.getDevice(), m_image, nullptr);
         vkFreeMemory(m_device.getDevice(), m_imageMemory, nullptr);
     }
+    m_initialized = false;
 }
 
 void Texture::init(const std::string& imagePath, DescriptorSetPtr descriptorSet, uint32_t binding)
 {
-    if (m_initialized)
-    {
-        destroy();
-        m_initialized = false;
-    }
+    assert(!m_initialized);
     m_descriptorSet = descriptorSet;
+    m_format = VK_FORMAT_R8G8B8A8_UNORM;
     createImage(imagePath);
-    createImageView();
+    createImageView(VK_IMAGE_ASPECT_COLOR_BIT);
     createImageSampler();
     writeDescriptorSet(binding);
     m_initialized = true;
@@ -61,33 +59,31 @@ void Texture::createImage(const std::string& imagePath)
     stbi_image_free(pixels);
 
     m_mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(width, height)))) + 1;
-    m_device.createImage(width, height, m_mipLevels, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_TILING_OPTIMAL,
+    m_device.createImage(width, height, m_mipLevels, m_format, VK_IMAGE_TILING_OPTIMAL,
         VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_image, m_imageMemory
     );
 
-    m_device.transitionImageLayout(m_image, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, m_mipLevels);
+    m_device.transitionImageLayout(m_image, m_format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, m_mipLevels);
     m_device.copyBufferToImage(stagingBuffer, m_image, static_cast<uint32_t>(width), static_cast<uint32_t>(height));
 
-    generateMipmaps(m_image, VK_FORMAT_R8G8B8A8_UNORM, width, height, m_mipLevels);
+    generateMipmaps(m_image, m_format, width, height, m_mipLevels);
 }
 
 void Texture::init(AttachmentType attachmentType, uint32_t width, uint32_t height, VkFormat format, DescriptorSetPtr descriptorSet, uint32_t binding)
 {
-    if (m_initialized)
-    {
-        destroy();
-        m_initialized = false;
-    }
+    assert(!m_initialized);
     m_descriptorSet = descriptorSet;
-    createImage(attachmentType, width, height, format);
-    createImageView();
+    m_format = format;
+    m_mipLevels = 1;
+    createImage(attachmentType, width, height);
+    createImageView(attachmentType == AttachmentType::Color ? VK_IMAGE_ASPECT_COLOR_BIT : VK_IMAGE_ASPECT_DEPTH_BIT);
     createImageSampler();
     writeDescriptorSet(binding);
     m_initialized = true;
 }
 
-void Texture::createImage(AttachmentType attachmentType, uint32_t width, uint32_t height, VkFormat format)
+void Texture::createImage(AttachmentType attachmentType, uint32_t width, uint32_t height)
 {
     auto usage = VkImageUsageFlags{};
     usage |= VK_IMAGE_USAGE_SAMPLED_BIT;
@@ -98,12 +94,12 @@ void Texture::createImage(AttachmentType attachmentType, uint32_t width, uint32_
     else assert(false && "wrong attachment type");
 
     m_device.createImage(
-        width, height, m_mipLevels, format, VK_IMAGE_TILING_OPTIMAL, 
+        width, height, m_mipLevels, m_format, VK_IMAGE_TILING_OPTIMAL, 
         usage, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_image, m_imageMemory
     );
 
-    m_device.transitionImageLayout(m_image, format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, m_mipLevels);
-    generateMipmaps(m_image, format, width, height, m_mipLevels);
+    auto aspect = attachmentType == AttachmentType::Color ? VK_IMAGE_ASPECT_COLOR_BIT : VK_IMAGE_ASPECT_DEPTH_BIT;
+    m_device.transitionImageLayout(m_image, m_format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, m_mipLevels, aspect);
 }
 
 void Texture::generateMipmaps(VkImage image, VkFormat imageFormat, int32_t width, int32_t height, uint32_t mipLevels)
@@ -187,9 +183,9 @@ void Texture::generateMipmaps(VkImage image, VkFormat imageFormat, int32_t width
     m_device.endSingleTimeCommands(commandBuffer);
 }
 
-void Texture::createImageView()
+void Texture::createImageView(VkImageAspectFlags aspect)
 {
-	m_imageView = m_device.createImageView(m_image, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT, m_mipLevels);
+	m_imageView = m_device.createImageView(m_image, m_format, aspect, m_mipLevels);
 }
 
 void Texture::createImageSampler()

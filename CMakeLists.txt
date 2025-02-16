@@ -57,6 +57,9 @@ add_executable(vk
 	"sources/graphics/vulkan/render_pass/offscreen_pass.cpp"
 	"sources/graphics/vulkan/render_pass/swapchain_pass.hpp"
 	"sources/graphics/vulkan/render_pass/swapchain_pass.cpp"
+	"sources/graphics/vulkan/render_pass/framebuffer_props.hpp"
+	"sources/graphics/vulkan/render_pass/framebuffer.hpp"
+	"sources/graphics/vulkan/render_pass/framebuffer.cpp"
 )
 
 set_property(TARGET vk PROPERTY CXX_STANDARD 23)

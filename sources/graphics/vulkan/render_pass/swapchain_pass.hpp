@@ -16,7 +16,7 @@ public:
 	void begin(VkCommandBuffer commandBuffer) override;
 	void end(VkCommandBuffer commandBuffer) override;
 	void setSwapchain(Swapchain* swapchain);
-	VkRenderPass getRenderPass();
+	VkRenderPass getRenderPass() override;
 
 private:
 	void createRenderPass();
