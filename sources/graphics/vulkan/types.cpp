@@ -1,4 +1,4 @@
-#include "renderer/types.hpp"
+#include "graphics/vulkan/types.hpp"
 
 VkVertexInputBindingDescription Vertex::getBindDesc()
 {

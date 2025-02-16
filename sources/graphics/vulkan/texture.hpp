@@ -1,6 +1,6 @@
 #pragma once
 
-#include "renderer/device.hpp"
+#include "graphics/vulkan/device.hpp"
 
 #include <string>
 

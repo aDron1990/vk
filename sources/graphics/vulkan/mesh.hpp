@@ -1,8 +1,8 @@
 #pragma once
 
-#include "renderer/types.hpp"
-#include "renderer/device.hpp"
-#include "renderer/buffer.hpp"
+#include "graphics/vulkan/types.hpp"
+#include "graphics/vulkan/device.hpp"
+#include "graphics/vulkan/buffer.hpp"
 
 #include <memory>
 #include <string>

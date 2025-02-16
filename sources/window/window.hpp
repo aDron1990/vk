@@ -1,7 +1,7 @@
 #pragma once
 
 #include "window/input.hpp"
-#include "renderer/renderer.hpp"
+#include "graphics/vulkan/renderer.hpp"
 
 #include <GLFW/glfw3.h>
 

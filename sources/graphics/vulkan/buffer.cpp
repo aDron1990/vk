@@ -1,5 +1,5 @@
-#include "renderer/buffer.hpp"
-#include "renderer/device.hpp"
+#include "graphics/vulkan/buffer.hpp"
+#include "graphics/vulkan/device.hpp"
 
 #include <stdexcept>
 

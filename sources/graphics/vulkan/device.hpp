@@ -1,10 +1,10 @@
 #pragma once
 
-#include "renderer/config.hpp"
-#include "renderer/types.hpp"
-#include "renderer/context.hpp"
-#include "renderer/descriptor_pool.hpp"
-#include "renderer/buffer.hpp"
+#include "graphics/vulkan/config.hpp"
+#include "graphics/vulkan/types.hpp"
+#include "graphics/vulkan/context.hpp"
+#include "graphics/vulkan/descriptor_pool.hpp"
+#include "graphics/vulkan/buffer.hpp"
 
 #include <memory>
 

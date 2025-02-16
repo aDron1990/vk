@@ -1,7 +1,7 @@
 #pragma once
 
-#include "renderer/types.hpp"
-#include "renderer/device.hpp"
+#include "graphics/vulkan/types.hpp"
+#include "graphics/vulkan/device.hpp"
 
 #include <vulkan/vulkan.h>
 

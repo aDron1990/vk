@@ -1,4 +1,4 @@
-#include "renderer/object.hpp"
+#include "graphics/vulkan/object.hpp"
 
 Object::Object(Device& device, Model& model) : m_model{ model }, m_mvpBuffer{ device, device.getUboVertexLayout() }, m_materialBuffer{ device, device.getUboFragmentLayout() }
 {

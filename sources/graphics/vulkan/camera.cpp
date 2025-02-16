@@ -1,4 +1,4 @@
-#include "renderer/camera.hpp"
+#include "graphics/vulkan/camera.hpp"
 
 #include <glm/gtc/matrix_transform.hpp>
 #include <chrono>

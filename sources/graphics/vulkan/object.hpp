@@ -1,6 +1,6 @@
 #pragma once
 
-#include <renderer/model.hpp>
+#include <graphics/vulkan/model.hpp>
 
 class Object
 {

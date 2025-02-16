@@ -1,4 +1,4 @@
-#include "renderer/model.hpp"
+#include "graphics/vulkan/model.hpp"
 
 #include <glm/gtc/matrix_transform.hpp>
 #include <chrono>

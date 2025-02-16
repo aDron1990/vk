@@ -1,7 +1,7 @@
 #pragma once
 
-#include "renderer/render_pass.hpp"
-#include "renderer/device.hpp"
+#include "graphics/vulkan/render_pass.hpp"
+#include "graphics/vulkan/device.hpp"
 
 #include <vector>
 

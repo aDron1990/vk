@@ -1,8 +1,8 @@
 #pragma once
 
-#include "renderer/render_pass.hpp"
-#include "renderer/device.hpp"
-#include "renderer/swapchain.hpp"
+#include "graphics/vulkan/render_pass.hpp"
+#include "graphics/vulkan/device.hpp"
+#include "graphics/vulkan/swapchain.hpp"
 
 #include <vulkan/vulkan.h>
 

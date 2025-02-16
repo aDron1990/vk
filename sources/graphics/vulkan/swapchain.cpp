@@ -1,4 +1,4 @@
-#include "renderer/swapchain.hpp"
+#include "graphics/vulkan/swapchain.hpp"
 
 #include <stdexcept>
 #include <algorithm>

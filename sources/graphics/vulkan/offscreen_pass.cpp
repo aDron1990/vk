@@ -1,5 +1,5 @@
-#include "renderer/offscreen_pass.hpp"
-#include "renderer/swapchain.hpp"
+#include "graphics/vulkan/offscreen_pass.hpp"
+#include "graphics/vulkan/swapchain.hpp"
 
 
 #include <stdexcept>

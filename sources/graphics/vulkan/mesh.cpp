@@ -1,4 +1,4 @@
-#include "renderer/mesh.hpp"
+#include "graphics/vulkan/mesh.hpp"
 
 #define TINYOBJLOADER_IMPLEMENTATION
 #include <tiny_obj_loader.h>

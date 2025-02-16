@@ -1,9 +1,9 @@
 #pragma once
 
-#include "renderer/types.hpp"
-#include "renderer/texture.hpp"
-#include "renderer/mesh.hpp"
-#include "renderer/uniform_buffer.hpp"
+#include "graphics/vulkan/types.hpp"
+#include "graphics/vulkan/texture.hpp"
+#include "graphics/vulkan/mesh.hpp"
+#include "graphics/vulkan/uniform_buffer.hpp"
 
 #include <vulkan/vulkan.h>
 
