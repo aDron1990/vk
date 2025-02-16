@@ -13,7 +13,7 @@ class SwapchainPass : public RenderPass
 public:
 	SwapchainPass(Device& device);
 	~SwapchainPass();
-	void begin(VkCommandBuffer commandBuffer) override;
+	void begin(VkCommandBuffer commandBuffer, Framebuffer* framebuffer) override;
 	void end(VkCommandBuffer commandBuffer) override;
 	void setSwapchain(Swapchain* swapchain);
 	VkRenderPass getRenderPass() override;

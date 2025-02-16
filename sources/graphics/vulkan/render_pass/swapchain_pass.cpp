@@ -72,7 +72,7 @@ void SwapchainPass::createRenderPass()
 		throw std::runtime_error{ "failed to create vulkan render pass" };
 }
 
-void SwapchainPass::begin(VkCommandBuffer commandBuffer)
+void SwapchainPass::begin(VkCommandBuffer commandBuffer, Framebuffer* framebuffer)
 {
 	auto clearValues =
 		std::array<VkClearValue, 2>{

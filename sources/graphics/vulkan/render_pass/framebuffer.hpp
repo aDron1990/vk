@@ -20,6 +20,7 @@ public:
 	VkFramebuffer getFramebuffer();
 	Texture& getColorTexture(uint32_t id);
 	Texture& getDepthTexture();
+	VkExtent2D getExtent();
 
 private:
 	void createTextures();

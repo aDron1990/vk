@@ -68,6 +68,7 @@ private:
 	std::unique_ptr<Device> m_device;
 	std::unique_ptr<SwapchainPass> m_swapchainPass;
 	std::unique_ptr<OffscreenPass> m_testPass;
+	std::unique_ptr<Framebuffer> m_testFramebuffer;
 	std::unique_ptr<Swapchain> m_swapchain;
 	std::unique_ptr<Pipeline> m_combinePipeline;
 	std::unique_ptr<Pipeline> m_testPipeline;

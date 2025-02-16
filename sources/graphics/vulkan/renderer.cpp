@@ -62,11 +62,6 @@ Renderer::Renderer(Window& window) : m_window{window}
 	light.ambient = { 0.2f, 0.2f, 0.2f };
 	light.diffuse = { 0.5f, 0.5f, 0.5f };
 	light.specular = { 1.0f, 1.0f, 1.0f };
-
-
-
-
-	
 }
 
 Renderer::~Renderer()
@@ -84,6 +79,7 @@ Renderer::~Renderer()
 	m_object.reset();
 	m_swapchainPass.reset();
 	m_testPass.reset();
+	m_testFramebuffer.reset();
 	m_combinePipeline.reset();
 	m_testPipeline.reset();
 
@@ -142,6 +138,8 @@ void Renderer::createRenderPass()
 
 	m_testPass.reset(new OffscreenPass);
 	m_testPass->init(props);
+
+	m_testFramebuffer.reset(new Framebuffer{ m_testPass->createFramebuffer() });
 }
 
 void Renderer::createSwapchain()
@@ -228,7 +226,7 @@ void Renderer::renderScene(VkCommandBuffer commandBuffer, RenderPass& renderPass
 	auto delta = std::chrono::duration<float, std::chrono::seconds::period>(now - lastTime).count();
 	lastTime = now;
 
-	renderPass.begin(commandBuffer);
+	renderPass.begin(commandBuffer, m_testFramebuffer.get());
 	setViewport(commandBuffer);
 
 	static auto& input = m_window.getInput();
@@ -267,10 +265,11 @@ void Renderer::renderScene(VkCommandBuffer commandBuffer, RenderPass& renderPass
 
 void Renderer::combine(VkCommandBuffer commandBuffer, RenderPass& renderPass, Pipeline& pipeline)
 {
-	renderPass.begin(commandBuffer);
+	renderPass.begin(commandBuffer, nullptr);
 	setViewport(commandBuffer);
 	pipeline.bind(commandBuffer);
-	m_testPass->bindColorImage(commandBuffer, pipeline.getLayout(), 0, 0);
+	//m_testPass->bindColorImage(commandBuffer, pipeline.getLayout(), 0, 0);
+	m_testFramebuffer->getColorTexture(0).bind(commandBuffer, pipeline.getLayout(), 0);
 	vkCmdDraw(commandBuffer, 6, 1, 0, 0);
 	renderPass.end(commandBuffer);
 }

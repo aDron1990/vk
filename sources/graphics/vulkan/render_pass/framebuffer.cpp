@@ -103,3 +103,8 @@ Texture& Framebuffer::getDepthTexture()
 	assert(m_initialized);
 	return m_depthAttachment;
 }
+
+VkExtent2D Framebuffer::getExtent()
+{
+	return { m_props.width, m_props.height };
+}

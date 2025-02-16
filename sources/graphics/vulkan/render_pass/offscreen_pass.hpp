@@ -16,12 +16,10 @@ public:
 	void destroy();
 	void resize(uint32_t newWidth, uint32_t newHeight);
 
-	//Framebuffer createFramebuffer();
-	void begin(VkCommandBuffer commandBuffer) override;
+	Framebuffer createFramebuffer();
+	void begin(VkCommandBuffer commandBuffer, Framebuffer* framebuffer) override;
 	void end(VkCommandBuffer commandBuffer) override;
 	VkRenderPass getRenderPass() override;
-	void bindColorImage(VkCommandBuffer commandBuffer, VkPipelineLayout layout, uint32_t setId, uint32_t index);
-	void bindDepthImage(VkCommandBuffer commandBuffer, VkPipelineLayout layout, uint32_t setId);
 
 private:
 	void createRenderPass();
@@ -29,8 +27,6 @@ private:
 private:
 	Device& m_device;
 	bool m_initialized = false;
-
 	FramebufferProps m_framebufferProps{};
 	VkRenderPass m_renderPass{};
-	Framebuffer m_framebuffer{};
 };

@@ -25,7 +25,7 @@ void OffscreenPass::init(const FramebufferProps& framebufferProps)
 	assert(!m_initialized);
 	m_framebufferProps = framebufferProps;
 	createRenderPass();
-	m_framebuffer.init(framebufferProps, *this);
+	
 	m_initialized = true;
 }
 
@@ -108,22 +108,26 @@ void OffscreenPass::createRenderPass()
 		throw std::runtime_error{ "failed to create vulkan render pass" };
 }
 
-void OffscreenPass::begin(VkCommandBuffer commandBuffer)
+Framebuffer OffscreenPass::createFramebuffer()
+{
+	auto framebuffer = Framebuffer{};
+	framebuffer.init(m_framebufferProps, *this);
+	return framebuffer;
+}
+
+void OffscreenPass::begin(VkCommandBuffer commandBuffer, Framebuffer* framebuffer)
 {
 	auto attachmentsCount = m_framebufferProps.colorAttachmentCount + static_cast<int>(m_framebufferProps.colorAttachmentCount);
 	auto clearValues = std::vector<VkClearValue>(attachmentsCount,
 			VkClearValue{.color = {{0.0f, 0.0f, 0.0f, 1.0f}}});
 	clearValues.back() = VkClearValue{ .depthStencil = {1.0f, 0} };
 
-	auto extent = VkExtent2D{};
-	extent.width = m_framebufferProps.width;
-	extent.height = m_framebufferProps.height;
 	auto renderPassInfo = VkRenderPassBeginInfo{};
 	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 	renderPassInfo.renderPass = m_renderPass;
-	renderPassInfo.framebuffer = m_framebuffer.getFramebuffer();
+	renderPassInfo.framebuffer = framebuffer->getFramebuffer();
 	renderPassInfo.renderArea.offset = { 0, 0 };
-	renderPassInfo.renderArea.extent = extent;
+	renderPassInfo.renderArea.extent = framebuffer->getExtent();
 	renderPassInfo.pClearValues = clearValues.data();
 	renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
 	vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
@@ -134,22 +138,8 @@ void OffscreenPass::end(VkCommandBuffer commandBuffer)
 	vkCmdEndRenderPass(commandBuffer);
 }
 
-void OffscreenPass::bindColorImage(VkCommandBuffer commandBuffer, VkPipelineLayout layout, uint32_t setId, uint32_t index)
-{
-	m_framebuffer.getColorTexture(index).bind(commandBuffer, layout, setId);
-}
-
-void OffscreenPass::bindDepthImage(VkCommandBuffer commandBuffer, VkPipelineLayout layout, uint32_t setId)
-{
-	if (m_framebufferProps.useDepthAttachment)
-	{
-		m_framebuffer.getDepthTexture().bind(commandBuffer, layout, setId);
-	}
-}
-
 void OffscreenPass::resize(uint32_t newWidth, uint32_t newHeight)
 {
-	m_framebuffer.resize(newWidth, newHeight);
 	m_framebufferProps.width = newWidth;
 	m_framebufferProps.height = newHeight;
 }
