@@ -1,4 +1,5 @@
 #include "graphics/vulkan/texture.hpp"
+#include "graphics/vulkan/locator.hpp"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
@@ -8,12 +9,9 @@ CMRC_DECLARE(images);
 
 #include <stdexcept>
 
-Texture::Texture(Device& device, const std::string& imagePath, DescriptorSetPtr descriptorSet, uint32_t binding) : m_device{device}, m_descriptorSet{descriptorSet}
+Texture::Texture() : m_device{ Locator::getDevice() }
 {
-	createImage(imagePath);
-	createImageView();
-	createImageSampler();
-    writeDescriptorSet(binding);
+
 }
 
 Texture::~Texture()
@@ -22,6 +20,15 @@ Texture::~Texture()
 	vkDestroyImageView(m_device.getDevice(), m_imageView, nullptr);
 	vkDestroyImage(m_device.getDevice(), m_image, nullptr);
 	vkFreeMemory(m_device.getDevice(), m_imageMemory, nullptr);
+}
+
+void Texture::init(const std::string& imagePath, DescriptorSetPtr descriptorSet, uint32_t binding)
+{
+    m_descriptorSet = descriptorSet;
+    createImage(imagePath);
+    createImageView();
+    createImageSampler();
+    writeDescriptorSet(binding);
 }
 
 void Texture::createImage(const std::string& imagePath)

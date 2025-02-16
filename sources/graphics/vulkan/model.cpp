@@ -4,8 +4,10 @@
 #include <chrono>
 
 Model::Model(Device& device, const std::string& modelPath, const std::string& texturePath)
-: m_device{ device }, m_mesh{ new Mesh{device, modelPath} }, m_texture{ new Texture{device, texturePath, device.createDescriptorSet(device.getSamplerFragmentLayout())} }
-{}
+: m_device{ device }, m_mesh{ new Mesh{device, modelPath} }, m_texture{ new Texture{} }
+{
+	m_texture->init(texturePath, device.createDescriptorSet(device.getSamplerFragmentLayout()));
+}
 
 void Model::bindTexture(VkCommandBuffer commandBuffer, VkPipelineLayout layout, uint32_t  set)
 {
