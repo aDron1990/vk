@@ -9,8 +9,10 @@
 class Context
 {
 public:
-	Context();
 	~Context();
+	void init();
+	void destroy();
+
 	VkInstance getInstance();
 
 private:
@@ -30,6 +32,7 @@ private:
 		void* pUserData);
 
 private:
-	VkInstance m_instance;
-	VkDebugUtilsMessengerEXT m_debugMessenger;
+	bool m_initialized = false;
+	VkInstance m_instance{};
+	VkDebugUtilsMessengerEXT m_debugMessenger{};
 };

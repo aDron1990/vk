@@ -97,7 +97,8 @@ Renderer::~Renderer()
 
 void Renderer::createContext()
 {
-	m_context.reset(new Context{});
+	m_context.reset(new Context);
+	m_context->init();
 }
 
 void Renderer::createDevice()

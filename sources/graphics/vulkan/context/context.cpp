@@ -5,18 +5,30 @@
 
 #include <stdexcept>
 #include <print>
-
-Context::Context()
-{
-	createInstance();
-	setupDebugMessenger();
-	Locator::setContext(this);
-}
+#include <cassert>
 
 Context::~Context()
 {
-	if (USE_VALIDATION_LAYERS) destroyDebugUtilsMessengerEXT(m_instance, m_debugMessenger, nullptr);
-	vkDestroyInstance(m_instance, nullptr);
+	destroy();
+}
+
+void Context::destroy()
+{
+	if (m_initialized)
+	{
+		if (USE_VALIDATION_LAYERS) destroyDebugUtilsMessengerEXT(m_instance, m_debugMessenger, nullptr);
+		vkDestroyInstance(m_instance, nullptr);
+	}
+	m_initialized = false;
+}
+
+void Context::init()
+{
+	assert(!m_initialized);
+	m_initialized = true;
+	createInstance();
+	setupDebugMessenger();
+	Locator::setContext(this);
 }
 
 void Context::createInstance()
@@ -140,5 +152,6 @@ void Context::destroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMes
 
 VkInstance Context::getInstance()
 {
+	assert(m_initialized);
 	return m_instance;
 }
