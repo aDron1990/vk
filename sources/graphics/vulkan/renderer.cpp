@@ -103,7 +103,6 @@ void Renderer::createDevice()
 		throw std::runtime_error{ "failed to create vulkan surface" };
 
 	auto poolProps = DescriptorPoolProps{};
-	poolProps.setCountMultiplier = 128;
 	poolProps.setInfos =
 	{
 		DescriptorSetInfo
@@ -112,14 +111,14 @@ void Renderer::createDevice()
 			{
 				.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 			}
-		}, VK_SHADER_STAGE_ALL_GRAPHICS },
+		}, VK_SHADER_STAGE_ALL_GRAPHICS, 100 },
 		DescriptorSetInfo
 		{{
 			BindingInfo
 			{
 				.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
 			}
-		}, VK_SHADER_STAGE_ALL_GRAPHICS }
+		}, VK_SHADER_STAGE_ALL_GRAPHICS, 100 }
 	};
 
 	m_device.reset(new Device{*m_context, surface, poolProps});

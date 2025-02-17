@@ -13,10 +13,10 @@ struct DescriptorSetInfo
 {
 	std::vector<BindingInfo> bindings;
 	VkPipelineStageFlags stages;
+	uint32_t setCount;
 };
 
 struct DescriptorPoolProps
 {
 	std::vector<DescriptorSetInfo> setInfos;
-	uint32_t setCountMultiplier;
 };

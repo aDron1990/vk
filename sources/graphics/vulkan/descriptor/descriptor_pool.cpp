@@ -36,31 +36,30 @@ void DescriptorPool::init(const DescriptorPoolProps& props)
 void DescriptorPool::createPool()
 {
 	// Calculate each descriptor type count
-	auto bindingCount = 0;
 	auto poolSizesMap = std::unordered_map<VkDescriptorType, uint32_t>{};
 	for (auto& set : m_props.setInfos)
 	{
 		for (auto& binding : set.bindings)
 		{
-			bindingCount++;
-			if (poolSizesMap.count(binding.descriptorType) == 0) poolSizesMap[binding.descriptorType] = 1;
-			else poolSizesMap[binding.descriptorType]++;
+			if (poolSizesMap.count(binding.descriptorType) == 0) poolSizesMap[binding.descriptorType] = 0;
+			poolSizesMap[binding.descriptorType] += set.setCount;
 		}
 	}
 
 	auto poolSizes = std::vector<VkDescriptorPoolSize>(poolSizesMap.size());
-	for (auto size : std::views::zip(poolSizesMap, poolSizes))
+	uint32_t totalSetCount = 0;
+	for (auto [sizeMap, poolSize] : std::views::zip(poolSizesMap, poolSizes))
 	{
-		auto& poolSize = std::get<1>(size);
-		poolSize.type = std::get<0>(size).first;
-		poolSize.descriptorCount = std::get<0>(size).second * m_props.setCountMultiplier;
+		poolSize.type = sizeMap.first;
+		poolSize.descriptorCount = sizeMap.second;
+		totalSetCount += poolSize.descriptorCount;
 	}
 
 	auto createInfo = VkDescriptorPoolCreateInfo{};
 	createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
 	createInfo.pPoolSizes = poolSizes.data();
 	createInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
-	createInfo.maxSets = static_cast<uint32_t>(m_props.setCountMultiplier * bindingCount);
+	createInfo.maxSets = totalSetCount;
 	createInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
 	if (vkCreateDescriptorPool(m_device.getDevice(), &createInfo, nullptr, &m_pool) != VK_SUCCESS)
 		throw std::runtime_error{ "failed to create descriptor pool" };
