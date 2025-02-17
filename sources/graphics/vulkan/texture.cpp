@@ -40,7 +40,7 @@ void Texture::init(const std::string& imagePath, DescriptorSetPtr descriptorSet,
     m_format = VK_FORMAT_R8G8B8A8_UNORM;
     createImage(imagePath);
     createImageView(VK_IMAGE_ASPECT_COLOR_BIT);
-    createImageSampler();
+    createImageSampler(false);
     writeDescriptorSet(binding);
 }
 
@@ -54,7 +54,7 @@ void Texture::init(AttachmentType attachmentType, uint32_t width, uint32_t heigh
     m_mipLevels = 1;
     createImage(attachmentType, width, height);
     createImageView(attachmentType == AttachmentType::Color ? VK_IMAGE_ASPECT_COLOR_BIT : VK_IMAGE_ASPECT_DEPTH_BIT);
-    createImageSampler();
+    createImageSampler(attachmentType == AttachmentType::Depth);
     writeDescriptorSet(binding);
     m_initialized = true;
 }
@@ -207,7 +207,7 @@ void Texture::createImageView(VkImageAspectFlags aspect)
 	m_imageView = m_device->createImageView(m_image, m_format, aspect, m_mipLevels);
 }
 
-void Texture::createImageSampler()
+void Texture::createImageSampler(bool depth)
 {
 	auto gpuProps = VkPhysicalDeviceProperties{};
 	vkGetPhysicalDeviceProperties(m_device->getGpu(), &gpuProps);
@@ -216,12 +216,12 @@ void Texture::createImageSampler()
 	createInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
 	createInfo.magFilter = VK_FILTER_LINEAR;
 	createInfo.minFilter = VK_FILTER_LINEAR;
-	createInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-	createInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-	createInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+	createInfo.addressModeU = depth ? VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER : VK_SAMPLER_ADDRESS_MODE_REPEAT;
+	createInfo.addressModeV = depth ? VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER : VK_SAMPLER_ADDRESS_MODE_REPEAT;
+	createInfo.addressModeW = depth ? VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER : VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    createInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
 	createInfo.anisotropyEnable = VK_TRUE;
 	createInfo.maxAnisotropy = gpuProps.limits.maxSamplerAnisotropy;
-	createInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
 	createInfo.unnormalizedCoordinates = VK_FALSE;
 	createInfo.compareEnable = VK_FALSE;
 	createInfo.compareOp = VK_COMPARE_OP_ALWAYS;

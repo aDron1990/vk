@@ -27,7 +27,7 @@ private:
 	void createImage(const std::string& imagePath);
 	void createImage(AttachmentType attachmentType, uint32_t width, uint32_t height);
 	void createImageView(VkImageAspectFlags aspect);
-	void createImageSampler();
+	void createImageSampler(bool depth);
 	void generateMipmaps(VkImage image, VkFormat imageFormat, int32_t width, int32_t height, uint32_t mipLevels);
 	void writeDescriptorSet(uint32_t binding);
 

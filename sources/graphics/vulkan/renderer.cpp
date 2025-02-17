@@ -153,7 +153,6 @@ void Renderer::createSwapchain()
 	m_swapchain.init(m_renderFramebufferProps, m_swapchainPass, [&](uint32_t width, uint32_t height)
 	{
 			m_renderFramebuffer.resize(width, height);
-			//m_shadowFramebuffer.resize(width, height);
 	});
 }
 
@@ -253,7 +252,7 @@ glm::lookAt(
 
 auto Proj = 
 #if 1 
-glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 6.0f, 10.0f);
+glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, -2.0f, 8.0f);
 #else
 glm::perspective(glm::radians(60.0f), 1.0f, 0.5f, 10.f);
 #endif
@@ -265,9 +264,14 @@ void Renderer::renderShadows(VkCommandBuffer commandBuffer, RenderPass& renderPa
 	pipeline.bind(commandBuffer);
 	
 	auto mvp = MVP{};
-	mvp.view = View;
 	mvp.proj = Proj;
 	mvp.proj[1][1] *= -1.0f;
+	mvp.view =
+		glm::lookAt(
+			-light.direction * 2.0f,
+			glm::vec3{ 0.0f, 0.0f, 0.0f },
+			glm::vec3{ 0.0f, 1.0f, 0.0f }
+		);
 
 	mvp.model = m_object.getModelMatrix();
 	m_shadowMvp.write(mvp);
@@ -319,7 +323,12 @@ void Renderer::renderScene(VkCommandBuffer commandBuffer, RenderPass& renderPass
 
 	pipeline.bind(commandBuffer);
 	{
-		auto view = View;
+		auto view =
+			glm::lookAt(
+				glm::normalize(-light.direction) * 2.0f,
+				glm::vec3{ 0.0f, 0.0f, 0.0f },
+				glm::vec3{ 0.0f, 1.0f, 0.0f }
+			);
 		auto proj = Proj;
 		proj[1][1] *= -1;
 		alignas (16) glm::mat4 lightSpace = proj * view;
@@ -365,19 +374,19 @@ void Renderer::render()
 	ImGui_ImplGlfw_NewFrame();
 	ImGui::NewFrame();
 
-	auto pos = m_object.getPosition();
-	auto cachePos = m_object.getPosition();
+	auto pos = m_plane.getPosition();
+	auto cachePos = m_plane.getPosition();
 
 	ImGui::Begin("Object");
 	ImGui::DragFloat3("position", &pos.x, 0.1f);
 	ImGui::Separator();
-	ImGui::DragFloat("shininess", &m_object.material.shininess, 0.5f, 0.5f, 128.0f);
+	//ImGui::DragFloat("shininess", &m_plane.material.shininess, 0.5f, 0.5f, 128.0f);
 	ImGui::End();
 
-	if (pos != cachePos) m_object.setPosition(pos);
+	if (pos != cachePos) m_plane.setPosition(pos);
 	
 	ImGui::Begin("Light");
-	ImGui::DragFloat3("direction", (float*)&light.direction);
+	ImGui::DragFloat3("direction", (float*)&light.direction, 0.05f, -1.f, 1.f);
 	ImGui::ColorEdit3("ambient", (float*)&light.ambient);
 	ImGui::ColorEdit3("diffuse", (float*)&light.diffuse);
 	ImGui::ColorEdit3("specular", (float*)&light.specular);
