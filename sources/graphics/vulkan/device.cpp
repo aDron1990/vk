@@ -11,8 +11,9 @@ Device::Device(Context& context, VkSurfaceKHR surface, const DescriptorPoolProps
 	pickGpu();
 	createDevice();
 	createCommandPool();
-	m_descriptorPool.reset(new DescriptorPool{ *this, poolProps });
 	Locator::setDevice(this);
+	m_descriptorPool.reset(new DescriptorPool);
+	m_descriptorPool->init(poolProps);
 }
 
 Device::~Device()

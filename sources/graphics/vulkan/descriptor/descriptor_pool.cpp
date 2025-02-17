@@ -1,22 +1,36 @@
 #include "graphics/vulkan/descriptor/descriptor_pool.hpp"
-#include "graphics/vulkan/device.hpp"	
+#include "graphics/vulkan/device.hpp"
+#include "graphics/vulkan/locator.hpp"
 
 #include <stdexcept>
 #include <vector>
 #include <ranges>
 
-DescriptorPool::DescriptorPool(Device& device, const DescriptorPoolProps& props)
-: m_device{device}, m_props{props}
-{
-	createPool();
-	createDescriptorSetLayouts();
-}
+DescriptorPool::DescriptorPool() : m_device{ Locator::getDevice() } {}
 
 DescriptorPool::~DescriptorPool()
 {
-	vkDestroyDescriptorPool(m_device.getDevice(), m_pool, nullptr);
-	for (auto layout : m_layouts)
-		vkDestroyDescriptorSetLayout(m_device.getDevice(), layout, nullptr);
+	destroy();
+}
+
+void DescriptorPool::destroy()
+{
+	if (m_initialized)
+	{
+		vkDestroyDescriptorPool(m_device.getDevice(), m_pool, nullptr);
+		for (auto layout : m_layouts)
+			vkDestroyDescriptorSetLayout(m_device.getDevice(), layout, nullptr);
+	}
+	m_initialized = false;
+}
+
+void DescriptorPool::init(const DescriptorPoolProps& props)
+{
+	assert(!m_initialized);
+	m_props = props;
+	createPool();
+	createDescriptorSetLayouts();
+	m_initialized = true;
 }
 
 void DescriptorPool::createPool()
