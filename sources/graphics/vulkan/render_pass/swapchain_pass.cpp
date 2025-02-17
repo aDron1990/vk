@@ -1,20 +1,33 @@
 #include "graphics/vulkan/render_pass/swapchain_pass.hpp"
+#include "graphics/vulkan/locator.hpp"
 
 #include <stdexcept>
 
-SwapchainPass::SwapchainPass(Device& device) : m_device{device}
-{
-	createRenderPass();
-}
-
 SwapchainPass::~SwapchainPass()
 {
-	vkDestroyRenderPass(m_device.getDevice(), m_renderPass, nullptr);
+	destroy();
+}
+
+void SwapchainPass::destroy()
+{
+	if (m_initialized)
+	{
+		vkDestroyRenderPass(m_device->getDevice(), m_renderPass, nullptr);
+	}
+	m_initialized = false;
+}
+
+void SwapchainPass::init()
+{
+	assert(!m_initialized);
+	m_initialized = true;
+	m_device = &Locator::getDevice();
+	createRenderPass();
 }
 
 void SwapchainPass::createRenderPass()
 {
-	auto details = m_device.querySwapchainSupport(m_device.getGpu());
+	auto details = m_device->querySwapchainSupport(m_device->getGpu());
 	auto format = Swapchain::chooseSwapchainSurfaceFormat(details.formats);
 	auto colorAttachment = VkAttachmentDescription{};
 	colorAttachment.format = format.format;
@@ -31,7 +44,7 @@ void SwapchainPass::createRenderPass()
 	colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
 	auto depthAttachment = VkAttachmentDescription{};
-	depthAttachment.format = m_device.findDepthFormat();
+	depthAttachment.format = m_device->findDepthFormat();
 	depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
 	depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 	depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
@@ -68,7 +81,7 @@ void SwapchainPass::createRenderPass()
 	createInfo.pDependencies = &dependency;
 	createInfo.dependencyCount = 1;
 
-	if (vkCreateRenderPass(m_device.getDevice(), &createInfo, nullptr, &m_renderPass) != VK_SUCCESS)
+	if (vkCreateRenderPass(m_device->getDevice(), &createInfo, nullptr, &m_renderPass) != VK_SUCCESS)
 		throw std::runtime_error{ "failed to create vulkan render pass" };
 }
 

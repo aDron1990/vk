@@ -135,7 +135,8 @@ void Renderer::createDescriptorPool()
 
 void Renderer::createRenderPass()
 {
-	m_swapchainPass.reset(new SwapchainPass{ *m_device });
+	m_swapchainPass.reset(new SwapchainPass);
+	m_swapchainPass->init();
 	m_framebufferProps.colorAttachmentCount = 1;
 	m_framebufferProps.useDepthAttachment = true;
 	m_framebufferProps.colorFormat = VK_FORMAT_B8G8R8A8_UNORM;
