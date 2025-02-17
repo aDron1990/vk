@@ -1,8 +1,11 @@
 #include "graphics/vulkan/object.hpp"
-#include "graphics/vulkan/locator.hpp"	
+#include "graphics/vulkan/locator.hpp"
 
-Object::Object(Device& device, Model& model) : m_model{ model }
+void Object::init(Model& model)
 {
+	assert(!m_initialized);
+	m_initialized = true;
+	m_model = &model;
 	m_mvpBuffer.init(Locator::getDescriptorPool().createSet(0));
 	m_materialBuffer.init(Locator::getDescriptorPool().createSet(0));
 	material.color = { 0.5f, 0.6f, 0.31f };
@@ -14,13 +17,15 @@ Object::Object(Device& device, Model& model) : m_model{ model }
 
 void Object::draw(VkCommandBuffer commandBuffer, VkPipelineLayout layout)
 {
+	assert(m_initialized);
 	m_materialBuffer.write(material);
 	m_materialBuffer.bind(commandBuffer, layout, 2);
-	m_model.draw(commandBuffer, layout);
+	m_model->draw(commandBuffer, layout);
 }
 
 void Object::bindMVP(VkCommandBuffer commandBuffer, VkPipelineLayout layout, const glm::mat4& view, const glm::mat4& proj)
 {
+	assert(m_initialized);
 	auto mvp = MVP{};
 	mvp.model = glm::translate(glm::mat4(1.0f), m_position);
 	mvp.model = glm::rotate(mvp.model, glm::radians(m_rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
@@ -35,12 +40,14 @@ void Object::bindMVP(VkCommandBuffer commandBuffer, VkPipelineLayout layout, con
 
 void Object::bindTexture(VkCommandBuffer commandBuffer, VkPipelineLayout layout, uint32_t set)
 {
-	m_model.bindTexture(commandBuffer, layout, set);
+	assert(m_initialized);
+	m_model->bindTexture(commandBuffer, layout, set);
 }
 
 void Object::bindMesh(VkCommandBuffer commandBuffer)
 {
-	m_model.bindMesh(commandBuffer);
+	assert(m_initialized);
+	m_model->bindMesh(commandBuffer);
 }
 
 void Object::setPosition(glm::vec3 position)

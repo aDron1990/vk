@@ -30,22 +30,29 @@ Renderer::Renderer(Window& window) : m_window{window}
 	createSyncObjects();
 	createCommandBuffers();
 	createRenderPass();
-
 	createSwapchain();
 	createGraphicsPipeline();
+
 	m_specularMap.reset(new Texture);
 	m_specularMap->init("resources/images/container2_specular.png", m_descriptorPool->createSet(1));
+
 	m_model.reset(new Model);
 	m_model->init(MODEL_PATH, TEXTURE_PATH);
-	m_object.reset(new Object{ *m_device, *m_model });
+
+	m_object.reset(new Object);
+	m_object->init(*m_model);
+
 	m_light.reset(new LightBuffer);
 	m_light->init(m_descriptorPool->createSet(0));
+	light.direction = { -0.2f, -1.0f, -0.3f };
+	light.ambient = { 0.2f, 0.2f, 0.2f };
+	light.diffuse = { 0.5f, 0.5f, 0.5f };
+	light.specular = { 1.0f, 1.0f, 1.0f };
 
 	ImGui::CreateContext();
 	ImGuiIO& io = ImGui::GetIO(); (void)io;
 	ImGui::SetNavCursorVisible(false);
 	ImGui_ImplGlfw_InitForVulkan(window.getWindow(), true);
-
 	ImGui_ImplVulkan_InitInfo initInfo{};
 	initInfo.Instance = m_context->getInstance();
 	initInfo.PhysicalDevice = m_device->getGpu();
@@ -58,13 +65,7 @@ Renderer::Renderer(Window& window) : m_window{window}
 	initInfo.DescriptorPoolSize = 128;
 	if (!ImGui_ImplVulkan_Init(&initInfo))
 		throw;
-	
 	ImGui_ImplVulkan_CreateFontsTexture();
-
-	light.direction = { -0.2f, -1.0f, -0.3f };
-	light.ambient = { 0.2f, 0.2f, 0.2f };
-	light.diffuse = { 0.5f, 0.5f, 0.5f };
-	light.specular = { 1.0f, 1.0f, 1.0f };
 }
 
 Renderer::~Renderer()

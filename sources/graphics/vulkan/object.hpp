@@ -5,7 +5,8 @@
 class Object
 {
 public:
-	Object(Device& device, Model& model);
+	void init(Model& model);
+
 	void draw(VkCommandBuffer commandBuffer, VkPipelineLayout layout);
 	void bindMVP(VkCommandBuffer commandBuffer, VkPipelineLayout layout, const glm::mat4& view, const glm::mat4& proj);
 	void bindTexture(VkCommandBuffer commandBuffer, VkPipelineLayout layout, uint32_t set);
@@ -21,7 +22,8 @@ public:
 	Material material{};
 
 private:
-	Model& m_model;
+	bool m_initialized = false;
+	Model* m_model;
 	UniformBuffer<MVP> m_mvpBuffer;
 	UniformBuffer<Material> m_materialBuffer;
 	glm::vec3 m_position{};
