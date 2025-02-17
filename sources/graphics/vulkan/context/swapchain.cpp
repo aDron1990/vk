@@ -5,36 +5,45 @@
 #include <algorithm>
 #include <ranges>
 
-Swapchain::Swapchain(const FramebufferProps& framebufferProps, RenderPass& renderPass, std::function<void(uint32_t, uint32_t)> onResize)
-	: m_device{ Locator::getDevice() }, m_framebufferProps{ framebufferProps },  m_renderPass { &renderPass }, m_onResize{ onResize }
+Swapchain::~Swapchain()
 {
+	destroy();
+}
+
+void Swapchain::destroy()
+{
+	if (m_initialized)
+	{
+		vkDestroySwapchainKHR(m_device->getDevice(), m_swapchain, nullptr);
+	}
+	m_initialized = false;
+}
+
+void Swapchain::init(const FramebufferProps& framebufferProps, RenderPass& renderPass, std::function<void(uint32_t, uint32_t)> onResize)
+{
+	assert(!m_initialized);
+	m_initialized = true;
+	m_device = &Locator::getDevice();
+	m_renderPass = &renderPass;
+	m_framebufferProps = framebufferProps;
+	m_onResize = onResize;
 	createSwapchain();
 	createFramebuffers();
 	Locator::setSwapchain(this);
 }
 
-Swapchain::~Swapchain()
-{
-	clear();
-}
-
-void Swapchain::clear()
-{
-	
-	vkDestroySwapchainKHR(m_device.getDevice(), m_swapchain, nullptr);
-}
-
 void Swapchain::recreate()
 {
-	vkDeviceWaitIdle(m_device.getDevice());
-	clear();
+	assert(m_initialized);
+	vkDeviceWaitIdle(m_device->getDevice());
+	vkDestroySwapchainKHR(m_device->getDevice(), m_swapchain, nullptr);
 	createSwapchain();
 	createFramebuffers();
 }
 
 void Swapchain::createSwapchain()
 {
-	auto swapchainDetails = m_device.querySwapchainSupport(m_device.getGpu());
+	auto swapchainDetails = m_device->querySwapchainSupport(m_device->getGpu());
 	auto surfaceFormat = chooseSwapchainSurfaceFormat(swapchainDetails.formats);
 	auto presentMode = chooseSwapchainPresentMode(swapchainDetails.presentModes);
 	auto extent = chooseSwapchainExtent(swapchainDetails.capabilities);
@@ -45,7 +54,7 @@ void Swapchain::createSwapchain()
 
 	auto createInfo = VkSwapchainCreateInfoKHR{};
 	createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-	createInfo.surface = m_device.getSurface();
+	createInfo.surface = m_device->getSurface();
 	createInfo.minImageCount = imageCount;
 	createInfo.imageFormat = surfaceFormat.format;
 	createInfo.imageColorSpace = surfaceFormat.colorSpace;
@@ -53,7 +62,7 @@ void Swapchain::createSwapchain()
 	createInfo.imageArrayLayers = 1;
 	createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-	auto indices = m_device.findQueueFamilies(m_device.getGpu());
+	auto indices = m_device->findQueueFamilies(m_device->getGpu());
 	if (indices.graphics != indices.present)
 	{
 		auto queueFamilyIndices = { indices.graphics.value(), indices.present.value() };
@@ -70,7 +79,7 @@ void Swapchain::createSwapchain()
 	createInfo.clipped = VK_TRUE;
 	createInfo.oldSwapchain = VK_NULL_HANDLE;
 
-	if (vkCreateSwapchainKHR(m_device.getDevice(), &createInfo, nullptr, &m_swapchain) != VK_SUCCESS)
+	if (vkCreateSwapchainKHR(m_device->getDevice(), &createInfo, nullptr, &m_swapchain) != VK_SUCCESS)
 		throw std::runtime_error{ "failed to create vulkan swapchain" };
 
 	m_swapchainFormat = surfaceFormat.format;
@@ -80,9 +89,9 @@ void Swapchain::createSwapchain()
 void Swapchain::createFramebuffers()
 {
 	uint32_t imageCount;
-	vkGetSwapchainImagesKHR(m_device.getDevice(), m_swapchain, &imageCount, nullptr);
+	vkGetSwapchainImagesKHR(m_device->getDevice(), m_swapchain, &imageCount, nullptr);
 	auto swapchainImages = std::vector<VkImage>(imageCount);
-	vkGetSwapchainImagesKHR(m_device.getDevice(), m_swapchain, &imageCount, swapchainImages.data());
+	vkGetSwapchainImagesKHR(m_device->getDevice(), m_swapchain, &imageCount, swapchainImages.data());
 	m_framebuffers.resize(imageCount);
 	for (auto [image, framebuffer] : std::views::zip(swapchainImages, m_framebuffers))
 	{
@@ -118,7 +127,7 @@ VkExtent2D Swapchain::chooseSwapchainExtent(const VkSurfaceCapabilitiesKHR& capa
 	else
 	{
 		throw; // TODO getting framebuffer size from window
-		//auto actualExtent = m_device.querySwapchainSupport(m_device.getGpu()).capabilities.currentExtent;
+		//auto actualExtent = m_device->querySwapchainSupport(m_device->getGpu()).capabilities.currentExtent;
 		//actualExtent.width = std::clamp(actualExtent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
 		//actualExtent.height = std::clamp(actualExtent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
 		//return actualExtent;
@@ -127,29 +136,34 @@ VkExtent2D Swapchain::chooseSwapchainExtent(const VkSurfaceCapabilitiesKHR& capa
 
 VkExtent2D Swapchain::getExtent()
 {
+	assert(m_initialized);
 	return m_swapchainExtent;
 }
 
 VkFormat Swapchain::getFormat()
 {
+	assert(m_initialized);
 	return m_swapchainFormat;
 }
 
 Framebuffer& Swapchain::getFramebuffer(uint32_t index)
 {
+	assert(m_initialized);
 	return m_framebuffers[index];
 }
 
 uint32_t Swapchain::getImageIndex()
 {
+	assert(m_initialized);
 	return m_imageIndex;
 }
 
 uint32_t Swapchain::beginFrame(VkFence inFlightFence, VkSemaphore imageAvailableSemaphore)
 {
-	vkWaitForFences(m_device.getDevice(), 1, &inFlightFence, VK_TRUE, UINT64_MAX);
+	assert(m_initialized);
+	vkWaitForFences(m_device->getDevice(), 1, &inFlightFence, VK_TRUE, UINT64_MAX);
 
-	auto result = vkAcquireNextImageKHR(m_device.getDevice(), m_swapchain, UINT64_MAX, imageAvailableSemaphore, VK_NULL_HANDLE, &m_imageIndex);
+	auto result = vkAcquireNextImageKHR(m_device->getDevice(), m_swapchain, UINT64_MAX, imageAvailableSemaphore, VK_NULL_HANDLE, &m_imageIndex);
 	if (result == VK_ERROR_OUT_OF_DATE_KHR) 
 	{
 		recreate();
@@ -159,12 +173,13 @@ uint32_t Swapchain::beginFrame(VkFence inFlightFence, VkSemaphore imageAvailable
 	else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR)
 		throw std::runtime_error("failed to acquire swap chain image!");
 
-	vkResetFences(m_device.getDevice(), 1, &inFlightFence);
+	vkResetFences(m_device->getDevice(), 1, &inFlightFence);
 	return m_imageIndex;
 }
 
 void Swapchain::endFrame(uint32_t imageIndex, VkSemaphore renderFinishedSemaphore)
 {
+	assert(m_initialized);
 	auto presentInfo = VkPresentInfoKHR{};
 	presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
 	presentInfo.pWaitSemaphores = &renderFinishedSemaphore;
@@ -172,5 +187,5 @@ void Swapchain::endFrame(uint32_t imageIndex, VkSemaphore renderFinishedSemaphor
 	presentInfo.pSwapchains = &m_swapchain;
 	presentInfo.swapchainCount = 1;
 	presentInfo.pImageIndices = &imageIndex;
-	vkQueuePresentKHR(m_device.getPresentQueue(), &presentInfo);
+	vkQueuePresentKHR(m_device->getPresentQueue(), &presentInfo);
 }

@@ -153,10 +153,11 @@ void Renderer::createSwapchain()
 	int width, height;
 	glfwGetFramebufferSize(m_window.getWindow(), &width, &height);
 	auto extent = VkExtent2D{ static_cast<uint32_t>(width), static_cast<uint32_t>(height) };
-	m_swapchain.reset(new Swapchain{ m_framebufferProps, *m_swapchainPass, [&](uint32_t width, uint32_t height)
+	m_swapchain.reset(new Swapchain);
+	m_swapchain->init(m_framebufferProps, *m_swapchainPass, [&](uint32_t width, uint32_t height)
 	{
 		m_testFramebuffer->resize(width, height);
-	}});
+	});
 }
 
 void Renderer::createGraphicsPipeline()
