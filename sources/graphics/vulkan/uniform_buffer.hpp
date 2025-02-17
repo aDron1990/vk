@@ -2,7 +2,7 @@
 
 #include "graphics/vulkan/config.hpp"
 #include "graphics/vulkan/buffer.hpp"
-#include "graphics/vulkan/device.hpp"
+#include "graphics/vulkan/context/device.hpp"
 
 #include <vulkan/vulkan.h>
 

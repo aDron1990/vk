@@ -1,7 +1,7 @@
 #pragma once
 
 #include "graphics/vulkan/config.hpp"
-#include "graphics/vulkan/device.hpp"
+#include "graphics/vulkan/context/device.hpp"
 #include "graphics/vulkan/render_pass/render_pass.hpp"
 #include "graphics/vulkan/render_pass/framebuffer_props.hpp"
 #include "graphics/vulkan/uniform_buffer.hpp"

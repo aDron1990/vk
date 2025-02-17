@@ -23,12 +23,6 @@ add_executable(vk
 	"sources/graphics/vulkan/types.cpp"
 	"sources/graphics/vulkan/renderer.hpp"
 	"sources/graphics/vulkan/renderer.cpp"
-	"sources/graphics/vulkan/context.hpp"
-	"sources/graphics/vulkan/context.cpp"
-	"sources/graphics/vulkan/device.hpp"
-	"sources/graphics/vulkan/device.cpp"
-	"sources/graphics/vulkan/swapchain.hpp"
-	"sources/graphics/vulkan/swapchain.cpp"
 	"sources/graphics/vulkan/pipeline.hpp"
 	"sources/graphics/vulkan/pipeline.cpp"
 	"sources/graphics/vulkan/buffer.hpp"
@@ -47,6 +41,13 @@ add_executable(vk
 
 	"sources/graphics/vulkan/locator.hpp"
 	"sources/graphics/vulkan/locator.cpp"
+
+	"sources/graphics/vulkan/context/context.hpp"
+	"sources/graphics/vulkan/context/context.cpp"
+	"sources/graphics/vulkan/context/device.hpp"
+	"sources/graphics/vulkan/context/device.cpp"
+	"sources/graphics/vulkan/context/swapchain.hpp"
+	"sources/graphics/vulkan/context/swapchain.cpp"
 
 	"sources/graphics/vulkan/descriptor/descriptor_pool.hpp"
 	"sources/graphics/vulkan/descriptor/descriptor_pool.cpp"

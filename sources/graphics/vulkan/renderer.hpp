@@ -2,9 +2,9 @@
 
 #include "graphics/vulkan/config.hpp"
 #include "graphics/vulkan/types.hpp"
-#include "graphics/vulkan/context.hpp"
-#include "graphics/vulkan/device.hpp"
-#include "graphics/vulkan/swapchain.hpp"
+#include "graphics/vulkan/context/context.hpp"
+#include "graphics/vulkan/context/device.hpp"
+#include "graphics/vulkan/context/swapchain.hpp"
 #include "graphics/vulkan/pipeline.hpp"
 #include "graphics/vulkan/buffer.hpp"
 #include "graphics/vulkan/uniform_buffer.hpp"
