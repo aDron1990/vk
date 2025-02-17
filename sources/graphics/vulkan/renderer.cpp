@@ -106,7 +106,8 @@ void Renderer::createDevice()
 	if (glfwCreateWindowSurface(m_context->getInstance(), m_window.getWindow(), nullptr, &surface) != VK_SUCCESS)
 		throw std::runtime_error{ "failed to create vulkan surface" };
 
-	m_device.reset(new Device{ *m_context, surface });
+	m_device.reset(new Device);
+	m_device->init(surface);
 }
 
 void Renderer::createDescriptorPool()

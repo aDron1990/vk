@@ -6,27 +6,40 @@
 #include <string>
 #include <stdexcept>
 
-Device::Device(Context& context, VkSurfaceKHR surface) : m_context{context}, m_surface{surface}
+Device::~Device()
 {
+	destroy();
+}
+
+void Device::destroy()
+{
+	if (m_initialized)
+	{
+		vkDestroyCommandPool(m_device, m_commandPool, nullptr);
+		vkDestroyDevice(m_device, nullptr);
+		vkDestroySurfaceKHR(m_context->getInstance(), m_surface, nullptr);
+	}
+	m_initialized = false;
+}
+
+void Device::init(VkSurfaceKHR surface)
+{
+	assert(!m_initialized);
+	m_initialized = true;
+	m_context = &Locator::getContext();
+	m_surface = surface;
 	pickGpu();
 	createDevice();
 	createCommandPool();
 	Locator::setDevice(this);
 }
 
-Device::~Device()
-{
-	vkDestroyCommandPool(m_device, m_commandPool, nullptr);
-	vkDestroyDevice(m_device, nullptr);
-	vkDestroySurfaceKHR(m_context.getInstance(), m_surface, nullptr);
-}
-
 void Device::pickGpu()
 {
 	auto gpuCount = uint32_t{};
-	vkEnumeratePhysicalDevices(m_context.getInstance(), &gpuCount, nullptr);
+	vkEnumeratePhysicalDevices(m_context->getInstance(), &gpuCount, nullptr);
 	auto gpus = std::vector<VkPhysicalDevice>(gpuCount);
-	vkEnumeratePhysicalDevices(m_context.getInstance(), &gpuCount, gpus.data());
+	vkEnumeratePhysicalDevices(m_context->getInstance(), &gpuCount, gpus.data());
 	for (const auto& gpu : gpus)
 	{
 		if (isGpuSuitable(gpu))
@@ -226,6 +239,7 @@ void Device::createCommandPool()
 
 void Device::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& memory)
 {
+	assert(m_initialized);
 	auto createInfo = VkBufferCreateInfo{};
 	createInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
 	createInfo.size = size;
@@ -249,6 +263,7 @@ void Device::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryP
 
 void Device::createImage(uint32_t width, uint32_t height, uint32_t mipLevels, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory)
 {
+	assert(m_initialized);
 	auto createInfo = VkImageCreateInfo{};
 	createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
 	createInfo.imageType = VK_IMAGE_TYPE_2D;
@@ -281,6 +296,7 @@ void Device::createImage(uint32_t width, uint32_t height, uint32_t mipLevels, Vk
 
 VkImageView Device::createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, uint32_t mipLevels)
 {
+	assert(m_initialized);
 	auto imageView = VkImageView{};
 	auto createInfo = VkImageViewCreateInfo{};
 	createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -300,6 +316,7 @@ VkImageView Device::createImageView(VkImage image, VkFormat format, VkImageAspec
 
 void Device::copyBuffer(Buffer& srcBuffer, Buffer& dstBuffer)
 {
+	assert(m_initialized);
 	auto commandBuffer = beginSingleTimeCommands();
 	
 	auto copyRegion = VkBufferCopy{};
@@ -313,6 +330,7 @@ void Device::copyBuffer(Buffer& srcBuffer, Buffer& dstBuffer)
 
 void Device::copyBufferToImage(Buffer& srcBuffer, VkImage dstImage, uint32_t width, uint32_t height)
 {
+	assert(m_initialized);
 	auto commandBuffer = beginSingleTimeCommands();
 
 	auto region = VkBufferImageCopy{};
@@ -336,6 +354,7 @@ void Device::copyBufferToImage(Buffer& srcBuffer, VkImage dstImage, uint32_t wid
 
 std::vector<VkCommandBuffer> Device::createCommandBuffers(uint32_t count)
 {
+	assert(m_initialized);
 	auto commandBuffers = std::vector<VkCommandBuffer>(count);
 	auto allocInfo = VkCommandBufferAllocateInfo{};
 	allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -350,6 +369,7 @@ std::vector<VkCommandBuffer> Device::createCommandBuffers(uint32_t count)
 
 VkCommandBuffer Device::beginSingleTimeCommands()
 {
+	assert(m_initialized);
 	VkCommandBuffer commandBuffer;
 
 	VkCommandBufferAllocateInfo allocInfo{};
@@ -369,6 +389,7 @@ VkCommandBuffer Device::beginSingleTimeCommands()
 
 void Device::endSingleTimeCommands(VkCommandBuffer commandBuffer)
 {
+	assert(m_initialized);
 	vkEndCommandBuffer(commandBuffer);
 	VkSubmitInfo submitInfo{};
 	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -386,6 +407,7 @@ bool hasStencilComponent(VkFormat format)
 
 void Device::transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t mipLevels, VkImageAspectFlags aspect, VkCommandBuffer commandBuffer)
 {
+	assert(m_initialized);
 	auto end = false;
 	if (commandBuffer == VK_NULL_HANDLE)
 	{
@@ -480,25 +502,30 @@ void Device::transitionImageLayout(VkImage image, VkFormat format, VkImageLayout
 
 VkSurfaceKHR Device::getSurface()
 {
+	assert(m_initialized);
 	return m_surface;
 }
 
 VkPhysicalDevice Device::getGpu()
 {
+	assert(m_initialized);
 	return m_gpu;
 }
 
 VkDevice Device::getDevice()
 {
+	assert(m_initialized);
 	return m_device;
 }
 
 VkQueue Device::getGraphicsQueue()
 {
+	assert(m_initialized);
 	return m_graphicsQueue;
 }
 
 VkQueue Device::getPresentQueue()
 {
+	assert(m_initialized);
 	return m_presentQueue;
 }

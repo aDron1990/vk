@@ -11,8 +11,9 @@
 class Device
 {
 public:
-	Device(Context& context, VkSurfaceKHR surface);
 	~Device();
+	void init(VkSurfaceKHR surface);
+	void destroy();
 	
 	void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& memory);
 	void createImage(uint32_t width, uint32_t height, uint32_t mipLevels, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
@@ -50,11 +51,12 @@ private:
 	void createCommandPool();
 
 private:
-	Context& m_context;
-	VkSurfaceKHR m_surface;
-	VkPhysicalDevice m_gpu;
-	VkDevice m_device;
-	VkQueue m_graphicsQueue;
-	VkQueue m_presentQueue;
-	VkCommandPool m_commandPool;
+	bool m_initialized = false;
+	Context* m_context{};
+	VkSurfaceKHR m_surface{};
+	VkPhysicalDevice m_gpu{};
+	VkDevice m_device{};
+	VkQueue m_graphicsQueue{};
+	VkQueue m_presentQueue{};
+	VkCommandPool m_commandPool{};
 };
