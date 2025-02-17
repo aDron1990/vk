@@ -39,8 +39,8 @@ private:
 	void createDescriptorSetLayouts();
 
 private:
-	Device* m_device;
 	bool m_initialized = false;
+	Device* m_device;
 	VkDescriptorPool m_pool{};
 	DescriptorPoolProps m_props{};
 	std::vector<VkDescriptorSetLayout> m_layouts{};

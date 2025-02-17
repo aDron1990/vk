@@ -10,9 +10,7 @@ class RenderPass;
 class Framebuffer
 {
 public:
-	Framebuffer();
 	~Framebuffer();
-
 	void init(const FramebufferProps& props, RenderPass& renderPass, uint32_t width, uint32_t height);
 	void init(const FramebufferProps& props, VkImage swapchainImage, RenderPass& renderPass, uint32_t width, uint32_t height);
 	void destroy();
@@ -29,10 +27,10 @@ private:
 	void createFramebuffer();
 
 private:
-	Device& m_device;
+	bool m_initialized = false;
+	Device* m_device;
 	RenderPass* m_renderPass{};
 	FramebufferProps m_props{};
-	bool m_initialized = false;
 	bool m_swapchainFramebuffer = false;
 	uint32_t m_width{};
 	uint32_t m_height{};

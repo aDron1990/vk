@@ -4,7 +4,6 @@
 
 #include <stdexcept>
 
-Framebuffer::Framebuffer() : m_device{ Locator::getDevice() } {}
 Framebuffer::~Framebuffer()
 {
 	destroy();
@@ -19,7 +18,7 @@ void Framebuffer::destroy()
 			colorAttachment.destroy();
 		}
 		m_depthAttachment.destroy();
-		vkDestroyFramebuffer(m_device.getDevice(), m_framebuffer, nullptr);
+		vkDestroyFramebuffer(m_device->getDevice(), m_framebuffer, nullptr);
 	}
 	m_initialized = false;
 }
@@ -27,25 +26,27 @@ void Framebuffer::destroy()
 void Framebuffer::init(const FramebufferProps& props, RenderPass& renderPass, uint32_t width, uint32_t height)
 {
 	assert(!m_initialized);
+	m_initialized = true;
+	m_device = &Locator::getDevice();
 	m_props = props;
 	m_width = width;
 	m_height = height;
 	m_renderPass = &renderPass;
 	createTextures();
 	createFramebuffer();
-	m_initialized = true;
 }
 
 void Framebuffer::init(const FramebufferProps& props, VkImage swapchainImage, RenderPass& renderPass, uint32_t width, uint32_t height)
 {
 	assert(!m_initialized);
+	m_initialized = true;
+	m_device = &Locator::getDevice();
 	m_props = props;
 	m_width = width;
 	m_height = height;
 	m_renderPass = &renderPass;
 	createTextures(swapchainImage);
 	createFramebuffer();
-	m_initialized = true;
 }
 
 void Framebuffer::resize(uint32_t newWidth, uint32_t newHeight)
@@ -107,7 +108,7 @@ void Framebuffer::createFramebuffer()
 	createInfo.width = m_width;
 	createInfo.height = m_height;
 	createInfo.layers = 1;
-	if (vkCreateFramebuffer(m_device.getDevice(), &createInfo, nullptr, &m_framebuffer) != VK_SUCCESS)
+	if (vkCreateFramebuffer(m_device->getDevice(), &createInfo, nullptr, &m_framebuffer) != VK_SUCCESS)
 		throw std::runtime_error{ "failed to create framebuffer" };
 }
 
