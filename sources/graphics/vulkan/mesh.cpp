@@ -1,12 +1,16 @@
 #include "graphics/vulkan/mesh.hpp"
+#include "graphics/vulkan/locator.hpp"
 
 #define TINYOBJLOADER_IMPLEMENTATION
 #include <tiny_obj_loader.h>
 #include <cmrc/cmrc.hpp>
 CMRC_DECLARE(models);
 
-Mesh::Mesh(Device& device, const std::string& modelPath) : m_device{device}
+void Mesh::init(const std::string& modelPath)
 {
+	assert(!m_initialized);
+	m_initialized = true;
+	m_device = &Locator::getDevice();
 	loadModel(modelPath);
 	createVertexBuffer();
 	createIndexBuffer();
@@ -73,7 +77,7 @@ void Mesh::createVertexBuffer()
 		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
 	);
 
-	m_device.copyBuffer(stagingBuffer, *m_vertexBuffer);
+	m_device->copyBuffer(stagingBuffer, *m_vertexBuffer);
 }
 
 void Mesh::createIndexBuffer()
@@ -89,11 +93,12 @@ void Mesh::createIndexBuffer()
 		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
 	);
 
-	m_device.copyBuffer(stagingBuffer, *m_indexBuffer);
+	m_device->copyBuffer(stagingBuffer, *m_indexBuffer);
 }
 
 void Mesh::bindBuffers(VkCommandBuffer commandBuffer)
 {
+	assert(m_initialized);
 	VkDeviceSize offsets[] = { 0 };
 	auto buffer = m_vertexBuffer->getBuffer();
 	vkCmdBindVertexBuffers(commandBuffer, 0, 1, &buffer, offsets);
@@ -102,5 +107,6 @@ void Mesh::bindBuffers(VkCommandBuffer commandBuffer)
 
 void Mesh::draw(VkCommandBuffer commandBuffer)
 {
+	assert(m_initialized);
 	vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(m_indices.size()), 1, 0, 0, 0);
 }

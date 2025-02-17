@@ -11,7 +11,7 @@
 class Mesh
 {
 public:
-	Mesh(Device& device, const std::string& modelPath);
+	void init(const std::string& modelPath);
 	void bindBuffers(VkCommandBuffer commandBuffer);
 	void draw(VkCommandBuffer commandBuffer);
 
@@ -21,10 +21,11 @@ private:
 	void createIndexBuffer();
 
 private:
-	Device& m_device;
-	std::vector<Vertex> m_vertices;
-	std::vector<uint32_t> m_indices;
-	std::unique_ptr<Buffer> m_vertexBuffer;
-	std::unique_ptr<Buffer> m_indexBuffer;
+	bool m_initialized = false;
+	Device* m_device{};
+	std::vector<Vertex> m_vertices{};
+	std::vector<uint32_t> m_indices{};
+	std::unique_ptr<Buffer> m_vertexBuffer{};
+	std::unique_ptr<Buffer> m_indexBuffer{};
 
 };
