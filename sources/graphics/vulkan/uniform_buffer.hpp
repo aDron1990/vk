@@ -3,6 +3,7 @@
 #include "graphics/vulkan/config.hpp"
 #include "graphics/vulkan/buffer.hpp"
 #include "graphics/vulkan/context/device.hpp"
+#include "graphics/vulkan/locator.hpp"
 
 #include <vulkan/vulkan.h>
 
@@ -13,8 +14,13 @@ template<typename T>
 class UniformBuffer
 {
 public:
-	UniformBuffer(Device& device, DescriptorSetPtr descriptorSet, uint32_t binding = 0) : m_device{ device }, m_descriptorSet{descriptorSet}
+	void init(DescriptorSetPtr descriptorSet, uint32_t binding = 0)
 	{
+		assert(!m_initialized);
+		m_initialized = true;
+		m_device = &Locator::getDevice();
+		m_descriptorSet = descriptorSet;
+
 		m_size = sizeof(T);
 		m_buffer.init(m_size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 		m_bufferMapped = m_buffer.map();
@@ -33,7 +39,7 @@ public:
 		descriptorWrite.pBufferInfo = &bufferInfo;
 		descriptorWrite.descriptorCount = 1;
 
-		vkUpdateDescriptorSets(m_device.getDevice(), 1, &descriptorWrite, 0, nullptr);
+		vkUpdateDescriptorSets(m_device->getDevice(), 1, &descriptorWrite, 0, nullptr);
 	}
 
 	void write(const T& data)
@@ -49,7 +55,7 @@ public:
 
 	Buffer& getBuffer()
 	{
-		return *m_buffer;
+		return m_buffer;
 	}
 
 	void* getBufferPtr()
@@ -63,9 +69,10 @@ public:
 	}
 
 private:
-	Device& m_device;
-	Buffer m_buffer;
-	void* m_bufferMapped;
-	DescriptorSetPtr m_descriptorSet;
-	VkDeviceSize m_size;
+	bool m_initialized = false;
+	Device* m_device{};
+	Buffer m_buffer{};
+	void* m_bufferMapped{};
+	DescriptorSetPtr m_descriptorSet{};
+	VkDeviceSize m_size{};
 };

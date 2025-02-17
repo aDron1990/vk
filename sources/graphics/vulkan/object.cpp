@@ -1,8 +1,10 @@
 #include "graphics/vulkan/object.hpp"
 #include "graphics/vulkan/locator.hpp"	
 
-Object::Object(Device& device, Model& model) : m_model{ model }, m_mvpBuffer{ device, Locator::getDescriptorPool().createSet(0) }, m_materialBuffer{ device, Locator::getDescriptorPool().createSet(0) }
+Object::Object(Device& device, Model& model) : m_model{ model }
 {
+	m_mvpBuffer.init(Locator::getDescriptorPool().createSet(0));
+	m_materialBuffer.init(Locator::getDescriptorPool().createSet(0));
 	material.color = { 0.5f, 0.6f, 0.31f };
 	material.ambient = { 1.0f, 0.5f, 0.31f };
 	material.diffuse = { 1.0f, 0.5f, 0.31f };
