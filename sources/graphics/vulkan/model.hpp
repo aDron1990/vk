@@ -16,13 +16,14 @@ using TexturePtr = std::shared_ptr<Texture>;
 class Model
 {
 public:
-	Model(Device& device, const std::string& modelPath, const std::string& texturePath);
+	void init(const std::string& modelPath, const std::string& texturePath);
 	void bindTexture(VkCommandBuffer commandBuffer, VkPipelineLayout layout, uint32_t set);
 	void bindMesh(VkCommandBuffer commandBuffer);
 	void draw(VkCommandBuffer commandBuffer, VkPipelineLayout layout);
 
 private:
-	Device& m_device;
-	MeshPtr m_mesh;
-	TexturePtr m_texture;
+	bool m_initialized = false;
+	Device* m_device{};
+	MeshPtr m_mesh{};
+	TexturePtr m_texture{};
 };
