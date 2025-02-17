@@ -6,19 +6,16 @@
 #include <string>
 #include <stdexcept>
 
-Device::Device(Context& context, VkSurfaceKHR surface, const DescriptorPoolProps& poolProps) : m_context{context}, m_surface{surface}
+Device::Device(Context& context, VkSurfaceKHR surface) : m_context{context}, m_surface{surface}
 {
 	pickGpu();
 	createDevice();
 	createCommandPool();
 	Locator::setDevice(this);
-	m_descriptorPool.reset(new DescriptorPool);
-	m_descriptorPool->init(poolProps);
 }
 
 Device::~Device()
 {
-	m_descriptorPool.reset();
 	vkDestroyCommandPool(m_device, m_commandPool, nullptr);
 	vkDestroyDevice(m_device, nullptr);
 	vkDestroySurfaceKHR(m_context.getInstance(), m_surface, nullptr);
@@ -351,11 +348,6 @@ std::vector<VkCommandBuffer> Device::createCommandBuffers(uint32_t count)
 	return commandBuffers;
 }
 
-DescriptorSetPtr Device::createDescriptorSet(VkDescriptorSetLayout layout)
-{
-	return m_descriptorPool->createSet(layout);
-}
-
 VkCommandBuffer Device::beginSingleTimeCommands()
 {
 	VkCommandBuffer commandBuffer;
@@ -509,24 +501,4 @@ VkQueue Device::getGraphicsQueue()
 VkQueue Device::getPresentQueue()
 {
 	return m_presentQueue;
-}
-
-VkDescriptorPool Device::getDescriptorPool()
-{
-	return m_descriptorPool->getPool();
-}
-
-VkDescriptorSetLayout Device::getUboVertexLayout()
-{
-	return m_descriptorPool->getLayout(0);
-}
-
-VkDescriptorSetLayout Device::getUboFragmentLayout()
-{
-	return m_descriptorPool->getLayout(0);
-}
-
-VkDescriptorSetLayout Device::getSamplerFragmentLayout()
-{
-	return m_descriptorPool->getLayout(1);
 }

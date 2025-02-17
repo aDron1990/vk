@@ -31,6 +31,7 @@ void DescriptorPool::init(const DescriptorPoolProps& props)
 	createPool();
 	createDescriptorSetLayouts();
 	m_initialized = true;
+	Locator::setDescriptorPool(this);
 }
 
 void DescriptorPool::createPool()
@@ -93,13 +94,13 @@ void DescriptorPool::createDescriptorSetLayouts()
 	}
 }
 
-DescriptorSetPtr DescriptorPool::createSet(VkDescriptorSetLayout descriptorSetLayout)
+DescriptorSetPtr DescriptorPool::createSet(uint32_t setId)
 {
 	auto set = VkDescriptorSet{};
 	auto allocInfo = VkDescriptorSetAllocateInfo{};
 	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 	allocInfo.descriptorPool = m_pool;
-	allocInfo.pSetLayouts = &descriptorSetLayout;
+	allocInfo.pSetLayouts = &m_layouts[setId];
 	allocInfo.descriptorSetCount = 1;
 	if (vkAllocateDescriptorSets(m_device.getDevice(), &allocInfo, &set) != VK_SUCCESS)
 		throw std::runtime_error{ "failed to allocate descriptor sets" };

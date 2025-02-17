@@ -231,8 +231,6 @@ void Texture::createImageSampler()
 
 void Texture::writeDescriptorSet(uint32_t binding)
 {
-    m_descriptorSet = m_device.createDescriptorSet(m_device.getSamplerFragmentLayout());
-
     auto samplerInfo = VkDescriptorImageInfo{};
     samplerInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     samplerInfo.imageView = m_imageView;

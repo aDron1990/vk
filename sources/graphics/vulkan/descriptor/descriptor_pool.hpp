@@ -30,7 +30,7 @@ public:
 	void init(const DescriptorPoolProps& props);
 	void destroy();
 
-	DescriptorSetPtr createSet(VkDescriptorSetLayout descriptorSetLayout);
+	DescriptorSetPtr createSet(uint32_t setId);
 	VkDescriptorPool getPool();
 	VkDescriptorSetLayout getLayout(uint32_t setId);
 	std::vector<VkDescriptorSetLayout> getLayouts();

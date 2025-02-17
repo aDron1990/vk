@@ -37,6 +37,7 @@ public:
 private:
 	void createContext();
 	void createDevice();
+	void createDescriptorPool();
 	void createSyncObjects();
 	void createCommandBuffers();
 	void createRenderPass();
@@ -66,6 +67,7 @@ private:
 
 	std::unique_ptr<Context> m_context;
 	std::unique_ptr<Device> m_device;
+	std::unique_ptr<DescriptorPool> m_descriptorPool;
 	std::unique_ptr<SwapchainPass> m_swapchainPass;
 	std::unique_ptr<OffscreenPass> m_testPass;
 	std::unique_ptr<Framebuffer> m_testFramebuffer;

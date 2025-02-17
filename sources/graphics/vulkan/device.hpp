@@ -11,7 +11,7 @@
 class Device
 {
 public:
-	Device(Context& context, VkSurfaceKHR surface, const DescriptorPoolProps& poolProps);
+	Device(Context& context, VkSurfaceKHR surface);
 	~Device();
 	
 	void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& memory);
@@ -39,11 +39,6 @@ public:
 	VkDevice getDevice();
 	VkQueue getGraphicsQueue();
 	VkQueue getPresentQueue();
-	VkDescriptorPool getDescriptorPool();
-
-	VkDescriptorSetLayout getUboVertexLayout();
-	VkDescriptorSetLayout getUboFragmentLayout();
-	VkDescriptorSetLayout getSamplerFragmentLayout();
 
 private:
 	bool checkGpuExtensionsSupport(VkPhysicalDevice gpu);
@@ -56,7 +51,6 @@ private:
 
 private:
 	Context& m_context;
-	std::unique_ptr<DescriptorPool> m_descriptorPool;
 	VkSurfaceKHR m_surface;
 	VkPhysicalDevice m_gpu;
 	VkDevice m_device;

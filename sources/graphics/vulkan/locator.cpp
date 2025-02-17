@@ -7,6 +7,7 @@ Renderer* Locator::m_renderer = nullptr;
 Context* Locator::m_context = nullptr;
 Device* Locator::m_device = nullptr;
 Swapchain* Locator::m_swapchain = nullptr;
+DescriptorPool* Locator::m_descriptorPool = nullptr;
 
 Window& Locator::getWindow()
 {
@@ -38,6 +39,12 @@ Swapchain& Locator::getSwapchain()
 	return *m_swapchain;
 }
 
+DescriptorPool& Locator::getDescriptorPool()
+{
+	assert(m_descriptorPool != nullptr);
+	return *m_descriptorPool;
+}
+
 void Locator::setWindow(Window* window)
 {
 	assert(m_window == nullptr);
@@ -66,4 +73,10 @@ void Locator::setSwapchain(Swapchain* swapchain)
 {
 	assert(m_swapchain == nullptr);
 	m_swapchain = swapchain;
+}
+
+void Locator::setDescriptorPool(DescriptorPool* descriptorPool)
+{
+	assert(m_descriptorPool == nullptr);
+	m_descriptorPool = descriptorPool;
 }

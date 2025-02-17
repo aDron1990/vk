@@ -4,6 +4,7 @@ class Window;
 class Renderer;
 class Context;
 class Device;
+class DescriptorPool;
 class Swapchain;
 
 class Locator
@@ -14,12 +15,14 @@ public:
 	static Context& getContext();
 	static Device& getDevice();
 	static Swapchain& getSwapchain();
+	static DescriptorPool& getDescriptorPool();
 
 	static void setWindow(Window* window);
 	static void setRenderer(Renderer* renderer);
 	static void setContext(Context* context);
 	static void setDevice(Device* device);
 	static void setSwapchain(Swapchain* swapchain);
+	static void setDescriptorPool(DescriptorPool* descriptorPool);
 
 private:
 	static Window* m_window;
@@ -27,5 +30,5 @@ private:
 	static Context* m_context;
 	static Device* m_device;
 	static Swapchain* m_swapchain;
-
+	static DescriptorPool* m_descriptorPool;
 };

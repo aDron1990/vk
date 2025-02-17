@@ -26,6 +26,7 @@ Renderer::Renderer(Window& window) : m_window{window}
 {
 	createContext();
 	createDevice();
+	createDescriptorPool();
 	createSyncObjects();
 	createCommandBuffers();
 	createRenderPass();
@@ -33,10 +34,10 @@ Renderer::Renderer(Window& window) : m_window{window}
 	createSwapchain();
 	createGraphicsPipeline();
 	m_specularMap.reset(new Texture);
-	m_specularMap->init("resources/images/container2_specular.png", m_device->createDescriptorSet(m_device->getSamplerFragmentLayout()));
+	m_specularMap->init("resources/images/container2_specular.png", m_descriptorPool->createSet(1));
 	m_model.reset(new Model{ *m_device, MODEL_PATH, TEXTURE_PATH });
 	m_object.reset(new Object{ *m_device, *m_model });
-	m_light.reset(new LightBuffer{ *m_device, m_device->createDescriptorSet(m_device->getUboFragmentLayout())});
+	m_light.reset(new LightBuffer{ *m_device, m_descriptorPool->createSet(0) });
 
 	ImGui::CreateContext();
 	ImGuiIO& io = ImGui::GetIO(); (void)io;
@@ -87,6 +88,7 @@ Renderer::~Renderer()
 	m_specularMap.reset();
 	m_model.reset();
 	m_light.reset();
+	m_descriptorPool.reset();
 	m_device.reset();
 	m_context.reset();
 }
@@ -102,8 +104,13 @@ void Renderer::createDevice()
 	if (glfwCreateWindowSurface(m_context->getInstance(), m_window.getWindow(), nullptr, &surface) != VK_SUCCESS)
 		throw std::runtime_error{ "failed to create vulkan surface" };
 
-	auto poolProps = DescriptorPoolProps{};
-	poolProps.setInfos =
+	m_device.reset(new Device{ *m_context, surface });
+}
+
+void Renderer::createDescriptorPool()
+{
+	auto props = DescriptorPoolProps{};
+	props.setInfos =
 	{
 		DescriptorSetInfo
 		{{
@@ -120,8 +127,8 @@ void Renderer::createDevice()
 			}
 		}, VK_SHADER_STAGE_ALL_GRAPHICS, 100 }
 	};
-
-	m_device.reset(new Device{*m_context, surface, poolProps});
+	m_descriptorPool.reset(new DescriptorPool);
+	m_descriptorPool->init(props);
 }
 
 void Renderer::createRenderPass()
@@ -156,7 +163,7 @@ void Renderer::createGraphicsPipeline()
 		auto pipelineInfo = PipelineProps{};
 		pipelineInfo.vertexPath = "resources/shaders/main/shader.vert.spv";
 		pipelineInfo.fragmentPath = "resources/shaders/main/shader.frag.spv";
-		pipelineInfo.descriptorSetLayouts = { m_device->getUboVertexLayout(), m_device->getUboFragmentLayout(), m_device->getUboFragmentLayout(), m_device->getSamplerFragmentLayout(), m_device->getSamplerFragmentLayout() };
+		pipelineInfo.descriptorSetLayouts = { m_descriptorPool->getLayout(0), m_descriptorPool->getLayout(0), m_descriptorPool->getLayout(0), m_descriptorPool->getLayout(1), m_descriptorPool->getLayout(1) };
 		pipelineInfo.vertexInput = true;
 		pipelineInfo.culling = VK_CULL_MODE_BACK_BIT;
 		m_testPipeline.reset(new Pipeline);
@@ -166,7 +173,7 @@ void Renderer::createGraphicsPipeline()
 		auto pipelineInfo = PipelineProps{};
 		pipelineInfo.vertexPath = "resources/shaders/combine/shader.vert.spv";
 		pipelineInfo.fragmentPath = "resources/shaders/combine/shader.frag.spv";
-		pipelineInfo.descriptorSetLayouts = { m_device->getSamplerFragmentLayout() };
+		pipelineInfo.descriptorSetLayouts = { m_descriptorPool->getLayout(1) };
 		pipelineInfo.vertexInput = false;
 		pipelineInfo.culling = VK_CULL_MODE_NONE;
 		m_combinePipeline.reset(new Pipeline);

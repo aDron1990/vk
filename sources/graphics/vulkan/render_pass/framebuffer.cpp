@@ -60,15 +60,15 @@ void Framebuffer::createTextures()
 	for (auto& colorAttachment : m_colorAttachments)
 	{
 		colorAttachment.init(
-			AttachmentType::Color, m_width, m_height, m_props.colorFormat, 
-			m_device.createDescriptorSet(m_device.getSamplerFragmentLayout())
+			AttachmentType::Color, m_width, m_height, m_props.colorFormat,
+			Locator::getDescriptorPool().createSet(1)
 		);
 	}
 	if (m_props.useDepthAttachment)
 	{
 		m_depthAttachment.init(
 			AttachmentType::Depth, m_width, m_height, m_props.depthFormat,
-			m_device.createDescriptorSet(m_device.getSamplerFragmentLayout())
+			Locator::getDescriptorPool().createSet(1)
 		);
 	}
 }
@@ -81,7 +81,7 @@ void Framebuffer::createTextures(VkImage swapchainImage)
 	{
 		m_depthAttachment.init(
 			AttachmentType::Depth, m_width, m_height, m_props.depthFormat,
-			m_device.createDescriptorSet(m_device.getSamplerFragmentLayout())
+			Locator::getDescriptorPool().createSet(1)
 		);
 	}
 }
