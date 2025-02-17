@@ -25,7 +25,6 @@ class Device;
 class DescriptorPool
 {
 public:
-	DescriptorPool();
 	~DescriptorPool();
 	void init(const DescriptorPoolProps& props);
 	void destroy();
@@ -40,7 +39,7 @@ private:
 	void createDescriptorSetLayouts();
 
 private:
-	Device& m_device;
+	Device* m_device;
 	bool m_initialized = false;
 	VkDescriptorPool m_pool{};
 	DescriptorPoolProps m_props{};

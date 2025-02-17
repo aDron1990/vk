@@ -6,8 +6,6 @@
 #include <vector>
 #include <ranges>
 
-DescriptorPool::DescriptorPool() : m_device{ Locator::getDevice() } {}
-
 DescriptorPool::~DescriptorPool()
 {
 	destroy();
@@ -17,9 +15,9 @@ void DescriptorPool::destroy()
 {
 	if (m_initialized)
 	{
-		vkDestroyDescriptorPool(m_device.getDevice(), m_pool, nullptr);
+		vkDestroyDescriptorPool(m_device->getDevice(), m_pool, nullptr);
 		for (auto layout : m_layouts)
-			vkDestroyDescriptorSetLayout(m_device.getDevice(), layout, nullptr);
+			vkDestroyDescriptorSetLayout(m_device->getDevice(), layout, nullptr);
 	}
 	m_initialized = false;
 }
@@ -27,10 +25,12 @@ void DescriptorPool::destroy()
 void DescriptorPool::init(const DescriptorPoolProps& props)
 {
 	assert(!m_initialized);
+	m_initialized = true;
+	m_device = &Locator::getDevice();
 	m_props = props;
 	createPool();
 	createDescriptorSetLayouts();
-	m_initialized = true;
+	
 	Locator::setDescriptorPool(this);
 }
 
@@ -62,7 +62,7 @@ void DescriptorPool::createPool()
 	createInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
 	createInfo.maxSets = totalSetCount;
 	createInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-	if (vkCreateDescriptorPool(m_device.getDevice(), &createInfo, nullptr, &m_pool) != VK_SUCCESS)
+	if (vkCreateDescriptorPool(m_device->getDevice(), &createInfo, nullptr, &m_pool) != VK_SUCCESS)
 		throw std::runtime_error{ "failed to create descriptor pool" };
 }
 
@@ -89,7 +89,7 @@ void DescriptorPool::createDescriptorSetLayouts()
 		createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
 		createInfo.pBindings = bindings.data();
 		createInfo.bindingCount = static_cast<uint32_t>(bindings.size());
-		if (vkCreateDescriptorSetLayout(m_device.getDevice(), &createInfo, nullptr, &m_layouts[setId]) != VK_SUCCESS)
+		if (vkCreateDescriptorSetLayout(m_device->getDevice(), &createInfo, nullptr, &m_layouts[setId]) != VK_SUCCESS)
 			throw std::runtime_error{ "failed to create descriptor set layout" };
 	}
 }
@@ -102,10 +102,10 @@ DescriptorSetPtr DescriptorPool::createSet(uint32_t setId)
 	allocInfo.descriptorPool = m_pool;
 	allocInfo.pSetLayouts = &m_layouts[setId];
 	allocInfo.descriptorSetCount = 1;
-	if (vkAllocateDescriptorSets(m_device.getDevice(), &allocInfo, &set) != VK_SUCCESS)
+	if (vkAllocateDescriptorSets(m_device->getDevice(), &allocInfo, &set) != VK_SUCCESS)
 		throw std::runtime_error{ "failed to allocate descriptor sets" };
 
-	auto free = [device = m_device.getDevice(), pool = m_pool, set = set]()
+	auto free = [device = m_device->getDevice(), pool = m_pool, set = set]()
 	{
 		vkFreeDescriptorSets(device, pool, 1, &set);
 	};
