@@ -108,7 +108,7 @@ void OffscreenPass::createRenderPass()
 		throw std::runtime_error{ "failed to create vulkan render pass" };
 }
 
-void OffscreenPass::begin(VkCommandBuffer commandBuffer, Framebuffer* framebuffer)
+void OffscreenPass::begin(VkCommandBuffer commandBuffer, Framebuffer& framebuffer)
 {
 	auto attachmentsCount = m_framebufferProps.colorAttachmentCount + static_cast<int>(m_framebufferProps.colorAttachmentCount);
 	auto clearValues = std::vector<VkClearValue>(attachmentsCount,
@@ -118,9 +118,9 @@ void OffscreenPass::begin(VkCommandBuffer commandBuffer, Framebuffer* framebuffe
 	auto renderPassInfo = VkRenderPassBeginInfo{};
 	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 	renderPassInfo.renderPass = m_renderPass;
-	renderPassInfo.framebuffer = framebuffer->getFramebuffer();
+	renderPassInfo.framebuffer = framebuffer.getFramebuffer();
 	renderPassInfo.renderArea.offset = { 0, 0 };
-	renderPassInfo.renderArea.extent = framebuffer->getExtent();
+	renderPassInfo.renderArea.extent = framebuffer.getExtent();
 	renderPassInfo.pClearValues = clearValues.data();
 	renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
 	vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);

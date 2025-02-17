@@ -15,7 +15,7 @@ public:
 	void init(const FramebufferProps& framebufferProps);
 	void destroy();
 
-	void begin(VkCommandBuffer commandBuffer, Framebuffer* framebuffer) override;
+	void begin(VkCommandBuffer commandBuffer, Framebuffer& framebuffer) override;
 	void end(VkCommandBuffer commandBuffer) override;
 	VkRenderPass getRenderPass() override;
 

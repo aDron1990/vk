@@ -50,7 +50,7 @@ private:
 		Vertical
 	};
 	void renderScene(VkCommandBuffer commandBuffer, RenderPass& renderPass, Pipeline& pipeline);
-	void combine(VkCommandBuffer commandBuffer, RenderPass& renderPass, Pipeline& pipeline);
+	void combine(VkCommandBuffer commandBuffer, RenderPass& renderPass, Pipeline& pipeline, uint32_t imageIndex);
 
 private:
 	void setViewport(VkCommandBuffer commandBuffer);

@@ -72,7 +72,7 @@ void SwapchainPass::createRenderPass()
 		throw std::runtime_error{ "failed to create vulkan render pass" };
 }
 
-void SwapchainPass::begin(VkCommandBuffer commandBuffer, Framebuffer* framebuffer)
+void SwapchainPass::begin(VkCommandBuffer commandBuffer, Framebuffer& framebuffer)
 {
 	auto clearValues =
 		std::array<VkClearValue, 2>{
@@ -82,9 +82,9 @@ void SwapchainPass::begin(VkCommandBuffer commandBuffer, Framebuffer* framebuffe
 	auto renderPassInfo = VkRenderPassBeginInfo{};
 	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 	renderPassInfo.renderPass = m_renderPass;
-	renderPassInfo.framebuffer = m_swapchain->getFramebuffer(m_swapchain->getImageIndex());
+	renderPassInfo.framebuffer = framebuffer.getFramebuffer();
 	renderPassInfo.renderArea.offset = { 0, 0 };
-	renderPassInfo.renderArea.extent = m_swapchain->getExtent();
+	renderPassInfo.renderArea.extent = framebuffer.getExtent();
 	renderPassInfo.pClearValues = clearValues.data();
 	renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
 	vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
@@ -93,11 +93,6 @@ void SwapchainPass::begin(VkCommandBuffer commandBuffer, Framebuffer* framebuffe
 void SwapchainPass::end(VkCommandBuffer commandBuffer)
 {
 	vkCmdEndRenderPass(commandBuffer);
-}
-
-void SwapchainPass::setSwapchain(Swapchain* swapchain)
-{
-	m_swapchain = swapchain;
 }
 
 VkRenderPass SwapchainPass::getRenderPass()

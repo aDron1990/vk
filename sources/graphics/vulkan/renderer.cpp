@@ -145,13 +145,10 @@ void Renderer::createSwapchain()
 	int width, height;
 	glfwGetFramebufferSize(m_window.getWindow(), &width, &height);
 	auto extent = VkExtent2D{ static_cast<uint32_t>(width), static_cast<uint32_t>(height) };
-	auto createProps = SwapchainProperties{};
-	createProps.renderPass = m_swapchainPass->getRenderPass();
-	m_swapchain.reset(new Swapchain{ *m_device, createProps, [&](uint32_t width, uint32_t height) 
+	m_swapchain.reset(new Swapchain{ m_framebufferProps, *m_swapchainPass, [&](uint32_t width, uint32_t height)
 	{
 		m_testFramebuffer->resize(width, height);
 	}});
-	m_swapchainPass->setSwapchain(m_swapchain.get());
 }
 
 void Renderer::createGraphicsPipeline()
@@ -222,7 +219,7 @@ void Renderer::renderScene(VkCommandBuffer commandBuffer, RenderPass& renderPass
 	auto delta = std::chrono::duration<float, std::chrono::seconds::period>(now - lastTime).count();
 	lastTime = now;
 
-	renderPass.begin(commandBuffer, m_testFramebuffer.get());
+	renderPass.begin(commandBuffer, *m_testFramebuffer);
 	setViewport(commandBuffer);
 
 	static auto& input = m_window.getInput();
@@ -259,9 +256,9 @@ void Renderer::renderScene(VkCommandBuffer commandBuffer, RenderPass& renderPass
 	renderPass.end(commandBuffer);
 }
 
-void Renderer::combine(VkCommandBuffer commandBuffer, RenderPass& renderPass, Pipeline& pipeline)
+void Renderer::combine(VkCommandBuffer commandBuffer, RenderPass& renderPass, Pipeline& pipeline, uint32_t imageIndex)
 {
-	renderPass.begin(commandBuffer, nullptr);
+	renderPass.begin(commandBuffer, m_swapchain->getFramebuffer(imageIndex));
 	setViewport(commandBuffer);
 	pipeline.bind(commandBuffer);
 	m_testFramebuffer->getColorTexture(0).bind(commandBuffer, pipeline.getLayout(), 0);
@@ -305,7 +302,7 @@ void Renderer::render()
 		throw std::runtime_error{ "failed to record command buffer" };
 
 	renderScene(commandBuffer, *m_testPass, *m_testPipeline);
-	combine(commandBuffer, *m_swapchainPass, *m_combinePipeline);
+	combine(commandBuffer, *m_swapchainPass, *m_combinePipeline, imageIndex);
 
 	if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS)
 		throw std::runtime_error{ "failed to end command buffer" };

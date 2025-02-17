@@ -21,12 +21,16 @@ void Texture::destroy()
 {
     if (m_initialized)
     {
-        vkDestroySampler(m_device.getDevice(), m_sampler, nullptr);
         vkDestroyImageView(m_device.getDevice(), m_imageView, nullptr);
-        vkDestroyImage(m_device.getDevice(), m_image, nullptr);
-        vkFreeMemory(m_device.getDevice(), m_imageMemory, nullptr);
+        if (!m_isSwapchainImage)
+        {
+            vkDestroySampler(m_device.getDevice(), m_sampler, nullptr);
+            vkDestroyImage(m_device.getDevice(), m_image, nullptr);
+            vkFreeMemory(m_device.getDevice(), m_imageMemory, nullptr);
+        }
     }
     m_initialized = false;
+    m_isSwapchainImage = false;
 }
 
 void Texture::init(const std::string& imagePath, DescriptorSetPtr descriptorSet, uint32_t binding)
@@ -38,6 +42,30 @@ void Texture::init(const std::string& imagePath, DescriptorSetPtr descriptorSet,
     createImageView(VK_IMAGE_ASPECT_COLOR_BIT);
     createImageSampler();
     writeDescriptorSet(binding);
+    m_initialized = true;
+}
+
+void Texture::init(AttachmentType attachmentType, uint32_t width, uint32_t height, VkFormat format, DescriptorSetPtr descriptorSet, uint32_t binding)
+{
+    assert(!m_initialized);
+    m_descriptorSet = descriptorSet;
+    m_format = format;
+    m_mipLevels = 1;
+    createImage(attachmentType, width, height);
+    createImageView(attachmentType == AttachmentType::Color ? VK_IMAGE_ASPECT_COLOR_BIT : VK_IMAGE_ASPECT_DEPTH_BIT);
+    createImageSampler();
+    writeDescriptorSet(binding);
+    m_initialized = true;
+}
+
+void Texture::init(VkImage swapchainImage, VkFormat format)
+{
+    assert(!m_initialized);
+    m_isSwapchainImage = true;
+    m_image = swapchainImage;
+    m_format = format;
+    m_mipLevels = 1;
+    createImageView(VK_IMAGE_ASPECT_COLOR_BIT);
     m_initialized = true;
 }
 
@@ -68,19 +96,6 @@ void Texture::createImage(const std::string& imagePath)
     m_device.copyBufferToImage(stagingBuffer, m_image, static_cast<uint32_t>(width), static_cast<uint32_t>(height));
 
     generateMipmaps(m_image, m_format, width, height, m_mipLevels);
-}
-
-void Texture::init(AttachmentType attachmentType, uint32_t width, uint32_t height, VkFormat format, DescriptorSetPtr descriptorSet, uint32_t binding)
-{
-    assert(!m_initialized);
-    m_descriptorSet = descriptorSet;
-    m_format = format;
-    m_mipLevels = 1;
-    createImage(attachmentType, width, height);
-    createImageView(attachmentType == AttachmentType::Color ? VK_IMAGE_ASPECT_COLOR_BIT : VK_IMAGE_ASPECT_DEPTH_BIT);
-    createImageSampler();
-    writeDescriptorSet(binding);
-    m_initialized = true;
 }
 
 void Texture::createImage(AttachmentType attachmentType, uint32_t width, uint32_t height)

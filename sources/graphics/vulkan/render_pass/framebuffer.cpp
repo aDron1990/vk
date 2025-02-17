@@ -36,6 +36,18 @@ void Framebuffer::init(const FramebufferProps& props, RenderPass& renderPass, ui
 	m_initialized = true;
 }
 
+void Framebuffer::init(const FramebufferProps& props, VkImage swapchainImage, RenderPass& renderPass, uint32_t width, uint32_t height)
+{
+	assert(!m_initialized);
+	m_props = props;
+	m_width = width;
+	m_height = height;
+	m_renderPass = &renderPass;
+	createTextures(swapchainImage);
+	createFramebuffer();
+	m_initialized = true;
+}
+
 void Framebuffer::resize(uint32_t newWidth, uint32_t newHeight)
 {
 	destroy();
@@ -52,6 +64,19 @@ void Framebuffer::createTextures()
 			m_device.createDescriptorSet(m_device.getSamplerFragmentLayout())
 		);
 	}
+	if (m_props.useDepthAttachment)
+	{
+		m_depthAttachment.init(
+			AttachmentType::Depth, m_width, m_height, m_props.depthFormat,
+			m_device.createDescriptorSet(m_device.getSamplerFragmentLayout())
+		);
+	}
+}
+
+void Framebuffer::createTextures(VkImage swapchainImage)
+{
+	m_colorAttachments.resize(1);
+	m_colorAttachments[0].init(swapchainImage, m_props.colorFormat);
 	if (m_props.useDepthAttachment)
 	{
 		m_depthAttachment.init(

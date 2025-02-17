@@ -14,6 +14,7 @@ public:
 	~Framebuffer();
 
 	void init(const FramebufferProps& props, RenderPass& renderPass, uint32_t width, uint32_t height);
+	void init(const FramebufferProps& props, VkImage swapchainImage, RenderPass& renderPass, uint32_t width, uint32_t height);
 	void destroy();
 	void resize(uint32_t newWidth, uint32_t newHeight);
 
@@ -23,6 +24,7 @@ public:
 	VkExtent2D getExtent();
 
 private:
+	void createTextures(VkImage swapchainImage);
 	void createTextures();
 	void createFramebuffer();
 

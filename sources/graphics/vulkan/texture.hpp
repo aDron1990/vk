@@ -16,10 +16,9 @@ public:
 	Texture();
 	~Texture();
 	void init(const std::string& imagePath, DescriptorSetPtr descriptorSet, uint32_t binding = 0);
-	void destroy();
-
-	// init for using as render texture
 	void init(AttachmentType attachmentType, uint32_t width, uint32_t height, VkFormat format, DescriptorSetPtr descriptorSet, uint32_t binding = 0);
+	void init(VkImage swapchainImage, VkFormat format);
+	void destroy();	
 
 	void bind(VkCommandBuffer commandBuffer, VkPipelineLayout layout, uint32_t setId);
 	VkImageView getImageView();
@@ -35,8 +34,9 @@ private:
 
 private:
 	Device& m_device;
+	VkFormat m_format{};
 	bool m_initialized = false;
-	VkFormat m_format;
+	bool m_isSwapchainImage = false;
 
 	VkImage m_image{};
 	VkDeviceMemory m_imageMemory{};

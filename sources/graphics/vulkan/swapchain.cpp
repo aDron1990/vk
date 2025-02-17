@@ -3,13 +3,12 @@
 
 #include <stdexcept>
 #include <algorithm>
+#include <ranges>
 
-Swapchain::Swapchain(Device& device, SwapchainProperties properties, std::function<void(uint32_t, uint32_t)> onResize)
-	: m_device{device}, m_renderPass{ properties.renderPass }, m_onResize{onResize}
+Swapchain::Swapchain(const FramebufferProps& framebufferProps, RenderPass& renderPass, std::function<void(uint32_t, uint32_t)> onResize)
+	: m_device{ Locator::getDevice() }, m_framebufferProps{ framebufferProps },  m_renderPass { &renderPass }, m_onResize{ onResize }
 {
 	createSwapchain();
-	createImageViews();
-	createDepthResources();
 	createFramebuffers();
 	Locator::setSwapchain(this);
 }
@@ -21,13 +20,7 @@ Swapchain::~Swapchain()
 
 void Swapchain::clear()
 {
-	vkDestroyImageView(m_device.getDevice(), m_depthImageView, nullptr);
-	vkDestroyImage(m_device.getDevice(), m_depthImage, nullptr);
-	vkFreeMemory(m_device.getDevice(), m_depthImageMemory, nullptr);
-	for (auto framebuffer : m_swapchainFramebuffers)
-		vkDestroyFramebuffer(m_device.getDevice(), framebuffer, nullptr);
-	for (auto view : m_swapchainImageViews)
-		vkDestroyImageView(m_device.getDevice(), view, nullptr);
+	
 	vkDestroySwapchainKHR(m_device.getDevice(), m_swapchain, nullptr);
 }
 
@@ -36,8 +29,6 @@ void Swapchain::recreate()
 	vkDeviceWaitIdle(m_device.getDevice());
 	clear();
 	createSwapchain();
-	createImageViews();
-	createDepthResources();
 	createFramebuffers();
 }
 
@@ -82,50 +73,21 @@ void Swapchain::createSwapchain()
 	if (vkCreateSwapchainKHR(m_device.getDevice(), &createInfo, nullptr, &m_swapchain) != VK_SUCCESS)
 		throw std::runtime_error{ "failed to create vulkan swapchain" };
 
-	vkGetSwapchainImagesKHR(m_device.getDevice(), m_swapchain, &imageCount, nullptr);
-	m_swapchainImages.resize(imageCount);
-	vkGetSwapchainImagesKHR(m_device.getDevice(), m_swapchain, &imageCount, m_swapchainImages.data());
 	m_swapchainFormat = surfaceFormat.format;
 	m_swapchainExtent = extent;
 }
 
-void Swapchain::createImageViews()
-{
-	m_swapchainImageViews.resize(m_swapchainImages.size());
-	for (int i = 0; i < m_swapchainImages.size(); i++)
-	{
-		m_swapchainImageViews[i] = m_device.createImageView(m_swapchainImages[i], m_swapchainFormat, VK_IMAGE_ASPECT_COLOR_BIT, 1);
-	}
-}
-
 void Swapchain::createFramebuffers()
 {
-	m_swapchainFramebuffers.resize(m_swapchainImages.size());
-	for (int i = 0; i < m_swapchainImages.size(); i++)
+	uint32_t imageCount;
+	vkGetSwapchainImagesKHR(m_device.getDevice(), m_swapchain, &imageCount, nullptr);
+	auto swapchainImages = std::vector<VkImage>(imageCount);
+	vkGetSwapchainImagesKHR(m_device.getDevice(), m_swapchain, &imageCount, swapchainImages.data());
+	m_framebuffers.resize(imageCount);
+	for (auto [image, framebuffer] : std::views::zip(swapchainImages, m_framebuffers))
 	{
-		auto attachments = { m_swapchainImageViews[i], m_depthImageView };
-
-		auto createInfo = VkFramebufferCreateInfo{};
-		createInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-		createInfo.renderPass = m_renderPass;
-		createInfo.pAttachments = attachments.begin();
-		createInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
-		createInfo.width = m_swapchainExtent.width;
-		createInfo.height = m_swapchainExtent.height;
-		createInfo.layers = 1;
-
-		if (vkCreateFramebuffer(m_device.getDevice(), &createInfo, nullptr, &m_swapchainFramebuffers[i]) != VK_SUCCESS)
-			throw std::runtime_error{ "failed to create framebuffer" };
+		framebuffer.init(m_framebufferProps, image, *m_renderPass, m_swapchainExtent.width, m_swapchainExtent.height);
 	}
-}
-
-void Swapchain::createDepthResources()
-{
-	auto depthFormat = m_device.findDepthFormat();
-	m_device.createImage(m_swapchainExtent.width, m_swapchainExtent.height, 1, depthFormat, VK_IMAGE_TILING_OPTIMAL, 
-		VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_depthImage, m_depthImageMemory);
-	m_depthImageView = m_device.createImageView(m_depthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT, 1);
-	m_device.transitionImageLayout(m_depthImage, depthFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, 1);
 }
 
 VkSurfaceFormatKHR Swapchain::chooseSwapchainSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats)
@@ -173,9 +135,9 @@ VkFormat Swapchain::getFormat()
 	return m_swapchainFormat;
 }
 
-VkFramebuffer Swapchain::getFramebuffer(uint32_t index)
+Framebuffer& Swapchain::getFramebuffer(uint32_t index)
 {
-	return m_swapchainFramebuffers[index];
+	return m_framebuffers[index];
 }
 
 uint32_t Swapchain::getImageIndex()
