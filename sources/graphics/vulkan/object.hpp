@@ -10,6 +10,7 @@ public:
 	void draw(VkCommandBuffer commandBuffer, VkPipelineLayout layout);
 	void bindMVP(VkCommandBuffer commandBuffer, VkPipelineLayout layout, const glm::mat4& view, const glm::mat4& proj);
 	void bindTexture(VkCommandBuffer commandBuffer, VkPipelineLayout layout, uint32_t set);
+	void bindMaterial(VkCommandBuffer commandBuffer, VkPipelineLayout layout, uint32_t set);
 	void bindMesh(VkCommandBuffer commandBuffer);
 
 	void setPosition(glm::vec3 position);
@@ -18,6 +19,7 @@ public:
 	glm::vec3 getPosition();
 	glm::vec3 getRotation();
 	glm::vec3 getScale();
+	glm::mat4 getModelMatrix();
 
 	Material material{};
 

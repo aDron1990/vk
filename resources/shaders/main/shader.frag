@@ -1,13 +1,19 @@
 #version 450
 //?#extension GL_KHR_vulkan_glsl: enable
 
-layout(set = 1, binding = 0) uniform Light {
+layout(set = 1, binding = 0) uniform Light
+{
     vec3 direction;
     vec3 viewPosition;
     vec3 ambient;
     vec3 diffuse;
     vec3 specular;
 } light;
+
+layout(set = 6, binding = 0) uniform Ligth
+{
+	mat4 space;
+} lightSpace;
 
 layout(set = 2, binding = 0) uniform Material 
 {
@@ -20,14 +26,29 @@ layout(set = 2, binding = 0) uniform Material
 
 layout(set = 3, binding = 0) uniform sampler2D diffuseMap;
 layout(set = 4, binding = 0) uniform sampler2D specularMap;
+layout(set = 5, binding = 0) uniform sampler2D shadowMap;
 
-layout(location = 0) in vec3 fragPosition;
+layout(location = 0) in vec4 fragPosition;
 layout(location = 1) in vec3 fragColor;
 layout(location = 2) in vec3 fragNormal;
 layout(location = 3) in vec2 fragTexCoord;
 
 layout(location = 0) out vec4 outColor0;
 //layout(location = 1) out vec4 outColor1;
+ 
+float ShadowCalculation(vec4 fragPosLightSpace)
+{
+    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
+    projCoords = vec3(projCoords.xy * 0.5 + 0.5, projCoords.z);
+    if(projCoords.z > 1.0)
+        return 0.0;
+
+    float closestDepth = texture(shadowMap, projCoords.xy).r; 
+    float currentDepth = projCoords.z;
+    float shadow = currentDepth - 0.005 > closestDepth ? 1.0 : 0.0;
+
+    return shadow;
+}
 
 void main()
 {
@@ -41,13 +62,15 @@ void main()
     vec3 diffuse = light.diffuse * diff * vec3(texture(diffuseMap, fragTexCoord));
     
     // specular
-    vec3 viewDir = normalize(light.viewPosition - fragPosition);
+    vec3 viewDir = normalize(light.viewPosition - vec3(fragPosition));
     vec3 reflectDir = reflect(-lightDir, norm);
     float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
     vec3 specular = light.specular * spec * vec3(texture(specularMap, fragTexCoord));  
 
     // result
-    vec4 result = vec4((ambient + diffuse + specular), 1.0);
+    float shadow = ShadowCalculation(lightSpace.space * fragPosition);
+    vec4 result = vec4((ambient + (1.0 - shadow) * (diffuse + specular)), 1.0);
+    //vec4 result = vec4(vec3(shadow), 1.0f);
     outColor0 = vec4(result);
-    //outColor1 = vec4(result);
+    //outColor0 = lightSpace.space * fragPosition;
 }

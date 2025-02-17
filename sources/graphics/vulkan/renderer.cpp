@@ -1,3 +1,5 @@
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
+
 #include "graphics/vulkan/renderer.hpp"
 #include "graphics/vulkan/render_pass/framebuffer.hpp"
 #include "window/window.hpp"
@@ -34,14 +36,24 @@ Renderer::Renderer(Window& window) : m_window{window}
 	createGraphicsPipeline();
 
 	m_specularMap.init("resources/images/container2_specular.png", m_descriptorPool.createSet(1));
+	m_planeSpecularMap.init("resources/images/brown_specular.png", m_descriptorPool.createSet(1));
 	m_model.init(MODEL_PATH, TEXTURE_PATH);
+	m_planeModel.init("resources/models/plane.obj", "resources/images/brown.png");
 	m_object.init(m_model);
+	m_plane.init(m_planeModel);
+
+	m_object.setPosition({ 0.f, .5f, 0.f });
+	m_plane.setPosition({0.f, .0f, 0.f});
 
 	m_light.init(m_descriptorPool.createSet(0));
 	light.direction = { -0.2f, -1.0f, -0.3f };
 	light.ambient = { 0.2f, 0.2f, 0.2f };
 	light.diffuse = { 0.5f, 0.5f, 0.5f };
 	light.specular = { 1.0f, 1.0f, 1.0f };
+
+	m_shadowMvp.init(m_descriptorPool.createSet(0));
+	m_shadowMvp2.init(m_descriptorPool.createSet(0));
+	m_lightSpace.init(m_descriptorPool.createSet(0));
 
 	ImGui::CreateContext();
 	ImGuiIO& io = ImGui::GetIO(); (void)io;
@@ -115,14 +127,22 @@ void Renderer::createDescriptorPool()
 void Renderer::createRenderPass()
 {
 	m_swapchainPass.init();
-	m_framebufferProps.colorAttachmentCount = 1;
-	m_framebufferProps.useDepthAttachment = true;
-	m_framebufferProps.colorFormat = VK_FORMAT_B8G8R8A8_UNORM;
-	m_framebufferProps.depthFormat = VK_FORMAT_D32_SFLOAT;
 
-	m_testPass.init(m_framebufferProps);
+	m_renderFramebufferProps.colorAttachmentCount = 1;
+	m_renderFramebufferProps.useDepthAttachment = true;
+	m_renderFramebufferProps.colorFormat = VK_FORMAT_B8G8R8A8_UNORM;
+	m_renderFramebufferProps.depthFormat = VK_FORMAT_D32_SFLOAT;
 
-	m_testFramebuffer.init(m_framebufferProps, m_testPass, 1280, 720);
+	m_renderPass.init(m_renderFramebufferProps);
+	m_renderFramebuffer.init(m_renderFramebufferProps, m_renderPass, 1280, 720);
+
+	m_shadowFramebufferProps.colorAttachmentCount = 0;
+	m_shadowFramebufferProps.useDepthAttachment = true;
+	m_shadowFramebufferProps.colorFormat = VK_FORMAT_B8G8R8A8_UNORM;
+	m_shadowFramebufferProps.depthFormat = VK_FORMAT_D32_SFLOAT;
+
+	m_shadowPass.init(m_shadowFramebufferProps);
+	m_shadowFramebuffer.init(m_shadowFramebufferProps, m_shadowPass, 2048, 2048);
 }
 
 void Renderer::createSwapchain()
@@ -130,9 +150,10 @@ void Renderer::createSwapchain()
 	int width, height;
 	glfwGetFramebufferSize(m_window.getWindow(), &width, &height);
 	auto extent = VkExtent2D{ static_cast<uint32_t>(width), static_cast<uint32_t>(height) };
-	m_swapchain.init(m_framebufferProps, m_swapchainPass, [&](uint32_t width, uint32_t height)
+	m_swapchain.init(m_renderFramebufferProps, m_swapchainPass, [&](uint32_t width, uint32_t height)
 	{
-		m_testFramebuffer.resize(width, height);
+			m_renderFramebuffer.resize(width, height);
+			//m_shadowFramebuffer.resize(width, height);
 	});
 }
 
@@ -140,12 +161,21 @@ void Renderer::createGraphicsPipeline()
 {
 	{
 		auto pipelineInfo = PipelineProps{};
-		pipelineInfo.vertexPath = "resources/shaders/main/shader.vert.spv";
-		pipelineInfo.fragmentPath = "resources/shaders/main/shader.frag.spv";
-		pipelineInfo.descriptorSetLayouts = { m_descriptorPool.getLayout(0), m_descriptorPool.getLayout(0), m_descriptorPool.getLayout(0), m_descriptorPool.getLayout(1), m_descriptorPool.getLayout(1) };
+		pipelineInfo.vertexPath = "resources/shaders/shadow/shader.vert.spv";
+		pipelineInfo.fragmentPath = "resources/shaders/shadow/shader.frag.spv";
+		pipelineInfo.descriptorSetLayouts = { m_descriptorPool.getLayout(0) };
 		pipelineInfo.vertexInput = true;
 		pipelineInfo.culling = VK_CULL_MODE_BACK_BIT;
-		m_testPipeline.init(pipelineInfo, m_framebufferProps, m_testPass);
+		m_shadowPipeline.init(pipelineInfo, m_shadowFramebufferProps, m_shadowPass);
+	}
+	{
+		auto pipelineInfo = PipelineProps{};
+		pipelineInfo.vertexPath = "resources/shaders/main/shader.vert.spv";
+		pipelineInfo.fragmentPath = "resources/shaders/main/shader.frag.spv";
+		pipelineInfo.descriptorSetLayouts = { m_descriptorPool.getLayout(0), m_descriptorPool.getLayout(0), m_descriptorPool.getLayout(0), m_descriptorPool.getLayout(1), m_descriptorPool.getLayout(1), m_descriptorPool.getLayout(1), m_descriptorPool.getLayout(0) };
+		pipelineInfo.vertexInput = true;
+		pipelineInfo.culling = VK_CULL_MODE_BACK_BIT;
+		m_renderPipeline.init(pipelineInfo, m_renderFramebufferProps, m_renderPass);
 	}
 	{
 		auto pipelineInfo = PipelineProps{};
@@ -154,7 +184,7 @@ void Renderer::createGraphicsPipeline()
 		pipelineInfo.descriptorSetLayouts = { m_descriptorPool.getLayout(1) };
 		pipelineInfo.vertexInput = false;
 		pipelineInfo.culling = VK_CULL_MODE_NONE;
-		m_combinePipeline.init(pipelineInfo, m_framebufferProps, m_swapchainPass);
+		m_combinePipeline.init(pipelineInfo, m_renderFramebufferProps, m_swapchainPass);
 	}
 }
 
@@ -195,6 +225,65 @@ void Renderer::setViewport(VkCommandBuffer commandBuffer)
 	vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 }
 
+void Renderer::setViewport(VkCommandBuffer commandBuffer, uint32_t width, uint32_t height)
+{
+	auto viewport = VkViewport{};
+	viewport.x = 0.0f;
+	viewport.y = 0.0f;
+	viewport.width = static_cast<float>(width);
+	viewport.height = static_cast<float>(width);
+	viewport.minDepth = 0.0f;
+	viewport.maxDepth = 1.0f;
+	vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+
+	auto scissor = VkRect2D{};
+	scissor.offset = { 0, 0 };
+	scissor.extent = { width, height };
+	vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+}
+
+auto View =
+#if 1
+glm::lookAt(
+	glm::vec3{ -4.0f, 6.0f, -4.0f },
+	glm::vec3{ 0.0f, 0.5f, 0.0f },
+	glm::vec3{ 0.0f, 1.0f, 0.0f }
+);
+#endif
+
+auto Proj = 
+#if 1 
+glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 6.0f, 10.0f);
+#else
+glm::perspective(glm::radians(60.0f), 1.0f, 0.5f, 10.f);
+#endif
+
+void Renderer::renderShadows(VkCommandBuffer commandBuffer, RenderPass& renderPass, Pipeline& pipeline)
+{
+	renderPass.begin(commandBuffer, m_shadowFramebuffer);
+	setViewport(commandBuffer, 2048, 2048);
+	pipeline.bind(commandBuffer);
+	
+	auto mvp = MVP{};
+	mvp.view = View;
+	mvp.proj = Proj;
+	mvp.proj[1][1] *= -1.0f;
+
+	mvp.model = m_object.getModelMatrix();
+	m_shadowMvp.write(mvp);
+	m_shadowMvp.bind(commandBuffer, pipeline.getLayout(), 0);
+	m_object.bindMesh(commandBuffer);
+	m_object.draw(commandBuffer, pipeline.getLayout());
+
+	mvp.model = m_plane.getModelMatrix();
+	m_shadowMvp2.write(mvp);
+	m_shadowMvp2.bind(commandBuffer, pipeline.getLayout(), 0);
+	m_plane.bindMesh(commandBuffer);
+	m_plane.draw(commandBuffer, pipeline.getLayout());
+
+	renderPass.end(commandBuffer);
+}
+
 void Renderer::renderScene(VkCommandBuffer commandBuffer, RenderPass& renderPass, Pipeline& pipeline)
 {
 	static auto lastTime = std::chrono::high_resolution_clock::now();
@@ -202,7 +291,7 @@ void Renderer::renderScene(VkCommandBuffer commandBuffer, RenderPass& renderPass
 	auto delta = std::chrono::duration<float, std::chrono::seconds::period>(now - lastTime).count();
 	lastTime = now;
 
-	renderPass.begin(commandBuffer, m_testFramebuffer);
+	renderPass.begin(commandBuffer, m_renderFramebuffer);
 	setViewport(commandBuffer);
 
 	static auto& input = m_window.getInput();
@@ -221,6 +310,7 @@ void Renderer::renderScene(VkCommandBuffer commandBuffer, RenderPass& renderPass
 	if (input.getKey(GLFW_KEY_LEFT_SHIFT)) cameraMove.y -= 1;
 	m_camera.move(cameraMove, delta);
 	auto extent = m_swapchain.getExtent();
+
 	auto view = m_camera.getViewMatrix();
 	auto proj = glm::perspective(glm::radians(80.0f), extent.width / (float)extent.height, 0.1f, 100.0f);
 	proj[1][1] *= -1;
@@ -228,13 +318,32 @@ void Renderer::renderScene(VkCommandBuffer commandBuffer, RenderPass& renderPass
 	light.viewPosition = m_camera.getPosition();
 
 	pipeline.bind(commandBuffer);
+	{
+		auto view = View;
+		auto proj = Proj;
+		proj[1][1] *= -1;
+		alignas (16) glm::mat4 lightSpace = proj * view;
+		m_lightSpace.write(lightSpace);
+		m_lightSpace.bind(commandBuffer, pipeline.getLayout(), 6);
+	}
+
 	m_light.write(light);
 	m_light.bind(commandBuffer, pipeline.getLayout(), 1);
+	m_shadowFramebuffer.getDepthTexture().bind(commandBuffer, pipeline.getLayout(), 5);
+
 	m_specularMap.bind(commandBuffer, pipeline.getLayout(), 4);
 	m_object.bindMVP(commandBuffer, pipeline.getLayout(), view, proj);
+	m_object.bindMaterial(commandBuffer, pipeline.getLayout(), 2);
 	m_object.bindTexture(commandBuffer, pipeline.getLayout(), 3);
 	m_object.bindMesh(commandBuffer);
 	m_object.draw(commandBuffer, pipeline.getLayout());
+
+	m_planeSpecularMap.bind(commandBuffer, pipeline.getLayout(), 4);
+	m_plane.bindMVP(commandBuffer, pipeline.getLayout(), view, proj);
+	m_plane.bindMaterial(commandBuffer, pipeline.getLayout(), 2);
+	m_plane.bindTexture(commandBuffer, pipeline.getLayout(), 3);
+	m_plane.bindMesh(commandBuffer);
+	m_plane.draw(commandBuffer, pipeline.getLayout());
 
 	renderPass.end(commandBuffer);
 }
@@ -244,8 +353,9 @@ void Renderer::combine(VkCommandBuffer commandBuffer, RenderPass& renderPass, Pi
 	renderPass.begin(commandBuffer, m_swapchain.getFramebuffer(imageIndex));
 	setViewport(commandBuffer);
 	pipeline.bind(commandBuffer);
-	m_testFramebuffer.getColorTexture(0).bind(commandBuffer, pipeline.getLayout(), 0);
+	m_renderFramebuffer.getColorTexture(0).bind(commandBuffer, pipeline.getLayout(), 0);
 	vkCmdDraw(commandBuffer, 6, 1, 0, 0);
+	ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commandBuffer);
 	renderPass.end(commandBuffer);
 }
 
@@ -284,7 +394,8 @@ void Renderer::render()
 	if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS)
 		throw std::runtime_error{ "failed to record command buffer" };
 
-	renderScene(commandBuffer, m_testPass, m_testPipeline);
+	renderShadows(commandBuffer, m_shadowPass, m_shadowPipeline);
+	renderScene(commandBuffer, m_renderPass, m_renderPipeline);
 	combine(commandBuffer, m_swapchainPass, m_combinePipeline, imageIndex);
 
 	if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS)

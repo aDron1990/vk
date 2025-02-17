@@ -31,7 +31,7 @@ void OffscreenPass::createRenderPass()
 {
 	auto details = m_device->querySwapchainSupport(m_device->getGpu());
 	auto format = Swapchain::chooseSwapchainSurfaceFormat(details.formats).format;
-	auto attachmentsCount = m_framebufferProps.colorAttachmentCount + static_cast<int>(m_framebufferProps.colorAttachmentCount);
+	auto attachmentsCount = m_framebufferProps.colorAttachmentCount + static_cast<int>(m_framebufferProps.useDepthAttachment);
 
 	auto attachments = std::vector<VkAttachmentDescription>{};
 	attachments.reserve(attachmentsCount);
@@ -58,7 +58,7 @@ void OffscreenPass::createRenderPass()
 	}
 
 	auto depthAttachment = VkAttachmentDescription{};
-	depthAttachment.format = m_device->findDepthFormat();
+	depthAttachment.format = m_framebufferProps.depthFormat;
 	depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
 	depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 	depthAttachment.storeOp = m_framebufferProps.useDepthAttachment ? VK_ATTACHMENT_STORE_OP_STORE : VK_ATTACHMENT_STORE_OP_DONT_CARE;
@@ -108,7 +108,7 @@ void OffscreenPass::createRenderPass()
 
 void OffscreenPass::begin(VkCommandBuffer commandBuffer, Framebuffer& framebuffer)
 {
-	auto attachmentsCount = m_framebufferProps.colorAttachmentCount + static_cast<int>(m_framebufferProps.colorAttachmentCount);
+	auto attachmentsCount = m_framebufferProps.colorAttachmentCount + static_cast<int>(m_framebufferProps.useDepthAttachment);
 	auto clearValues = std::vector<VkClearValue>(attachmentsCount,
 			VkClearValue{.color = {{0.0f, 0.0f, 0.0f, 1.0f}}});
 	clearValues.back() = VkClearValue{ .depthStencil = {1.0f, 0} };

@@ -18,8 +18,6 @@ void Object::init(Model& model)
 void Object::draw(VkCommandBuffer commandBuffer, VkPipelineLayout layout)
 {
 	assert(m_initialized);
-	m_materialBuffer.write(material);
-	m_materialBuffer.bind(commandBuffer, layout, 2);
 	m_model->draw(commandBuffer, layout);
 }
 
@@ -27,11 +25,7 @@ void Object::bindMVP(VkCommandBuffer commandBuffer, VkPipelineLayout layout, con
 {
 	assert(m_initialized);
 	auto mvp = MVP{};
-	mvp.model = glm::translate(glm::mat4(1.0f), m_position);
-	mvp.model = glm::rotate(mvp.model, glm::radians(m_rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
-	mvp.model = glm::rotate(mvp.model, glm::radians(m_rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
-	mvp.model = glm::rotate(mvp.model, glm::radians(m_rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
-	mvp.model = glm::scale(mvp.model, m_scale);
+	mvp.model = getModelMatrix();
 	mvp.view = view;
 	mvp.proj = proj;
 	m_mvpBuffer.write(mvp);
@@ -42,6 +36,13 @@ void Object::bindTexture(VkCommandBuffer commandBuffer, VkPipelineLayout layout,
 {
 	assert(m_initialized);
 	m_model->bindTexture(commandBuffer, layout, set);
+}
+
+void Object::bindMaterial(VkCommandBuffer commandBuffer, VkPipelineLayout layout, uint32_t set)
+{
+	assert(m_initialized);
+	m_materialBuffer.write(material);
+	m_materialBuffer.bind(commandBuffer, layout, 2);
 }
 
 void Object::bindMesh(VkCommandBuffer commandBuffer)
@@ -67,15 +68,29 @@ void Object::setScale(glm::vec3 scale)
 
 glm::vec3 Object::getPosition()
 {
+	assert(m_initialized);
 	return m_position;
 }
 
 glm::vec3 Object::getRotation()
 {
+	assert(m_initialized);
 	return m_rotation;
 }
 
 glm::vec3 Object::getScale()
 {
+	assert(m_initialized);
 	return m_scale;
+}
+
+glm::mat4 Object::getModelMatrix()
+{
+	assert(m_initialized);
+	auto model = glm::translate(glm::mat4(1.0f), m_position);
+	model = glm::rotate(model, glm::radians(m_rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
+	model = glm::rotate(model, glm::radians(m_rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
+	model = glm::rotate(model, glm::radians(m_rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
+	model = glm::scale(model, m_scale);
+	return model;
 }

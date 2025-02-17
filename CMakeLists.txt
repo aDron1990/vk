@@ -92,6 +92,8 @@ set(shader_files
     "resources/shaders/pick_bright/shader.frag"
 	"resources/shaders/combine/shader.vert"
     "resources/shaders/combine/shader.frag"
+	"resources/shaders/shadow/shader.vert"
+    "resources/shaders/shadow/shader.frag"
 )
 
 add_shader("${shader_files}" spv_names)
@@ -105,11 +107,15 @@ cmrc_add_resource_library(images
 	"resources/images/viking_room.png"
 	"resources/images/container2.png"
     "resources/images/container2_specular.png"
+    "resources/images/brown.png"
+    "resources/images/brown_specular.png"
 )
 
 cmrc_add_resource_library(models
     "resources/models/monkey.obj"
 	"resources/models/monkey.mtl"
+	"resources/models/plane.obj"
+	"resources/models/plane.mtl"
 )
 
 target_link_libraries(vk PRIVATE shaders images models)

@@ -44,27 +44,32 @@ public:
 
 	void write(const T& data)
 	{
+		assert(m_initialized);
 		memcpy(m_bufferMapped, &data, sizeof(T));
 	}
 
 	void bind(VkCommandBuffer commandBuffer, VkPipelineLayout layout, uint32_t setId)
 	{
+		assert(m_initialized);
 		auto set = m_descriptorSet->getSet();
 		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, layout, setId, 1, &set, 0, nullptr);
 	}
 
 	Buffer& getBuffer()
 	{
+		assert(m_initialized);
 		return m_buffer;
 	}
 
 	void* getBufferPtr()
 	{
+		assert(m_initialized);
 		return m_bufferMapped;
 	}
 
 	size_t getSize()
 	{
+		assert(m_initialized);
 		return m_size;
 	}
 

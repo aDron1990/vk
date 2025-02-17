@@ -50,11 +50,14 @@ private:
 		Horizontal,
 		Vertical
 	};
+
+	void renderShadows(VkCommandBuffer commandBuffer, RenderPass& renderPass, Pipeline& pipeline);
 	void renderScene(VkCommandBuffer commandBuffer, RenderPass& renderPass, Pipeline& pipeline);
 	void combine(VkCommandBuffer commandBuffer, RenderPass& renderPass, Pipeline& pipeline, uint32_t imageIndex);
 
 private:
 	void setViewport(VkCommandBuffer commandBuffer);
+	void setViewport(VkCommandBuffer commandBuffer, uint32_t width, uint32_t height);
 
 private:
 	Camera m_camera;
@@ -70,15 +73,25 @@ private:
 	Swapchain m_swapchain;
 	DescriptorPool m_descriptorPool;
 	SwapchainPass m_swapchainPass;
-	OffscreenPass m_testPass;
-	Framebuffer m_testFramebuffer;
+	OffscreenPass m_renderPass;
+	OffscreenPass m_shadowPass;
+	Framebuffer m_renderFramebuffer;
+	Framebuffer m_shadowFramebuffer;
 	Pipeline m_combinePipeline;
-	Pipeline m_testPipeline;
+	Pipeline m_renderPipeline;
+	Pipeline m_shadowPipeline;
 	LightBuffer m_light;
 	Model m_model;
+	Model m_planeModel;
 	Object m_object;
+	Object m_plane;
 	Texture m_specularMap;
+	Texture m_planeSpecularMap;
 
+	UniformBuffer<MVP> m_shadowMvp;
+	UniformBuffer<MVP> m_shadowMvp2;
+	UniformBuffer<glm::mat4> m_lightSpace;
 	Light light{};
-	FramebufferProps m_framebufferProps{};
+	FramebufferProps m_renderFramebufferProps{};
+	FramebufferProps m_shadowFramebufferProps{};
 };
