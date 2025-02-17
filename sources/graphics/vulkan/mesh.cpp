@@ -63,12 +63,15 @@ void Mesh::loadModel(const std::string& modelPath)
 void Mesh::createVertexBuffer()
 {
 	VkDeviceSize size = sizeof(m_vertices[0]) * m_vertices.size();
-	Buffer stagingBuffer{ m_device, size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT };
+	Buffer stagingBuffer;
+	stagingBuffer.init(size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 	auto* data = stagingBuffer.map();
 	memcpy(data, m_vertices.data(), static_cast<size_t>(size));
 	stagingBuffer.unmap();
-	m_vertexBuffer.reset(new Buffer{ m_device, size, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT });
+	m_vertexBuffer.reset(new Buffer);
+	m_vertexBuffer->init(size, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
+	);
 
 	m_device.copyBuffer(stagingBuffer, *m_vertexBuffer);
 }
@@ -76,12 +79,15 @@ void Mesh::createVertexBuffer()
 void Mesh::createIndexBuffer()
 {
 	VkDeviceSize size = sizeof(m_indices[0]) * m_indices.size();
-	Buffer stagingBuffer{ m_device, size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT };
+	Buffer stagingBuffer;
+	stagingBuffer.init(size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 	auto* data = stagingBuffer.map();
 	memcpy(data, m_indices.data(), static_cast<size_t>(size));
 	stagingBuffer.unmap();
-	m_indexBuffer.reset(new Buffer{ m_device, size, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT });
+	m_indexBuffer.reset(new Buffer);
+	m_indexBuffer->init(size, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
+	);
 
 	m_device.copyBuffer(stagingBuffer, *m_indexBuffer);
 }

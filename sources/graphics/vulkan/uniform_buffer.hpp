@@ -16,12 +16,11 @@ public:
 	UniformBuffer(Device& device, DescriptorSetPtr descriptorSet, uint32_t binding = 0) : m_device{ device }, m_descriptorSet{descriptorSet}
 	{
 		m_size = sizeof(T);
-		auto& buffer = m_buffer;
-		buffer.reset(new Buffer{ m_device, m_size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT });
-		m_bufferMapped = buffer->map();
+		m_buffer.init(m_size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+		m_bufferMapped = m_buffer.map();
 
 		auto bufferInfo = VkDescriptorBufferInfo{};
-		bufferInfo.buffer = buffer->getBuffer();
+		bufferInfo.buffer = m_buffer.getBuffer();
 		bufferInfo.offset = 0;
 		bufferInfo.range = sizeof(T);
 
@@ -65,7 +64,7 @@ public:
 
 private:
 	Device& m_device;
-	std::unique_ptr<Buffer> m_buffer;
+	Buffer m_buffer;
 	void* m_bufferMapped;
 	DescriptorSetPtr m_descriptorSet;
 	VkDeviceSize m_size;

@@ -78,9 +78,10 @@ void Texture::createImage(const std::string& imagePath)
     if (pixels == nullptr)
         throw std::runtime_error{ "failed to load image" };
 
-    auto stagingBuffer = Buffer{ m_device, size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+    auto stagingBuffer = Buffer{};
+    stagingBuffer.init(size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
-    };
+    );
     auto* data = stagingBuffer.map();
     memcpy(data, pixels, static_cast<size_t>(size));
     stagingBuffer.unmap();
