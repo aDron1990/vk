@@ -8,8 +8,6 @@ CMRC_DECLARE(shaders);
 #include <stdexcept>
 #include <vector>
 
-Pipeline::Pipeline() : m_device{ Locator::getDevice() } {}
-
 Pipeline::~Pipeline()
 {
 	destroy();
@@ -19,8 +17,8 @@ void Pipeline::destroy()
 {
 	if (m_initialized)
 	{
-		vkDestroyPipeline(m_device.getDevice(), m_pipeline, nullptr);
-		vkDestroyPipelineLayout(m_device.getDevice(), m_layout, nullptr);
+		vkDestroyPipeline(m_device->getDevice(), m_pipeline, nullptr);
+		vkDestroyPipelineLayout(m_device->getDevice(), m_layout, nullptr);
 	}
 	m_initialized = false;
 }
@@ -28,11 +26,12 @@ void Pipeline::destroy()
 void Pipeline::init(const PipelineProps& props, const FramebufferProps& framebufferProps, RenderPass& renderPass)
 {
 	assert(!m_initialized);
+	m_initialized = true;
+	m_device = &Locator::getDevice();
 	m_props = props;
 	m_framebufferProps = framebufferProps;
 	m_renderPass = &renderPass;
 	createPipeline();
-	m_initialized = true;
 }
 
 void Pipeline::createPipeline()
@@ -133,7 +132,7 @@ void Pipeline::createPipeline()
 	pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 	pipelineLayoutInfo.pSetLayouts = m_props.descriptorSetLayouts.data();
 	pipelineLayoutInfo.setLayoutCount = static_cast<uint32_t>(m_props.descriptorSetLayouts.size());
-	if (vkCreatePipelineLayout(m_device.getDevice(), &pipelineLayoutInfo, nullptr, &m_layout) != VK_SUCCESS)
+	if (vkCreatePipelineLayout(m_device->getDevice(), &pipelineLayoutInfo, nullptr, &m_layout) != VK_SUCCESS)
 		throw std::runtime_error{ "failed to create vulkan pipeline layout" };
 
 	auto createInfo = VkGraphicsPipelineCreateInfo{};
@@ -152,11 +151,11 @@ void Pipeline::createPipeline()
 	createInfo.layout = m_layout;
 	createInfo.renderPass = m_renderPass->getRenderPass();
 	createInfo.subpass = 0;
-	if (vkCreateGraphicsPipelines(m_device.getDevice(), VK_NULL_HANDLE, 1, &createInfo, nullptr, &m_pipeline))
+	if (vkCreateGraphicsPipelines(m_device->getDevice(), VK_NULL_HANDLE, 1, &createInfo, nullptr, &m_pipeline))
 		throw std::runtime_error{ "failed to create vulkan pipeline" };
 
-	vkDestroyShaderModule(m_device.getDevice(), vertexModule, nullptr);
-	vkDestroyShaderModule(m_device.getDevice(), fragmentModule, nullptr);
+	vkDestroyShaderModule(m_device->getDevice(), vertexModule, nullptr);
+	vkDestroyShaderModule(m_device->getDevice(), fragmentModule, nullptr);
 }
 
 VkShaderModule Pipeline::createShaderModule(const std::vector<char>& code)
@@ -166,7 +165,7 @@ VkShaderModule Pipeline::createShaderModule(const std::vector<char>& code)
 	createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
 	createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
 	createInfo.codeSize = code.size();
-	if (vkCreateShaderModule(m_device.getDevice(), &createInfo, nullptr, &shaderModule) != VK_SUCCESS)
+	if (vkCreateShaderModule(m_device->getDevice(), &createInfo, nullptr, &shaderModule) != VK_SUCCESS)
 		throw std::runtime_error{ "failed to create shader module" };
 
 	return shaderModule;

@@ -24,7 +24,6 @@ struct PipelineProps
 class Pipeline
 {
 public:
-	Pipeline();
 	~Pipeline();
 	void init(const PipelineProps& props, const FramebufferProps& framebufferProps, RenderPass& renderPass);
 	void destroy();
@@ -39,11 +38,11 @@ private:
 	VkShaderModule createShaderModule(const std::vector<char>& code);
 
 private:
-	Device& m_device;
+	bool m_initialized = false;
+	Device* m_device{};
 	RenderPass* m_renderPass{};
 	PipelineProps m_props{};
 	FramebufferProps m_framebufferProps{};
-	bool m_initialized = false;
 	VkPipelineLayout m_layout{};
 	VkPipeline m_pipeline{};
 };
