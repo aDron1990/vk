@@ -65,19 +65,19 @@ private:
 	VkSemaphore m_renderFinishedSemaphore;
 	VkFence m_inFlightFence;
 
-	std::unique_ptr<Context> m_context;
-	std::unique_ptr<Device> m_device;
-	std::unique_ptr<DescriptorPool> m_descriptorPool;
-	std::unique_ptr<SwapchainPass> m_swapchainPass;
-	std::unique_ptr<OffscreenPass> m_testPass;
-	std::unique_ptr<Framebuffer> m_testFramebuffer;
-	std::unique_ptr<Swapchain> m_swapchain;
-	std::unique_ptr<Pipeline> m_combinePipeline;
-	std::unique_ptr<Pipeline> m_testPipeline;
-	std::unique_ptr<LightBuffer> m_light;
-	std::unique_ptr<Model> m_model;
-	std::unique_ptr<Object> m_object;
-	std::unique_ptr<Texture> m_specularMap;
+	Context m_context;
+	Device m_device;
+	Swapchain m_swapchain;
+	DescriptorPool m_descriptorPool;
+	SwapchainPass m_swapchainPass;
+	OffscreenPass m_testPass;
+	Framebuffer m_testFramebuffer;
+	Pipeline m_combinePipeline;
+	Pipeline m_testPipeline;
+	LightBuffer m_light;
+	Model m_model;
+	Object m_object;
+	Texture m_specularMap;
 
 	Light light{};
 	FramebufferProps m_framebufferProps{};

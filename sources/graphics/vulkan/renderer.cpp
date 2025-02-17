@@ -33,17 +33,11 @@ Renderer::Renderer(Window& window) : m_window{window}
 	createSwapchain();
 	createGraphicsPipeline();
 
-	m_specularMap.reset(new Texture);
-	m_specularMap->init("resources/images/container2_specular.png", m_descriptorPool->createSet(1));
+	m_specularMap.init("resources/images/container2_specular.png", m_descriptorPool.createSet(1));
+	m_model.init(MODEL_PATH, TEXTURE_PATH);
+	m_object.init(m_model);
 
-	m_model.reset(new Model);
-	m_model->init(MODEL_PATH, TEXTURE_PATH);
-
-	m_object.reset(new Object);
-	m_object->init(*m_model);
-
-	m_light.reset(new LightBuffer);
-	m_light->init(m_descriptorPool->createSet(0));
+	m_light.init(m_descriptorPool.createSet(0));
 	light.direction = { -0.2f, -1.0f, -0.3f };
 	light.ambient = { 0.2f, 0.2f, 0.2f };
 	light.diffuse = { 0.5f, 0.5f, 0.5f };
@@ -54,12 +48,12 @@ Renderer::Renderer(Window& window) : m_window{window}
 	ImGui::SetNavCursorVisible(false);
 	ImGui_ImplGlfw_InitForVulkan(window.getWindow(), true);
 	ImGui_ImplVulkan_InitInfo initInfo{};
-	initInfo.Instance = m_context->getInstance();
-	initInfo.PhysicalDevice = m_device->getGpu();
-	initInfo.Device = m_device->getDevice();
-	initInfo.QueueFamily = m_device->findQueueFamilies(m_device->getGpu()).graphics.value();
-	initInfo.Queue = m_device->getGraphicsQueue();
-	initInfo.RenderPass = m_swapchainPass->getRenderPass();
+	initInfo.Instance = m_context.getInstance();
+	initInfo.PhysicalDevice = m_device.getGpu();
+	initInfo.Device = m_device.getDevice();
+	initInfo.QueueFamily = m_device.findQueueFamilies(m_device.getGpu()).graphics.value();
+	initInfo.Queue = m_device.getGraphicsQueue();
+	initInfo.RenderPass = m_swapchainPass.getRenderPass();
 	initInfo.MinImageCount = 2;
 	initInfo.ImageCount = 3;
 	initInfo.DescriptorPoolSize = 128;
@@ -70,46 +64,29 @@ Renderer::Renderer(Window& window) : m_window{window}
 
 Renderer::~Renderer()
 {
-	vkDeviceWaitIdle(m_device->getDevice());
+	vkDeviceWaitIdle(m_device.getDevice());
 
 	ImGui_ImplVulkan_Shutdown();
 	ImGui_ImplGlfw_Shutdown();
 	ImGui::DestroyContext();
 
-	vkDestroySemaphore(m_device->getDevice(), m_imageAvailableSemaphore, nullptr);
-	vkDestroySemaphore(m_device->getDevice(), m_renderFinishedSemaphore, nullptr);
-	vkDestroyFence(m_device->getDevice(), m_inFlightFence, nullptr);
-
-	m_object.reset();
-	m_swapchainPass.reset();
-	m_testPass.reset();
-	m_testFramebuffer.reset();
-	m_combinePipeline.reset();
-	m_testPipeline.reset();
-
-	m_swapchain.reset();
-	m_specularMap.reset();
-	m_model.reset();
-	m_light.reset();
-	m_descriptorPool.reset();
-	m_device.reset();
-	m_context.reset();
+	vkDestroySemaphore(m_device.getDevice(), m_imageAvailableSemaphore, nullptr);
+	vkDestroySemaphore(m_device.getDevice(), m_renderFinishedSemaphore, nullptr);
+	vkDestroyFence(m_device.getDevice(), m_inFlightFence, nullptr);
 }
 
 void Renderer::createContext()
 {
-	m_context.reset(new Context);
-	m_context->init();
+	m_context.init();
 }
 
 void Renderer::createDevice()
 {
 	auto surface = VkSurfaceKHR{};
-	if (glfwCreateWindowSurface(m_context->getInstance(), m_window.getWindow(), nullptr, &surface) != VK_SUCCESS)
+	if (glfwCreateWindowSurface(m_context.getInstance(), m_window.getWindow(), nullptr, &surface) != VK_SUCCESS)
 		throw std::runtime_error{ "failed to create vulkan surface" };
 
-	m_device.reset(new Device);
-	m_device->init(surface);
+	m_device.init(surface);
 }
 
 void Renderer::createDescriptorPool()
@@ -132,24 +109,20 @@ void Renderer::createDescriptorPool()
 			}
 		}, VK_SHADER_STAGE_ALL_GRAPHICS, 100 }
 	};
-	m_descriptorPool.reset(new DescriptorPool);
-	m_descriptorPool->init(props);
+	m_descriptorPool.init(props);
 }
 
 void Renderer::createRenderPass()
 {
-	m_swapchainPass.reset(new SwapchainPass);
-	m_swapchainPass->init();
+	m_swapchainPass.init();
 	m_framebufferProps.colorAttachmentCount = 1;
 	m_framebufferProps.useDepthAttachment = true;
 	m_framebufferProps.colorFormat = VK_FORMAT_B8G8R8A8_UNORM;
 	m_framebufferProps.depthFormat = VK_FORMAT_D32_SFLOAT;
 
-	m_testPass.reset(new OffscreenPass);
-	m_testPass->init(m_framebufferProps);
+	m_testPass.init(m_framebufferProps);
 
-	m_testFramebuffer.reset(new Framebuffer);
-	m_testFramebuffer->init(m_framebufferProps, *m_testPass, 1280, 720);
+	m_testFramebuffer.init(m_framebufferProps, m_testPass, 1280, 720);
 }
 
 void Renderer::createSwapchain()
@@ -157,10 +130,9 @@ void Renderer::createSwapchain()
 	int width, height;
 	glfwGetFramebufferSize(m_window.getWindow(), &width, &height);
 	auto extent = VkExtent2D{ static_cast<uint32_t>(width), static_cast<uint32_t>(height) };
-	m_swapchain.reset(new Swapchain);
-	m_swapchain->init(m_framebufferProps, *m_swapchainPass, [&](uint32_t width, uint32_t height)
+	m_swapchain.init(m_framebufferProps, m_swapchainPass, [&](uint32_t width, uint32_t height)
 	{
-		m_testFramebuffer->resize(width, height);
+		m_testFramebuffer.resize(width, height);
 	});
 }
 
@@ -170,21 +142,19 @@ void Renderer::createGraphicsPipeline()
 		auto pipelineInfo = PipelineProps{};
 		pipelineInfo.vertexPath = "resources/shaders/main/shader.vert.spv";
 		pipelineInfo.fragmentPath = "resources/shaders/main/shader.frag.spv";
-		pipelineInfo.descriptorSetLayouts = { m_descriptorPool->getLayout(0), m_descriptorPool->getLayout(0), m_descriptorPool->getLayout(0), m_descriptorPool->getLayout(1), m_descriptorPool->getLayout(1) };
+		pipelineInfo.descriptorSetLayouts = { m_descriptorPool.getLayout(0), m_descriptorPool.getLayout(0), m_descriptorPool.getLayout(0), m_descriptorPool.getLayout(1), m_descriptorPool.getLayout(1) };
 		pipelineInfo.vertexInput = true;
 		pipelineInfo.culling = VK_CULL_MODE_BACK_BIT;
-		m_testPipeline.reset(new Pipeline);
-		m_testPipeline->init(pipelineInfo, m_framebufferProps, *m_testPass);
+		m_testPipeline.init(pipelineInfo, m_framebufferProps, m_testPass);
 	}
 	{
 		auto pipelineInfo = PipelineProps{};
 		pipelineInfo.vertexPath = "resources/shaders/combine/shader.vert.spv";
 		pipelineInfo.fragmentPath = "resources/shaders/combine/shader.frag.spv";
-		pipelineInfo.descriptorSetLayouts = { m_descriptorPool->getLayout(1) };
+		pipelineInfo.descriptorSetLayouts = { m_descriptorPool.getLayout(1) };
 		pipelineInfo.vertexInput = false;
 		pipelineInfo.culling = VK_CULL_MODE_NONE;
-		m_combinePipeline.reset(new Pipeline);
-		m_combinePipeline->init(pipelineInfo, m_framebufferProps, *m_swapchainPass);
+		m_combinePipeline.init(pipelineInfo, m_framebufferProps, m_swapchainPass);
 	}
 }
 
@@ -197,15 +167,15 @@ void Renderer::createSyncObjects()
 	fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
 	fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
-	if (vkCreateSemaphore(m_device->getDevice(), &semaphoreInfo, nullptr, &m_imageAvailableSemaphore) != VK_SUCCESS ||
-		vkCreateSemaphore(m_device->getDevice(), &semaphoreInfo, nullptr, &m_renderFinishedSemaphore) != VK_SUCCESS ||
-		vkCreateFence(m_device->getDevice(), &fenceInfo, nullptr, &m_inFlightFence) != VK_SUCCESS)
+	if (vkCreateSemaphore(m_device.getDevice(), &semaphoreInfo, nullptr, &m_imageAvailableSemaphore) != VK_SUCCESS ||
+		vkCreateSemaphore(m_device.getDevice(), &semaphoreInfo, nullptr, &m_renderFinishedSemaphore) != VK_SUCCESS ||
+		vkCreateFence(m_device.getDevice(), &fenceInfo, nullptr, &m_inFlightFence) != VK_SUCCESS)
 		throw std::runtime_error{ "failed to create vulkan sync objects" };
 }
 
 void Renderer::createCommandBuffers()
 {
-	m_commandBuffer = m_device->createCommandBuffers(1).back();
+	m_commandBuffer = m_device.createCommandBuffers(1).back();
 }
 
 void Renderer::setViewport(VkCommandBuffer commandBuffer)
@@ -213,15 +183,15 @@ void Renderer::setViewport(VkCommandBuffer commandBuffer)
 	auto viewport = VkViewport{};
 	viewport.x = 0.0f;
 	viewport.y = 0.0f;
-	viewport.width = static_cast<float>(m_swapchain->getExtent().width);
-	viewport.height = static_cast<float>(m_swapchain->getExtent().height);
+	viewport.width = static_cast<float>(m_swapchain.getExtent().width);
+	viewport.height = static_cast<float>(m_swapchain.getExtent().height);
 	viewport.minDepth = 0.0f;
 	viewport.maxDepth = 1.0f;
 	vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
 
 	auto scissor = VkRect2D{};
 	scissor.offset = { 0, 0 };
-	scissor.extent = m_swapchain->getExtent();
+	scissor.extent = m_swapchain.getExtent();
 	vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 }
 
@@ -232,7 +202,7 @@ void Renderer::renderScene(VkCommandBuffer commandBuffer, RenderPass& renderPass
 	auto delta = std::chrono::duration<float, std::chrono::seconds::period>(now - lastTime).count();
 	lastTime = now;
 
-	renderPass.begin(commandBuffer, *m_testFramebuffer);
+	renderPass.begin(commandBuffer, m_testFramebuffer);
 	setViewport(commandBuffer);
 
 	static auto& input = m_window.getInput();
@@ -250,7 +220,7 @@ void Renderer::renderScene(VkCommandBuffer commandBuffer, RenderPass& renderPass
 	if (input.getKey(GLFW_KEY_SPACE)) cameraMove.y += 1;
 	if (input.getKey(GLFW_KEY_LEFT_SHIFT)) cameraMove.y -= 1;
 	m_camera.move(cameraMove, delta);
-	auto extent = m_swapchain->getExtent();
+	auto extent = m_swapchain.getExtent();
 	auto view = m_camera.getViewMatrix();
 	auto proj = glm::perspective(glm::radians(80.0f), extent.width / (float)extent.height, 0.1f, 100.0f);
 	proj[1][1] *= -1;
@@ -258,23 +228,23 @@ void Renderer::renderScene(VkCommandBuffer commandBuffer, RenderPass& renderPass
 	light.viewPosition = m_camera.getPosition();
 
 	pipeline.bind(commandBuffer);
-	m_light->write(light);
-	m_light->bind(commandBuffer, pipeline.getLayout(), 1);
-	m_specularMap->bind(commandBuffer, pipeline.getLayout(), 4);
-	m_object->bindMVP(commandBuffer, pipeline.getLayout(), view, proj);
-	m_object->bindTexture(commandBuffer, pipeline.getLayout(), 3);
-	m_object->bindMesh(commandBuffer);
-	m_object->draw(commandBuffer, pipeline.getLayout());
+	m_light.write(light);
+	m_light.bind(commandBuffer, pipeline.getLayout(), 1);
+	m_specularMap.bind(commandBuffer, pipeline.getLayout(), 4);
+	m_object.bindMVP(commandBuffer, pipeline.getLayout(), view, proj);
+	m_object.bindTexture(commandBuffer, pipeline.getLayout(), 3);
+	m_object.bindMesh(commandBuffer);
+	m_object.draw(commandBuffer, pipeline.getLayout());
 
 	renderPass.end(commandBuffer);
 }
 
 void Renderer::combine(VkCommandBuffer commandBuffer, RenderPass& renderPass, Pipeline& pipeline, uint32_t imageIndex)
 {
-	renderPass.begin(commandBuffer, m_swapchain->getFramebuffer(imageIndex));
+	renderPass.begin(commandBuffer, m_swapchain.getFramebuffer(imageIndex));
 	setViewport(commandBuffer);
 	pipeline.bind(commandBuffer);
-	m_testFramebuffer->getColorTexture(0).bind(commandBuffer, pipeline.getLayout(), 0);
+	m_testFramebuffer.getColorTexture(0).bind(commandBuffer, pipeline.getLayout(), 0);
 	vkCmdDraw(commandBuffer, 6, 1, 0, 0);
 	renderPass.end(commandBuffer);
 }
@@ -285,16 +255,16 @@ void Renderer::render()
 	ImGui_ImplGlfw_NewFrame();
 	ImGui::NewFrame();
 
-	auto pos = m_object->getPosition();
-	auto cachePos = m_object->getPosition();
+	auto pos = m_object.getPosition();
+	auto cachePos = m_object.getPosition();
 
 	ImGui::Begin("Object");
 	ImGui::DragFloat3("position", &pos.x, 0.1f);
 	ImGui::Separator();
-	ImGui::DragFloat("shininess", &m_object->material.shininess, 0.5f, 0.5f, 128.0f);
+	ImGui::DragFloat("shininess", &m_object.material.shininess, 0.5f, 0.5f, 128.0f);
 	ImGui::End();
 
-	if (pos != cachePos) m_object->setPosition(pos);
+	if (pos != cachePos) m_object.setPosition(pos);
 	
 	ImGui::Begin("Light");
 	ImGui::DragFloat3("direction", (float*)&light.direction);
@@ -305,7 +275,7 @@ void Renderer::render()
 
 	ImGui::Render();
 
-	auto imageIndex = m_swapchain->beginFrame(m_inFlightFence, m_imageAvailableSemaphore);
+	auto imageIndex = m_swapchain.beginFrame(m_inFlightFence, m_imageAvailableSemaphore);
 	if (imageIndex == UINT32_MAX) return;
 	auto commandBuffer = m_commandBuffer;
 
@@ -314,8 +284,8 @@ void Renderer::render()
 	if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS)
 		throw std::runtime_error{ "failed to record command buffer" };
 
-	renderScene(commandBuffer, *m_testPass, *m_testPipeline);
-	combine(commandBuffer, *m_swapchainPass, *m_combinePipeline, imageIndex);
+	renderScene(commandBuffer, m_testPass, m_testPipeline);
+	combine(commandBuffer, m_swapchainPass, m_combinePipeline, imageIndex);
 
 	if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS)
 		throw std::runtime_error{ "failed to end command buffer" };
@@ -333,8 +303,8 @@ void Renderer::render()
 	submitInfo.commandBufferCount = 1;
 	submitInfo.pSignalSemaphores = signalSemaphores.begin();
 	submitInfo.signalSemaphoreCount = signalSemaphores.size();
-	if (vkQueueSubmit(m_device->getGraphicsQueue(), 1, &submitInfo, m_inFlightFence) != VK_SUCCESS)
+	if (vkQueueSubmit(m_device.getGraphicsQueue(), 1, &submitInfo, m_inFlightFence) != VK_SUCCESS)
 		throw std::runtime_error{ "failed to submit draw command buffer" };
 
-	m_swapchain->endFrame(imageIndex, m_renderFinishedSemaphore);
+	m_swapchain.endFrame(imageIndex, m_renderFinishedSemaphore);
 }

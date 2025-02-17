@@ -95,6 +95,7 @@ void Swapchain::createFramebuffers()
 	m_framebuffers.resize(imageCount);
 	for (auto [image, framebuffer] : std::views::zip(swapchainImages, m_framebuffers))
 	{
+		framebuffer.destroy();
 		framebuffer.init(m_framebufferProps, image, *m_renderPass, m_swapchainExtent.width, m_swapchainExtent.height);
 	}
 }
