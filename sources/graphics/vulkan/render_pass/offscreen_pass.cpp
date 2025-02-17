@@ -4,8 +4,6 @@
 
 #include <stdexcept>
 
-OffscreenPass::OffscreenPass() : m_device{ Locator::getDevice() } {}
-
 OffscreenPass::~OffscreenPass()
 {
 	destroy();
@@ -15,7 +13,7 @@ void OffscreenPass::destroy()
 {
 	if (m_initialized)
 	{
-		vkDestroyRenderPass(m_device.getDevice(), m_renderPass, nullptr);
+		vkDestroyRenderPass(m_device->getDevice(), m_renderPass, nullptr);
 	}
 	m_initialized = false;
 }
@@ -23,15 +21,15 @@ void OffscreenPass::destroy()
 void OffscreenPass::init(const FramebufferProps& framebufferProps)
 {
 	assert(!m_initialized);
+	m_initialized = true;
+	m_device = &Locator::getDevice();
 	m_framebufferProps = framebufferProps;
 	createRenderPass();
-	
-	m_initialized = true;
 }
 
 void OffscreenPass::createRenderPass()
 {
-	auto details = m_device.querySwapchainSupport(m_device.getGpu());
+	auto details = m_device->querySwapchainSupport(m_device->getGpu());
 	auto format = Swapchain::chooseSwapchainSurfaceFormat(details.formats).format;
 	auto attachmentsCount = m_framebufferProps.colorAttachmentCount + static_cast<int>(m_framebufferProps.colorAttachmentCount);
 
@@ -60,7 +58,7 @@ void OffscreenPass::createRenderPass()
 	}
 
 	auto depthAttachment = VkAttachmentDescription{};
-	depthAttachment.format = m_device.findDepthFormat();
+	depthAttachment.format = m_device->findDepthFormat();
 	depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
 	depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 	depthAttachment.storeOp = m_framebufferProps.useDepthAttachment ? VK_ATTACHMENT_STORE_OP_STORE : VK_ATTACHMENT_STORE_OP_DONT_CARE;
@@ -104,7 +102,7 @@ void OffscreenPass::createRenderPass()
 	createInfo.pDependencies = dependencies.data();
 	createInfo.dependencyCount = dependencies.size();
 
-	if (vkCreateRenderPass(m_device.getDevice(), &createInfo, nullptr, &m_renderPass) != VK_SUCCESS)
+	if (vkCreateRenderPass(m_device->getDevice(), &createInfo, nullptr, &m_renderPass) != VK_SUCCESS)
 		throw std::runtime_error{ "failed to create vulkan render pass" };
 }
 

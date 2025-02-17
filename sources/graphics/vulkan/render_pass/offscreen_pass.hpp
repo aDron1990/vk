@@ -10,7 +10,6 @@
 class OffscreenPass : public RenderPass
 {
 public:
-	OffscreenPass();
 	~OffscreenPass();
 	void init(const FramebufferProps& framebufferProps);
 	void destroy();
@@ -23,8 +22,8 @@ private:
 	void createRenderPass();
 
 private:
-	Device& m_device;
 	bool m_initialized = false;
+	Device* m_device{};
 	FramebufferProps m_framebufferProps{};
 	VkRenderPass m_renderPass{};
 };
