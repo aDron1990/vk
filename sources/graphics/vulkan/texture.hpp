@@ -13,7 +13,6 @@ enum AttachmentType
 class Texture
 {
 public:
-	Texture();
 	~Texture();
 	void init(const std::string& imagePath, DescriptorSetPtr descriptorSet, uint32_t binding = 0);
 	void init(AttachmentType attachmentType, uint32_t width, uint32_t height, VkFormat format, DescriptorSetPtr descriptorSet, uint32_t binding = 0);
@@ -33,7 +32,7 @@ private:
 	void writeDescriptorSet(uint32_t binding);
 
 private:
-	Device& m_device;
+	Device* m_device;
 	VkFormat m_format{};
 	bool m_initialized = false;
 	bool m_isSwapchainImage = false;

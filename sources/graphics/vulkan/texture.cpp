@@ -10,8 +10,6 @@ CMRC_DECLARE(images);
 #include <stdexcept>
 #include <cassert>
 
-Texture::Texture() : m_device{ Locator::getDevice() } {}
-
 Texture::~Texture()
 {
     destroy();
@@ -21,12 +19,12 @@ void Texture::destroy()
 {
     if (m_initialized)
     {
-        vkDestroyImageView(m_device.getDevice(), m_imageView, nullptr);
+        vkDestroyImageView(m_device->getDevice(), m_imageView, nullptr);
         if (!m_isSwapchainImage)
         {
-            vkDestroySampler(m_device.getDevice(), m_sampler, nullptr);
-            vkDestroyImage(m_device.getDevice(), m_image, nullptr);
-            vkFreeMemory(m_device.getDevice(), m_imageMemory, nullptr);
+            vkDestroySampler(m_device->getDevice(), m_sampler, nullptr);
+            vkDestroyImage(m_device->getDevice(), m_image, nullptr);
+            vkFreeMemory(m_device->getDevice(), m_imageMemory, nullptr);
         }
     }
     m_initialized = false;
@@ -36,18 +34,21 @@ void Texture::destroy()
 void Texture::init(const std::string& imagePath, DescriptorSetPtr descriptorSet, uint32_t binding)
 {
     assert(!m_initialized);
+    m_initialized = true;
+    m_device = &Locator::getDevice();
     m_descriptorSet = descriptorSet;
     m_format = VK_FORMAT_R8G8B8A8_UNORM;
     createImage(imagePath);
     createImageView(VK_IMAGE_ASPECT_COLOR_BIT);
     createImageSampler();
     writeDescriptorSet(binding);
-    m_initialized = true;
 }
 
 void Texture::init(AttachmentType attachmentType, uint32_t width, uint32_t height, VkFormat format, DescriptorSetPtr descriptorSet, uint32_t binding)
 {
     assert(!m_initialized);
+    m_initialized = true;
+    m_device = &Locator::getDevice();
     m_descriptorSet = descriptorSet;
     m_format = format;
     m_mipLevels = 1;
@@ -61,6 +62,8 @@ void Texture::init(AttachmentType attachmentType, uint32_t width, uint32_t heigh
 void Texture::init(VkImage swapchainImage, VkFormat format)
 {
     assert(!m_initialized);
+    m_initialized = true;
+    m_device = &Locator::getDevice();
     m_isSwapchainImage = true;
     m_image = swapchainImage;
     m_format = format;
@@ -88,13 +91,13 @@ void Texture::createImage(const std::string& imagePath)
     stbi_image_free(pixels);
 
     m_mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(width, height)))) + 1;
-    m_device.createImage(width, height, m_mipLevels, m_format, VK_IMAGE_TILING_OPTIMAL,
+    m_device->createImage(width, height, m_mipLevels, m_format, VK_IMAGE_TILING_OPTIMAL,
         VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_image, m_imageMemory
     );
 
-    m_device.transitionImageLayout(m_image, m_format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, m_mipLevels);
-    m_device.copyBufferToImage(stagingBuffer, m_image, static_cast<uint32_t>(width), static_cast<uint32_t>(height));
+    m_device->transitionImageLayout(m_image, m_format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, m_mipLevels);
+    m_device->copyBufferToImage(stagingBuffer, m_image, static_cast<uint32_t>(width), static_cast<uint32_t>(height));
 
     generateMipmaps(m_image, m_format, width, height, m_mipLevels);
 }
@@ -109,23 +112,23 @@ void Texture::createImage(AttachmentType attachmentType, uint32_t width, uint32_
         usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
     else assert(false && "wrong attachment type");
 
-    m_device.createImage(
+    m_device->createImage(
         width, height, m_mipLevels, m_format, VK_IMAGE_TILING_OPTIMAL, 
         usage, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_image, m_imageMemory
     );
 
     auto aspect = attachmentType == AttachmentType::Color ? VK_IMAGE_ASPECT_COLOR_BIT : VK_IMAGE_ASPECT_DEPTH_BIT;
-    m_device.transitionImageLayout(m_image, m_format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, m_mipLevels, aspect);
+    m_device->transitionImageLayout(m_image, m_format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, m_mipLevels, aspect);
 }
 
 void Texture::generateMipmaps(VkImage image, VkFormat imageFormat, int32_t width, int32_t height, uint32_t mipLevels)
 {
     auto formatProperties = VkFormatProperties{};
-    vkGetPhysicalDeviceFormatProperties(m_device.getGpu(), imageFormat, &formatProperties);
+    vkGetPhysicalDeviceFormatProperties(m_device->getGpu(), imageFormat, &formatProperties);
     if (!(formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT))
         throw std::runtime_error("texture image format does not support linear blitting!");
 
-    auto commandBuffer = m_device.beginSingleTimeCommands();
+    auto commandBuffer = m_device->beginSingleTimeCommands();
 
     auto barrier = VkImageMemoryBarrier{};
     barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -196,18 +199,18 @@ void Texture::generateMipmaps(VkImage image, VkFormat imageFormat, int32_t width
         0, nullptr,
         1, &barrier);
 
-    m_device.endSingleTimeCommands(commandBuffer);
+    m_device->endSingleTimeCommands(commandBuffer);
 }
 
 void Texture::createImageView(VkImageAspectFlags aspect)
 {
-	m_imageView = m_device.createImageView(m_image, m_format, aspect, m_mipLevels);
+	m_imageView = m_device->createImageView(m_image, m_format, aspect, m_mipLevels);
 }
 
 void Texture::createImageSampler()
 {
 	auto gpuProps = VkPhysicalDeviceProperties{};
-	vkGetPhysicalDeviceProperties(m_device.getGpu(), &gpuProps);
+	vkGetPhysicalDeviceProperties(m_device->getGpu(), &gpuProps);
 
 	auto createInfo = VkSamplerCreateInfo{};
 	createInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -226,7 +229,7 @@ void Texture::createImageSampler()
 	createInfo.mipLodBias = 0.0f;
 	createInfo.minLod = 0.0f;
 	createInfo.maxLod = static_cast<float>(m_mipLevels);
-	if (vkCreateSampler(m_device.getDevice(), &createInfo, nullptr, &m_sampler) != VK_SUCCESS)
+	if (vkCreateSampler(m_device->getDevice(), &createInfo, nullptr, &m_sampler) != VK_SUCCESS)
 		throw std::runtime_error("failed to create texture sampler!");
 }
 
@@ -245,7 +248,7 @@ void Texture::writeDescriptorSet(uint32_t binding)
     descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
     descriptorWrite.pImageInfo = &samplerInfo;
     descriptorWrite.descriptorCount = 1;
-    vkUpdateDescriptorSets(m_device.getDevice(), 1, &descriptorWrite, 0, nullptr);
+    vkUpdateDescriptorSets(m_device->getDevice(), 1, &descriptorWrite, 0, nullptr);
 }
 
 void Texture::bind(VkCommandBuffer commandBuffer, VkPipelineLayout layout, uint32_t setId)
