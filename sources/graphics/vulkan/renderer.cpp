@@ -42,7 +42,7 @@ Renderer::Renderer(Window& window) : m_window{window}
 	m_object.init(m_model);
 	m_plane.init(m_planeModel);
 
-	m_object.setPosition({ 0.f, .5f, 0.f });
+	m_object.setPosition({ 0.f, 1.f, 0.f });
 	m_plane.setPosition({0.f, .0f, 0.f});
 
 	m_light.init(m_descriptorPool.createSet(0));
@@ -254,7 +254,7 @@ auto Proj =
 #if 1 
 glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, -2.0f, 8.0f);
 #else
-glm::perspective(glm::radians(60.0f), 1.0f, 0.5f, 10.f);
+glm::perspective(glm::radians(60.0f), 1.0f, 0.5f, 30.f);
 #endif
 
 void Renderer::renderShadows(VkCommandBuffer commandBuffer, RenderPass& renderPass, Pipeline& pipeline)
@@ -374,16 +374,16 @@ void Renderer::render()
 	ImGui_ImplGlfw_NewFrame();
 	ImGui::NewFrame();
 
-	auto pos = m_plane.getPosition();
-	auto cachePos = m_plane.getPosition();
+	auto pos = m_object.getPosition();
+	auto cachePos = m_object.getPosition();
 
 	ImGui::Begin("Object");
 	ImGui::DragFloat3("position", &pos.x, 0.1f);
 	ImGui::Separator();
-	//ImGui::DragFloat("shininess", &m_plane.material.shininess, 0.5f, 0.5f, 128.0f);
+	//ImGui::DragFloat("shininess", &m_object.material.shininess, 0.5f, 0.5f, 128.0f);
 	ImGui::End();
 
-	if (pos != cachePos) m_plane.setPosition(pos);
+	if (pos != cachePos) m_object.setPosition(pos);
 	
 	ImGui::Begin("Light");
 	ImGui::DragFloat3("direction", (float*)&light.direction, 0.05f, -1.f, 1.f);
