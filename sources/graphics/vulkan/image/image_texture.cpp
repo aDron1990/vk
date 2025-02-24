@@ -1,4 +1,4 @@
-#include "graphics/vulkan/texture.hpp"
+#include "graphics/vulkan/image/image_texture.hpp"
 #include "graphics/vulkan/locator.hpp"
 
 #define STB_IMAGE_IMPLEMENTATION
@@ -10,28 +10,24 @@ CMRC_DECLARE(images);
 #include <stdexcept>
 #include <cassert>
 
-Texture::~Texture()
+ImageTexture::~ImageTexture()
 {
     destroy();
 }
 
-void Texture::destroy()
+void ImageTexture::destroy()
 {
     if (m_initialized)
     {
         vkDestroyImageView(m_device->getDevice(), m_imageView, nullptr);
-        if (!m_isSwapchainImage)
-        {
-            vkDestroySampler(m_device->getDevice(), m_sampler, nullptr);
-            vkDestroyImage(m_device->getDevice(), m_image, nullptr);
-            vkFreeMemory(m_device->getDevice(), m_imageMemory, nullptr);
-        }
+        vkDestroySampler(m_device->getDevice(), m_sampler, nullptr);
+        vkDestroyImage(m_device->getDevice(), m_image, nullptr);
+        vkFreeMemory(m_device->getDevice(), m_imageMemory, nullptr);
     }
     m_initialized = false;
-    m_isSwapchainImage = false;
 }
 
-void Texture::init(const std::string& imagePath, DescriptorSetPtr descriptorSet, uint32_t binding)
+void ImageTexture::init(const std::string& imagePath, DescriptorSetPtr descriptorSet, uint32_t binding)
 {
     assert(!m_initialized);
     m_initialized = true;
@@ -44,35 +40,7 @@ void Texture::init(const std::string& imagePath, DescriptorSetPtr descriptorSet,
     writeDescriptorSet(binding);
 }
 
-void Texture::init(AttachmentType attachmentType, uint32_t width, uint32_t height, VkFormat format, DescriptorSetPtr descriptorSet, uint32_t binding)
-{
-    assert(!m_initialized);
-    m_initialized = true;
-    m_device = &Locator::getDevice();
-    m_descriptorSet = descriptorSet;
-    m_format = format;
-    m_mipLevels = 1;
-    createImage(attachmentType, width, height);
-    createImageView(attachmentType == AttachmentType::Color ? VK_IMAGE_ASPECT_COLOR_BIT : VK_IMAGE_ASPECT_DEPTH_BIT);
-    createImageSampler(attachmentType == AttachmentType::Depth);
-    writeDescriptorSet(binding);
-    m_initialized = true;
-}
-
-void Texture::init(VkImage swapchainImage, VkFormat format)
-{
-    assert(!m_initialized);
-    m_initialized = true;
-    m_device = &Locator::getDevice();
-    m_isSwapchainImage = true;
-    m_image = swapchainImage;
-    m_format = format;
-    m_mipLevels = 1;
-    createImageView(VK_IMAGE_ASPECT_COLOR_BIT);
-    m_initialized = true;
-}
-
-void Texture::createImage(const std::string& imagePath)
+void ImageTexture::createImage(const std::string& imagePath)
 {
     int width, height, channels;
     auto imageFile = cmrc::images::get_filesystem().open(imagePath);
@@ -102,26 +70,7 @@ void Texture::createImage(const std::string& imagePath)
     generateMipmaps(m_image, m_format, width, height, m_mipLevels);
 }
 
-void Texture::createImage(AttachmentType attachmentType, uint32_t width, uint32_t height)
-{
-    auto usage = VkImageUsageFlags{};
-    usage |= VK_IMAGE_USAGE_SAMPLED_BIT;
-    if (attachmentType == AttachmentType::Color)
-        usage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-    else if (attachmentType == AttachmentType::Depth)
-        usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-    else assert(false && "wrong attachment type");
-
-    m_device->createImage(
-        width, height, m_mipLevels, m_format, VK_IMAGE_TILING_OPTIMAL, 
-        usage, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_image, m_imageMemory
-    );
-
-    auto aspect = attachmentType == AttachmentType::Color ? VK_IMAGE_ASPECT_COLOR_BIT : VK_IMAGE_ASPECT_DEPTH_BIT;
-    m_device->transitionImageLayout(m_image, m_format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, m_mipLevels, aspect);
-}
-
-void Texture::generateMipmaps(VkImage image, VkFormat imageFormat, int32_t width, int32_t height, uint32_t mipLevels)
+void ImageTexture::generateMipmaps(VkImage image, VkFormat imageFormat, int32_t width, int32_t height, uint32_t mipLevels)
 {
     auto formatProperties = VkFormatProperties{};
     vkGetPhysicalDeviceFormatProperties(m_device->getGpu(), imageFormat, &formatProperties);
@@ -202,38 +151,38 @@ void Texture::generateMipmaps(VkImage image, VkFormat imageFormat, int32_t width
     m_device->endSingleTimeCommands(commandBuffer);
 }
 
-void Texture::createImageView(VkImageAspectFlags aspect)
+void ImageTexture::createImageView(VkImageAspectFlags aspect)
 {
-	m_imageView = m_device->createImageView(m_image, m_format, aspect, m_mipLevels);
+    m_imageView = m_device->createImageView(m_image, m_format, aspect, m_mipLevels);
 }
 
-void Texture::createImageSampler(bool depth)
+void ImageTexture::createImageSampler(bool depth)
 {
-	auto gpuProps = VkPhysicalDeviceProperties{};
-	vkGetPhysicalDeviceProperties(m_device->getGpu(), &gpuProps);
+    auto gpuProps = VkPhysicalDeviceProperties{};
+    vkGetPhysicalDeviceProperties(m_device->getGpu(), &gpuProps);
 
-	auto createInfo = VkSamplerCreateInfo{};
-	createInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-	createInfo.magFilter = VK_FILTER_LINEAR;
-	createInfo.minFilter = VK_FILTER_LINEAR;
-	createInfo.addressModeU = depth ? VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER : VK_SAMPLER_ADDRESS_MODE_REPEAT;
-	createInfo.addressModeV = depth ? VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER : VK_SAMPLER_ADDRESS_MODE_REPEAT;
-	createInfo.addressModeW = depth ? VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER : VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    auto createInfo = VkSamplerCreateInfo{};
+    createInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+    createInfo.magFilter = VK_FILTER_LINEAR;
+    createInfo.minFilter = VK_FILTER_LINEAR;
+    createInfo.addressModeU = depth ? VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER : VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    createInfo.addressModeV = depth ? VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER : VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    createInfo.addressModeW = depth ? VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER : VK_SAMPLER_ADDRESS_MODE_REPEAT;
     createInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
-	createInfo.anisotropyEnable = VK_TRUE;
-	createInfo.maxAnisotropy = gpuProps.limits.maxSamplerAnisotropy;
-	createInfo.unnormalizedCoordinates = VK_FALSE;
-	createInfo.compareEnable = VK_FALSE;
-	createInfo.compareOp = VK_COMPARE_OP_ALWAYS;
-	createInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-	createInfo.mipLodBias = 0.0f;
-	createInfo.minLod = 0.0f;
-	createInfo.maxLod = static_cast<float>(m_mipLevels);
-	if (vkCreateSampler(m_device->getDevice(), &createInfo, nullptr, &m_sampler) != VK_SUCCESS)
-		throw std::runtime_error("failed to create texture sampler!");
+    createInfo.anisotropyEnable = VK_TRUE;
+    createInfo.maxAnisotropy = gpuProps.limits.maxSamplerAnisotropy;
+    createInfo.unnormalizedCoordinates = VK_FALSE;
+    createInfo.compareEnable = VK_FALSE;
+    createInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+    createInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+    createInfo.mipLodBias = 0.0f;
+    createInfo.minLod = 0.0f;
+    createInfo.maxLod = static_cast<float>(m_mipLevels);
+    if (vkCreateSampler(m_device->getDevice(), &createInfo, nullptr, &m_sampler) != VK_SUCCESS)
+        throw std::runtime_error("failed to create texture sampler!");
 }
 
-void Texture::writeDescriptorSet(uint32_t binding)
+void ImageTexture::writeDescriptorSet(uint32_t binding)
 {
     auto samplerInfo = VkDescriptorImageInfo{};
     samplerInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -251,20 +200,20 @@ void Texture::writeDescriptorSet(uint32_t binding)
     vkUpdateDescriptorSets(m_device->getDevice(), 1, &descriptorWrite, 0, nullptr);
 }
 
-void Texture::bind(VkCommandBuffer commandBuffer, VkPipelineLayout layout, uint32_t setId)
+void ImageTexture::bind(VkCommandBuffer commandBuffer, VkPipelineLayout layout, uint32_t setId)
 {
     assert(m_initialized);
     auto set = m_descriptorSet->getSet();
     vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, layout, setId, 1, &set, 0, nullptr);
 }
 
-VkImageView Texture::getImageView()
+VkImageView ImageTexture::getImageView()
 {
     assert(m_initialized);
-	return m_imageView;
+    return m_imageView;
 }
 
-VkSampler Texture::getSampler()
+VkSampler ImageTexture::getSampler()
 {
     assert(m_initialized);
     return m_sampler;

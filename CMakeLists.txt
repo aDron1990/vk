@@ -29,8 +29,6 @@ add_executable(vk
 	"sources/graphics/vulkan/buffer.hpp"
 	"sources/graphics/vulkan/buffer.cpp"
 	"sources/graphics/vulkan/uniform_buffer.hpp"
-	"sources/graphics/vulkan/texture.hpp"
-	"sources/graphics/vulkan/texture.cpp"
 	"sources/graphics/vulkan/mesh.hpp"
 	"sources/graphics/vulkan/mesh.cpp"
 	"sources/graphics/vulkan/model.hpp"
@@ -39,7 +37,6 @@ add_executable(vk
 	"sources/graphics/vulkan/camera.cpp"
 	"sources/graphics/vulkan/object.hpp"
 	"sources/graphics/vulkan/object.cpp"
-
 	"sources/graphics/vulkan/locator.hpp"
 	"sources/graphics/vulkan/locator.cpp"
 
@@ -61,7 +58,21 @@ add_executable(vk
 	"sources/graphics/vulkan/render_pass/swapchain_pass.cpp"
 	"sources/graphics/vulkan/render_pass/framebuffer_props.hpp"
 	"sources/graphics/vulkan/render_pass/framebuffer.hpp"
-	"sources/graphics/vulkan/render_pass/framebuffer.cpp"
+	
+	"sources/graphics/vulkan/render_pass/offscreen_framebuffer.hpp"
+	"sources/graphics/vulkan/render_pass/offscreen_framebuffer.cpp"
+	"sources/graphics/vulkan/render_pass/swapchain_framebuffer.hpp"
+	"sources/graphics/vulkan/render_pass/swapchain_framebuffer.cpp"
+
+	"sources/graphics/vulkan/image/image_view.hpp"
+	"sources/graphics/vulkan/image/sampler.hpp"
+	"sources/graphics/vulkan/image/texture.hpp"
+	"sources/graphics/vulkan/image/image_texture.hpp"
+	"sources/graphics/vulkan/image/image_texture.cpp"
+	"sources/graphics/vulkan/image/render_texture.hpp"
+	"sources/graphics/vulkan/image/render_texture.cpp"
+	"sources/graphics/vulkan/image/swapchain_image.hpp"
+	"sources/graphics/vulkan/image/swapchain_image.cpp"
 )
 
 set_property(TARGET vk PROPERTY CXX_STANDARD 23)

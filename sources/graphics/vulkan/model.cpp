@@ -10,7 +10,7 @@ void Model::init(const std::string& modelPath, const std::string& texturePath)
 	m_initialized = true;
 	m_device = &Locator::getDevice();
 	m_mesh.reset(new Mesh);
-	m_texture.reset(new Texture);
+	m_texture.reset(new ImageTexture);
 	m_mesh->init(modelPath);
 	m_texture->init(texturePath, Locator::getDescriptorPool().createSet(1));
 }

@@ -1,15 +1,15 @@
-#include "graphics/vulkan/render_pass/framebuffer.hpp"
+#include "graphics/vulkan/render_pass/offscreen_framebuffer.hpp"
 #include "graphics/vulkan/locator.hpp"
 #include "graphics/vulkan/render_pass/render_pass.hpp"
 
 #include <stdexcept>
 
-Framebuffer::~Framebuffer()
+OffscreenFramebuffer::~OffscreenFramebuffer()
 {
 	destroy();
 }
 
-void Framebuffer::destroy()
+void OffscreenFramebuffer::destroy()
 {
 	if (m_initialized)
 	{
@@ -23,7 +23,7 @@ void Framebuffer::destroy()
 	m_initialized = false;
 }
 
-void Framebuffer::init(const FramebufferProps& props, RenderPass& renderPass, uint32_t width, uint32_t height)
+void OffscreenFramebuffer::init(const FramebufferProps& props, RenderPass& renderPass, uint32_t width, uint32_t height)
 {
 	assert(!m_initialized);
 	m_initialized = true;
@@ -36,26 +36,13 @@ void Framebuffer::init(const FramebufferProps& props, RenderPass& renderPass, ui
 	createFramebuffer();
 }
 
-void Framebuffer::init(const FramebufferProps& props, VkImage swapchainImage, RenderPass& renderPass, uint32_t width, uint32_t height)
-{
-	assert(!m_initialized);
-	m_initialized = true;
-	m_device = &Locator::getDevice();
-	m_props = props;
-	m_width = width;
-	m_height = height;
-	m_renderPass = &renderPass;
-	createTextures(swapchainImage);
-	createFramebuffer();
-}
-
-void Framebuffer::resize(uint32_t newWidth, uint32_t newHeight)
+void OffscreenFramebuffer::resize(uint32_t newWidth, uint32_t newHeight)
 {
 	destroy();
 	init(m_props, *m_renderPass, newWidth, newHeight);
 }
 
-void Framebuffer::createTextures()
+void OffscreenFramebuffer::createTextures()
 {
 	m_colorAttachments.resize(m_props.colorAttachmentCount);
 	for (auto& colorAttachment : m_colorAttachments)
@@ -74,23 +61,10 @@ void Framebuffer::createTextures()
 	}
 }
 
-void Framebuffer::createTextures(VkImage swapchainImage)
-{
-	m_colorAttachments.resize(1);
-	m_colorAttachments[0].init(swapchainImage, m_props.colorFormat);
-	if (m_props.useDepthAttachment)
-	{
-		m_depthAttachment.init(
-			AttachmentType::Depth, m_width, m_height, m_props.depthFormat,
-			Locator::getDescriptorPool().createSet(1)
-		);
-	}
-}
-
-void Framebuffer::createFramebuffer()
+void OffscreenFramebuffer::createFramebuffer()
 {
 	auto imageViews = std::vector<VkImageView>();
-	imageViews.reserve(m_colorAttachments.size() 
+	imageViews.reserve(m_colorAttachments.size()
 		+ m_props.useDepthAttachment ? 1 : 0
 	);
 	for (auto& colorImage : m_colorAttachments)
@@ -112,25 +86,25 @@ void Framebuffer::createFramebuffer()
 		throw std::runtime_error{ "failed to create framebuffer" };
 }
 
-VkFramebuffer Framebuffer::getFramebuffer()
+VkFramebuffer OffscreenFramebuffer::getFramebuffer()
 {
 	assert(m_initialized);
 	return m_framebuffer;
 }
 
-Texture& Framebuffer::getColorTexture(uint32_t id)
+Texture& OffscreenFramebuffer::getColorTexture(uint32_t id)
 {
 	assert(m_initialized);
 	return m_colorAttachments[id];
 }
 
-Texture& Framebuffer::getDepthTexture()
+Texture& OffscreenFramebuffer::getDepthTexture()
 {
 	assert(m_initialized);
 	return m_depthAttachment;
 }
 
-VkExtent2D Framebuffer::getExtent()
+VkExtent2D OffscreenFramebuffer::getExtent()
 {
 	return { m_width, m_height };
 }

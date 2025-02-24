@@ -5,7 +5,6 @@
 #include "graphics/vulkan/render_pass/render_pass.hpp"
 #include "graphics/vulkan/render_pass/framebuffer_props.hpp"
 #include "graphics/vulkan/uniform_buffer.hpp"
-#include "graphics/vulkan/texture.hpp"
 
 #include <vulkan/vulkan.h>
 

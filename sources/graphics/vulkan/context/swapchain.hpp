@@ -3,7 +3,7 @@
 #include "graphics/vulkan/types.hpp"
 #include "graphics/vulkan/context/device.hpp"
 #include "graphics/vulkan/render_pass/render_pass.hpp"
-#include "graphics/vulkan/render_pass/framebuffer.hpp"
+#include "graphics/vulkan/render_pass/swapchain_framebuffer.hpp"
 
 #include <vulkan/vulkan.h>
 
@@ -48,5 +48,5 @@ private:
 	uint32_t m_imageIndex{};
 
 	VkSwapchainKHR m_swapchain{};
-	std::vector<Framebuffer> m_framebuffers{};
+	std::vector<SwapchainFramebuffer> m_framebuffers{};
 };

@@ -8,13 +8,15 @@
 #include "graphics/vulkan/pipeline.hpp"
 #include "graphics/vulkan/buffer.hpp"
 #include "graphics/vulkan/uniform_buffer.hpp"
-#include "graphics/vulkan/texture.hpp"
 #include "graphics/vulkan/mesh.hpp"
 #include "graphics/vulkan/model.hpp"
 #include "graphics/vulkan/camera.hpp"
 #include "graphics/vulkan/object.hpp"
 #include "graphics/vulkan/render_pass/swapchain_pass.hpp"
 #include "graphics/vulkan/render_pass/offscreen_pass.hpp"
+#include "graphics/vulkan/render_pass/offscreen_framebuffer.hpp"
+
+#include "graphics/vulkan/image/image_texture.hpp"
 
 #include <vulkan/vulkan.h>
 #include <GLFW/glfw3.h>
@@ -75,8 +77,8 @@ private:
 	SwapchainPass m_swapchainPass;
 	OffscreenPass m_renderPass;
 	OffscreenPass m_shadowPass;
-	Framebuffer m_renderFramebuffer;
-	Framebuffer m_shadowFramebuffer;
+	OffscreenFramebuffer m_renderFramebuffer;
+	OffscreenFramebuffer m_shadowFramebuffer;
 	Pipeline m_combinePipeline;
 	Pipeline m_renderPipeline;
 	Pipeline m_shadowPipeline;
@@ -85,8 +87,8 @@ private:
 	Model m_planeModel;
 	Object m_object;
 	Object m_plane;
-	Texture m_specularMap;
-	Texture m_planeSpecularMap;
+	ImageTexture m_specularMap;
+	ImageTexture m_planeSpecularMap;
 
 	UniformBuffer<MVP> m_shadowMvp;
 	UniformBuffer<MVP> m_shadowMvp2;
