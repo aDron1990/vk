@@ -40,10 +40,16 @@ Renderer::Renderer(Window& window) : m_window{window}
 
 	m_specularMap.init("resources/images/container2_specular.png", m_descriptorPool.createSet(1));
 	m_planeSpecularMap.init("resources/images/brown_specular.png", m_descriptorPool.createSet(1));
+
+	m_skybox.init("resources/images/skybox", m_descriptorPool.createSet(1));
+
 	m_model.init(MODEL_PATH, TEXTURE_PATH);
+	m_cube.init("resources/models/cube.obj", "resources/images/brown.png");
 	m_planeModel.init("resources/models/plane.obj", "resources/images/brown.png");
 	m_object.init(m_model);
 	m_plane.init(m_planeModel);
+	m_skyboxCube.init(m_cube);
+	m_skyboxMvp.init(m_descriptorPool.createSet(0));
 
 	m_object.setPosition({ 0.f, 1.f, 0.f });
 	m_plane.setPosition({0.f, .0f, 0.f});
@@ -174,10 +180,20 @@ void Renderer::createGraphicsPipeline()
 		auto pipelineInfo = PipelineProps{};
 		pipelineInfo.vertexPath = "resources/shaders/main/shader.vert.spv";
 		pipelineInfo.fragmentPath = "resources/shaders/main/shader.frag.spv";
-		pipelineInfo.descriptorSetLayouts = { m_descriptorPool.getLayout(0), m_descriptorPool.getLayout(0), m_descriptorPool.getLayout(0), m_descriptorPool.getLayout(1), m_descriptorPool.getLayout(1), m_descriptorPool.getLayout(1), m_descriptorPool.getLayout(0) };
+		pipelineInfo.descriptorSetLayouts = { m_descriptorPool.getLayout(0), m_descriptorPool.getLayout(0), m_descriptorPool.getLayout(0), m_descriptorPool.getLayout(1), m_descriptorPool.getLayout(1), m_descriptorPool.getLayout(1), m_descriptorPool.getLayout(0), m_descriptorPool.getLayout(1) };
 		pipelineInfo.vertexInput = true;
 		pipelineInfo.culling = VK_CULL_MODE_BACK_BIT;
 		m_renderPipeline.init(pipelineInfo, m_renderFramebufferProps, m_renderPass);
+	}
+	{
+		auto pipelineInfo = PipelineProps{};
+		pipelineInfo.vertexPath = "resources/shaders/skybox/shader.vert.spv";
+		pipelineInfo.fragmentPath = "resources/shaders/skybox/shader.frag.spv";
+		pipelineInfo.descriptorSetLayouts = { m_descriptorPool.getLayout(0), m_descriptorPool.getLayout(1) };
+		pipelineInfo.vertexInput = true;
+		pipelineInfo.depthWrite = false;
+		pipelineInfo.culling = VK_CULL_MODE_NONE;
+		m_skyboxPipeline.init(pipelineInfo, m_renderFramebufferProps, m_renderPass);
 	}
 	{
 		auto pipelineInfo = PipelineProps{};
@@ -324,7 +340,21 @@ void Renderer::renderScene(VkCommandBuffer commandBuffer, RenderPass& renderPass
 
 	light.viewPosition = m_camera.getPosition();
 
+	{
+		m_skyboxPipeline.bind(commandBuffer);
+
+		auto mvp = MVP{};
+		mvp.view = glm::mat4{ glm::mat3{ view } };
+		mvp.proj = proj;
+		m_skyboxMvp.write(mvp);
+		m_skyboxMvp.bind(commandBuffer, m_skyboxPipeline.getLayout(), 0);
+		m_skybox.bind(commandBuffer, m_skyboxPipeline.getLayout(), 1);
+		m_skyboxCube.bindMesh(commandBuffer);
+		m_skyboxCube.draw(commandBuffer, m_skyboxPipeline.getLayout());
+	}
+
 	pipeline.bind(commandBuffer);
+	m_skybox.bind(commandBuffer, pipeline.getLayout(), 7);
 	{
 		auto view =
 			glm::lookAt(
@@ -387,7 +417,7 @@ void Renderer::render()
 		ImGui::Begin("Object");
 		ImGui::DragFloat3("position", &pos.x, 0.1f);
 		ImGui::Separator();
-		//ImGui::DragFloat("shininess", &m_object.material.shininess, 0.5f, 0.5f, 128.0f);
+		ImGui::DragFloat("shininess", &m_object.material.shininess, 0.5f, 0.5f, 128.0f);
 		ImGui::End();
 
 		if (pos != cachePos) m_object.setPosition(pos);

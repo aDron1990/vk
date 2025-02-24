@@ -125,7 +125,7 @@ void Pipeline::createPipeline()
 	auto depthStencil = VkPipelineDepthStencilStateCreateInfo{};
 	depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
 	depthStencil.depthTestEnable = m_framebufferProps.useDepthAttachment ? VK_TRUE : VK_FALSE;
-	depthStencil.depthWriteEnable = m_framebufferProps.useDepthAttachment ? VK_TRUE : VK_FALSE;
+	depthStencil.depthWriteEnable = m_framebufferProps.useDepthAttachment && m_props.depthWrite ? VK_TRUE : VK_FALSE;
 	depthStencil.depthCompareOp = VK_COMPARE_OP_LESS;
 
 	auto pipelineLayoutInfo = VkPipelineLayoutCreateInfo{};

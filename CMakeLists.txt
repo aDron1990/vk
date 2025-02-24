@@ -73,6 +73,8 @@ add_executable(vk
 	"sources/graphics/vulkan/image/render_texture.cpp"
 	"sources/graphics/vulkan/image/swapchain_image.hpp"
 	"sources/graphics/vulkan/image/swapchain_image.cpp"
+	"sources/graphics/vulkan/image/cubemap_texture.hpp"
+	"sources/graphics/vulkan/image/cubemap_texture.cpp"
 )
 
 set_property(TARGET vk PROPERTY CXX_STANDARD 23)
@@ -107,6 +109,8 @@ set(shader_files
     "resources/shaders/combine/shader.frag"
 	"resources/shaders/shadow/shader.vert"
     "resources/shaders/shadow/shader.frag"
+	"resources/shaders/skybox/shader.vert"
+    "resources/shaders/skybox/shader.frag"
 )
 
 add_shader("${shader_files}" spv_names)
@@ -122,6 +126,14 @@ cmrc_add_resource_library(images
     "resources/images/container2_specular.png"
     "resources/images/brown.png"
     "resources/images/brown_specular.png"
+
+    "resources/images/skybox/right.png"
+    "resources/images/skybox/left.png"
+    "resources/images/skybox/top.png"
+    "resources/images/skybox/bottom.png"
+    "resources/images/skybox/forward.png"
+    "resources/images/skybox/back.png"
+
 )
 
 cmrc_add_resource_library(models
@@ -129,6 +141,8 @@ cmrc_add_resource_library(models
 	"resources/models/monkey.mtl"
 	"resources/models/plane.obj"
 	"resources/models/plane.mtl"
+	"resources/models/cube.obj"
+	"resources/models/cube.mtl"
 )
 
 target_link_libraries(vk PRIVATE shaders images models)

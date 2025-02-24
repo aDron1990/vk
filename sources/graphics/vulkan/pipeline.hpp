@@ -17,6 +17,7 @@ struct PipelineProps
 	std::string fragmentPath;
 	std::vector<VkDescriptorSetLayout> descriptorSetLayouts;
 	bool vertexInput;
+	bool depthWrite = true;
 	VkCullModeFlags culling;
 };
 

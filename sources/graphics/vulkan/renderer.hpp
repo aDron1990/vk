@@ -17,6 +17,7 @@
 #include "graphics/vulkan/render_pass/offscreen_framebuffer.hpp"
 
 #include "graphics/vulkan/image/image_texture.hpp"
+#include "graphics/vulkan/image/cubemap_texture.hpp"
 
 #include <vulkan/vulkan.h>
 #include <GLFW/glfw3.h>
@@ -82,16 +83,21 @@ private:
 	Pipeline m_combinePipeline;
 	Pipeline m_renderPipeline;
 	Pipeline m_shadowPipeline;
+	Pipeline m_skyboxPipeline;
 	LightBuffer m_light;
 	Model m_model;
+	Model m_cube;
 	Model m_planeModel;
 	Object m_object;
 	Object m_plane;
+	Object m_skyboxCube;
 	ImageTexture m_specularMap;
 	ImageTexture m_planeSpecularMap;
+	CubemapTexture m_skybox;
 
 	UniformBuffer<MVP> m_shadowMvp;
 	UniformBuffer<MVP> m_shadowMvp2;
+	UniformBuffer<MVP> m_skyboxMvp;
 	UniformBuffer<glm::mat4> m_lightSpace;
 	Light light{};
 	FramebufferProps m_renderFramebufferProps{};

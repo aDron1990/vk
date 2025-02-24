@@ -27,6 +27,7 @@ layout(set = 2, binding = 0) uniform Material
 layout(set = 3, binding = 0) uniform sampler2D diffuseMap;
 layout(set = 4, binding = 0) uniform sampler2D specularMap;
 layout(set = 5, binding = 0) uniform sampler2D shadowMap;
+layout(set = 7, binding = 0) uniform samplerCube skybox;
 
 layout(location = 0) in vec4 fragPosition;
 layout(location = 1) in vec3 fragColor;
@@ -72,16 +73,21 @@ void main()
     float diff = max(dot(norm, lightDir), 0.0);
     vec3 diffuse = light.diffuse * diff * vec3(texture(diffuseMap, fragTexCoord));
     
+    // skybox
+    vec3 I = normalize(vec3(fragPosition) - light.viewPosition);
+    vec3 R = reflect(I, normalize(fragNormal));
+    vec3 env = texture(skybox, R).rgb;
+
     // specular
     vec3 viewDir = normalize(light.viewPosition - vec3(fragPosition));
     vec3 reflectDir = reflect(-lightDir, norm);
     float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
-    vec3 specular = light.specular * spec * vec3(texture(specularMap, fragTexCoord));  
+    vec3 specular = env * spec * vec3(texture(specularMap, fragTexCoord));  
 
     // result
     float shadow = ShadowCalculation(lightSpace.space * fragPosition);
     vec4 result = vec4((ambient + (1.0 - shadow) * (diffuse + specular)), 1.0);
-    //vec4 result = vec4(vec3(shadow), 1.0f);
+    
     outColor0 = vec4(result);
-    //outColor0 = lightSpace.space * fragPosition;
+    //outColor0 = vec4(texture(skybox, R).rgb, 1.0);
 }

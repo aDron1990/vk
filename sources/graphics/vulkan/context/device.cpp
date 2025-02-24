@@ -294,6 +294,40 @@ void Device::createImage(uint32_t width, uint32_t height, uint32_t mipLevels, Vk
 	vkBindImageMemory(m_device, image, imageMemory, 0);
 }
 
+void Device::createImage(uint32_t width, uint32_t height, uint32_t mipLevels, uint32_t arrayLayers, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory)
+{
+	assert(m_initialized);
+	auto createInfo = VkImageCreateInfo{};
+	createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+	createInfo.imageType = VK_IMAGE_TYPE_2D;
+	createInfo.extent.width = width;
+	createInfo.extent.height = height;
+	createInfo.extent.depth = 1;
+	createInfo.mipLevels = mipLevels;
+	createInfo.arrayLayers = arrayLayers;
+	createInfo.format = format;
+	createInfo.tiling = tiling;
+	createInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	createInfo.usage = usage;
+	createInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+	createInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+	createInfo.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
+	if (vkCreateImage(m_device, &createInfo, nullptr, &image) != VK_SUCCESS)
+		throw std::runtime_error{ "failed to create image" };
+
+	auto memReq = VkMemoryRequirements{};
+	vkGetImageMemoryRequirements(m_device, image, &memReq);
+
+	auto allocInfo = VkMemoryAllocateInfo{};
+	allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+	allocInfo.allocationSize = memReq.size;
+	allocInfo.memoryTypeIndex = findMemoryType(memReq.memoryTypeBits, properties);
+	if (vkAllocateMemory(m_device, &allocInfo, nullptr, &imageMemory) != VK_SUCCESS)
+		throw std::runtime_error{ "failed to allocate image memory" };
+
+	vkBindImageMemory(m_device, image, imageMemory, 0);
+}
+
 VkImageView Device::createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, uint32_t mipLevels)
 {
 	assert(m_initialized);
@@ -314,6 +348,26 @@ VkImageView Device::createImageView(VkImage image, VkFormat format, VkImageAspec
 	return imageView;
 }
 
+VkImageView Device::createImageView(VkImage image, uint32_t layerCount, VkFormat format, VkImageAspectFlags aspectFlags, uint32_t mipLevels)
+{
+	assert(m_initialized);
+	auto imageView = VkImageView{};
+	auto createInfo = VkImageViewCreateInfo{};
+	createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+	createInfo.image = image;
+	createInfo.viewType = VK_IMAGE_VIEW_TYPE_CUBE;
+	createInfo.format = format;
+	createInfo.subresourceRange.aspectMask = aspectFlags;
+	createInfo.subresourceRange.baseMipLevel = 0;
+	createInfo.subresourceRange.levelCount = mipLevels;
+	createInfo.subresourceRange.baseArrayLayer = 0;
+	createInfo.subresourceRange.layerCount = layerCount;
+	if (vkCreateImageView(m_device, &createInfo, nullptr, &imageView) != VK_SUCCESS)
+		throw std::runtime_error{ "failed to create image view" };
+
+	return imageView;
+}
+
 void Device::copyBuffer(Buffer& srcBuffer, Buffer& dstBuffer)
 {
 	assert(m_initialized);
@@ -328,7 +382,7 @@ void Device::copyBuffer(Buffer& srcBuffer, Buffer& dstBuffer)
 	endSingleTimeCommands(commandBuffer);
 }
 
-void Device::copyBufferToImage(Buffer& srcBuffer, VkImage dstImage, uint32_t width, uint32_t height)
+void Device::copyBufferToImage(Buffer& srcBuffer, VkImage dstImage, uint32_t width, uint32_t height, uint32_t layerCount)
 {
 	assert(m_initialized);
 	auto commandBuffer = beginSingleTimeCommands();
@@ -340,7 +394,7 @@ void Device::copyBufferToImage(Buffer& srcBuffer, VkImage dstImage, uint32_t wid
 	region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 	region.imageSubresource.mipLevel = 0;
 	region.imageSubresource.baseArrayLayer = 0;
-	region.imageSubresource.layerCount = 1;
+	region.imageSubresource.layerCount = layerCount;
 	region.imageOffset = { 0, 0, 0 };
 	region.imageExtent = {
 		width,
@@ -407,6 +461,11 @@ bool hasStencilComponent(VkFormat format)
 
 void Device::transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t mipLevels, VkImageAspectFlags aspect, VkCommandBuffer commandBuffer)
 {
+	transitionImageLayout(image, 1, format, oldLayout, newLayout, mipLevels, aspect, commandBuffer);
+}
+
+void Device::transitionImageLayout(VkImage image, uint32_t layerCount, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t mipLevels, VkImageAspectFlags aspect, VkCommandBuffer commandBuffer)
+{
 	assert(m_initialized);
 	auto end = false;
 	if (commandBuffer == VK_NULL_HANDLE)
@@ -429,8 +488,8 @@ void Device::transitionImageLayout(VkImage image, VkFormat format, VkImageLayout
 	barrier.subresourceRange.baseMipLevel = 0;
 	barrier.subresourceRange.levelCount = mipLevels;
 	barrier.subresourceRange.baseArrayLayer = 0;
-	barrier.subresourceRange.layerCount = 1;
-	if (newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL) 
+	barrier.subresourceRange.layerCount = layerCount;
+	if (newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL)
 	{
 		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
 		if (hasStencilComponent(format))

@@ -17,11 +17,14 @@ public:
 	
 	void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& memory);
 	void createImage(uint32_t width, uint32_t height, uint32_t mipLevels, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
+	void createImage(uint32_t width, uint32_t height, uint32_t mipLevels, uint32_t arrayLayers, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
 	VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, uint32_t mipLevels);
+	VkImageView createImageView(VkImage image, uint32_t layerCount, VkFormat format, VkImageAspectFlags aspectFlags, uint32_t mipLevels);
 
 	void copyBuffer(Buffer& srcBuffer, Buffer& dstBuffer);
-	void copyBufferToImage(Buffer& srcBuffer, VkImage dstImage, uint32_t width, uint32_t height);
+	void copyBufferToImage(Buffer& srcBuffer, VkImage dstImage, uint32_t width, uint32_t height, uint32_t layerCount = 1);
 	void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t mipLevels, VkImageAspectFlags aspect = VK_IMAGE_ASPECT_COLOR_BIT, VkCommandBuffer commandBuffer = VK_NULL_HANDLE);
+	void transitionImageLayout(VkImage image, uint32_t layerCount, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t mipLevels, VkImageAspectFlags aspect = VK_IMAGE_ASPECT_COLOR_BIT, VkCommandBuffer commandBuffer = VK_NULL_HANDLE);
 
 	std::vector<VkCommandBuffer> createCommandBuffers(uint32_t count);
 	DescriptorSetPtr createDescriptorSet(VkDescriptorSetLayout layout);
