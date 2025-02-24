@@ -24,6 +24,9 @@
 const std::string MODEL_PATH = "resources/models/monkey.obj";
 const std::string TEXTURE_PATH = "resources/images/container2.png";
 
+#define TRACY_ENABLE
+#include <tracy/Tracy.hpp>
+
 Renderer::Renderer(Window& window) : m_window{window}
 {
 	createContext();
@@ -370,6 +373,8 @@ void Renderer::combine(VkCommandBuffer commandBuffer, RenderPass& renderPass, Pi
 
 void Renderer::render()
 {
+	ZoneScopedN("render");
+
 	ImGui_ImplVulkan_NewFrame();
 	ImGui_ImplGlfw_NewFrame();
 	ImGui::NewFrame();
@@ -377,54 +382,74 @@ void Renderer::render()
 	auto pos = m_object.getPosition();
 	auto cachePos = m_object.getPosition();
 
-	ImGui::Begin("Object");
-	ImGui::DragFloat3("position", &pos.x, 0.1f);
-	ImGui::Separator();
-	//ImGui::DragFloat("shininess", &m_object.material.shininess, 0.5f, 0.5f, 128.0f);
-	ImGui::End();
+	{
+		ZoneScopedN("imgui");
+		ImGui::Begin("Object");
+		ImGui::DragFloat3("position", &pos.x, 0.1f);
+		ImGui::Separator();
+		//ImGui::DragFloat("shininess", &m_object.material.shininess, 0.5f, 0.5f, 128.0f);
+		ImGui::End();
 
-	if (pos != cachePos) m_object.setPosition(pos);
+		if (pos != cachePos) m_object.setPosition(pos);
+
+		ImGui::Begin("Light");
+		ImGui::DragFloat3("direction", (float*)&light.direction, 0.05f, -1.f, 1.f);
+		ImGui::ColorEdit3("ambient", (float*)&light.ambient);
+		ImGui::ColorEdit3("diffuse", (float*)&light.diffuse);
+		ImGui::ColorEdit3("specular", (float*)&light.specular);
+		ImGui::End();
+
+		ImGui::Render();
+	}
 	
-	ImGui::Begin("Light");
-	ImGui::DragFloat3("direction", (float*)&light.direction, 0.05f, -1.f, 1.f);
-	ImGui::ColorEdit3("ambient", (float*)&light.ambient);
-	ImGui::ColorEdit3("diffuse", (float*)&light.diffuse);
-	ImGui::ColorEdit3("specular", (float*)&light.specular);
-	ImGui::End();
+	uint32_t imageIndex;
+	{
+		ZoneScopedN("acquire image");
+		imageIndex = m_swapchain.beginFrame(m_inFlightFence, m_imageAvailableSemaphore);
+		if (imageIndex == UINT32_MAX) return;
+	}
 
-	ImGui::Render();
-
-	auto imageIndex = m_swapchain.beginFrame(m_inFlightFence, m_imageAvailableSemaphore);
-	if (imageIndex == UINT32_MAX) return;
 	auto commandBuffer = m_commandBuffer;
-
 	auto beginInfo = VkCommandBufferBeginInfo{};
 	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 	if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS)
 		throw std::runtime_error{ "failed to record command buffer" };
 
-	renderShadows(commandBuffer, m_shadowPass, m_shadowPipeline);
-	renderScene(commandBuffer, m_renderPass, m_renderPipeline);
-	combine(commandBuffer, m_swapchainPass, m_combinePipeline, imageIndex);
+	{
+		ZoneScopedN("shadow pass");
+		renderShadows(commandBuffer, m_shadowPass, m_shadowPipeline);
+	}
+	{
+		ZoneScopedN("main pass");
+		renderScene(commandBuffer, m_renderPass, m_renderPipeline);
+	}
+	{
+		ZoneScopedN("postproc pass");
+		combine(commandBuffer, m_swapchainPass, m_combinePipeline, imageIndex);
+	}
 
 	if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS)
 		throw std::runtime_error{ "failed to end command buffer" };
 
-
-	std::initializer_list<VkPipelineStageFlags> waitStages = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
-	auto submitInfo = VkSubmitInfo{};
-	auto signalSemaphores = { m_renderFinishedSemaphore };
-	auto waitSemaphores = { m_imageAvailableSemaphore };
-	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-	submitInfo.pWaitSemaphores = waitSemaphores.begin();
-	submitInfo.waitSemaphoreCount = waitSemaphores.size();
-	submitInfo.pWaitDstStageMask = waitStages.begin();
-	submitInfo.pCommandBuffers = &commandBuffer;
-	submitInfo.commandBufferCount = 1;
-	submitInfo.pSignalSemaphores = signalSemaphores.begin();
-	submitInfo.signalSemaphoreCount = signalSemaphores.size();
-	if (vkQueueSubmit(m_device.getGraphicsQueue(), 1, &submitInfo, m_inFlightFence) != VK_SUCCESS)
-		throw std::runtime_error{ "failed to submit draw command buffer" };
-
-	m_swapchain.endFrame(imageIndex, m_renderFinishedSemaphore);
+	{
+		ZoneScopedN("queue submit");
+		std::initializer_list<VkPipelineStageFlags> waitStages = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+		auto submitInfo = VkSubmitInfo{};
+		auto signalSemaphores = { m_renderFinishedSemaphore };
+		auto waitSemaphores = { m_imageAvailableSemaphore };
+		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+		submitInfo.pWaitSemaphores = waitSemaphores.begin();
+		submitInfo.waitSemaphoreCount = waitSemaphores.size();
+		submitInfo.pWaitDstStageMask = waitStages.begin();
+		submitInfo.pCommandBuffers = &commandBuffer;
+		submitInfo.commandBufferCount = 1;
+		submitInfo.pSignalSemaphores = signalSemaphores.begin();
+		submitInfo.signalSemaphoreCount = signalSemaphores.size();
+		if (vkQueueSubmit(m_device.getGraphicsQueue(), 1, &submitInfo, m_inFlightFence) != VK_SUCCESS)
+			throw std::runtime_error{ "failed to submit draw command buffer" };
+	}
+	{
+		ZoneScopedN("present");
+		m_swapchain.endFrame(imageIndex, m_renderFinishedSemaphore);
+	}
 }

@@ -9,6 +9,7 @@ find_package(Stb REQUIRED)
 find_package(tinyobjloader CONFIG REQUIRED)
 find_package(imgui CONFIG REQUIRED)
 find_package(CMakeRC CONFIG REQUIRED)
+find_package(Tracy CONFIG REQUIRED)
 
 add_executable(vk 
 	"sources/main.cpp"
@@ -74,6 +75,7 @@ target_link_libraries(vk PRIVATE
 	glm::glm-header-only
 	tinyobjloader::tinyobjloader
 	imgui::imgui
+	Tracy::TracyClient
 )
 
 # Shaders

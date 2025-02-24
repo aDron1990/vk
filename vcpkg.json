@@ -1,5 +1,6 @@
 {
   "dependencies": [
+    "cmakerc",
     "glfw3",
     "glm",
     {
@@ -12,6 +13,6 @@
     "stb",
     "tinyobjloader",
     "vulkan",
-    "cmakerc"
+    "tracy"
   ]
 }

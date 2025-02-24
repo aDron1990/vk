@@ -4,6 +4,9 @@
 
 #include <print>
 
+#define TRACY_ENABLE
+#include <tracy/Tracy.hpp>
+
 int main()
 {
 	try
@@ -14,6 +17,7 @@ int main()
 
 		while (!window.shouldClose())
 		{
+			ZoneScopedN("main loop");
 			input.update();
 			renderer.render();
 			if (input.getKey(GLFW_KEY_ESCAPE)) break;

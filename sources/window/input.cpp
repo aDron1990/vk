@@ -3,6 +3,9 @@
 
 #include <print>
 
+#define TRACY_ENABLE
+#include <tracy/Tracy.hpp>
+
 Input::Input(Window& window) : m_window{ window }, m_keyStates{}
 {
 	auto* gwindow = m_window.getWindow();
@@ -27,6 +30,7 @@ void Input::cursorPosCallback(GLFWwindow* window, double xpos, double ypos)
 
 void Input::update()
 {
+	ZoneScopedN("input update");
 	m_keyDownStates.fill(false);
 	m_keyUpStates.fill(false);
 	glfwPollEvents();
