@@ -61,6 +61,7 @@ Renderer::Renderer(Window& window) : m_window{window}
 	light.specular = { 1.0f, 1.0f, 1.0f };
 
 	m_global.gamma = 2.2f;
+	m_global.exposure = 1.0f;
 
 	m_shadowMvp.init(m_descriptorPool.createSet(0));
 	m_shadowMvp2.init(m_descriptorPool.createSet(0));
@@ -438,6 +439,7 @@ void Renderer::render()
 
 		ImGui::Begin("Render");
 		ImGui::DragFloat("gamma", (float*)&m_global.gamma, 0.05f, 0.f, 10.f);
+		ImGui::DragFloat("exposure", (float*)&m_global.exposure, 0.05f, 0.f, 5.f);
 		ImGui::End();
 
 		ImGui::Render();

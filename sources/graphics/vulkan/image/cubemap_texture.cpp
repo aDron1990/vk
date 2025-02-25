@@ -33,7 +33,7 @@ void CubemapTexture::init(const std::string& imageDirPath, DescriptorSetPtr desc
     m_initialized = true;
     m_device = &Locator::getDevice();
     m_descriptorSet = descriptorSet;
-    m_format = VK_FORMAT_R8G8B8A8_UNORM;
+    m_format = VK_FORMAT_R8G8B8A8_SRGB;
     createImage(imageDirPath);
     createImageView(VK_IMAGE_ASPECT_COLOR_BIT);
     createImageSampler();

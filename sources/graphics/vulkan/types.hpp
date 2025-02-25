@@ -81,4 +81,5 @@ struct Emiter
 struct Global
 {
 	alignas(16) float gamma;
+	float exposure;
 };

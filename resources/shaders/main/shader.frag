@@ -71,7 +71,7 @@ void main()
     vec3 norm = fragNormal;
     vec3 lightDir = normalize(-light.direction);
     float diff = max(dot(norm, lightDir), 0.0);
-    vec3 diffuse = light.diffuse * diff * vec3(texture(diffuseMap, fragTexCoord));
+    vec3 diffuse = light.diffuse * diff * texture(diffuseMap, fragTexCoord).rgb;
     
     // skybox
     vec3 I = normalize(vec3(fragPosition) - light.viewPosition);
@@ -86,7 +86,8 @@ void main()
 
     // result
     float shadow = ShadowCalculation(lightSpace.space * fragPosition);
-    vec4 result = vec4((ambient + (1.0 - shadow) * (diffuse + specular)), 1.0);
+    if (shadow == 1.0) {specular = vec3(1.0);}
+    vec4 result = vec4((ambient + (1.0 - shadow) * (diffuse + specular * (1.0 - shadow))), 1.0);
     
     outColor0 = result;
     //outColor0 = vec4(texture(skybox, R).rgb, 1.0);
