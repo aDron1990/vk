@@ -10,7 +10,7 @@ layout(set = 1, binding = 0) uniform Light
     vec3 specular;
 } light;
 
-layout(set = 6, binding = 0) uniform Ligth
+layout(set = 6, binding = 0) uniform LigthSpace
 {
 	mat4 space;
 } lightSpace;
@@ -88,6 +88,6 @@ void main()
     float shadow = ShadowCalculation(lightSpace.space * fragPosition);
     vec4 result = vec4((ambient + (1.0 - shadow) * (diffuse + specular)), 1.0);
     
-    outColor0 = vec4(result);
+    outColor0 = result;
     //outColor0 = vec4(texture(skybox, R).rgb, 1.0);
 }

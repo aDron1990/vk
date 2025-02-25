@@ -77,3 +77,8 @@ struct Emiter
 {
 	alignas(16) glm::vec3 color;
 };
+
+struct Global
+{
+	alignas(16) float gamma;
+};

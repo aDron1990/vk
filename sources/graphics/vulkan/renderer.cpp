@@ -60,8 +60,11 @@ Renderer::Renderer(Window& window) : m_window{window}
 	light.diffuse = { 0.5f, 0.5f, 0.5f };
 	light.specular = { 1.0f, 1.0f, 1.0f };
 
+	m_global.gamma = 2.2f;
+
 	m_shadowMvp.init(m_descriptorPool.createSet(0));
 	m_shadowMvp2.init(m_descriptorPool.createSet(0));
+	m_globalBuffer.init(m_descriptorPool.createSet(0));
 	m_lightSpace.init(m_descriptorPool.createSet(0));
 
 	ImGui::CreateContext();
@@ -199,7 +202,7 @@ void Renderer::createGraphicsPipeline()
 		auto pipelineInfo = PipelineProps{};
 		pipelineInfo.vertexPath = "resources/shaders/combine/shader.vert.spv";
 		pipelineInfo.fragmentPath = "resources/shaders/combine/shader.frag.spv";
-		pipelineInfo.descriptorSetLayouts = { m_descriptorPool.getLayout(1) };
+		pipelineInfo.descriptorSetLayouts = { m_descriptorPool.getLayout(1), m_descriptorPool.getLayout(0) };
 		pipelineInfo.vertexInput = false;
 		pipelineInfo.culling = VK_CULL_MODE_NONE;
 		m_combinePipeline.init(pipelineInfo, m_renderFramebufferProps, m_swapchainPass);
@@ -395,6 +398,10 @@ void Renderer::combine(VkCommandBuffer commandBuffer, RenderPass& renderPass, Pi
 	renderPass.begin(commandBuffer, m_swapchain.getFramebuffer(imageIndex));
 	setViewport(commandBuffer);
 	pipeline.bind(commandBuffer);
+	{
+		m_globalBuffer.write(m_global);
+		m_globalBuffer.bind(commandBuffer, pipeline.getLayout(), 1);
+	}
 	m_renderFramebuffer.getColorTexture(0).bind(commandBuffer, pipeline.getLayout(), 0);
 	vkCmdDraw(commandBuffer, 6, 1, 0, 0);
 	ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commandBuffer);
@@ -427,6 +434,10 @@ void Renderer::render()
 		ImGui::ColorEdit3("ambient", (float*)&light.ambient);
 		ImGui::ColorEdit3("diffuse", (float*)&light.diffuse);
 		ImGui::ColorEdit3("specular", (float*)&light.specular);
+		ImGui::End();
+
+		ImGui::Begin("Render");
+		ImGui::DragFloat("gamma", (float*)&m_global.gamma, 0.05f, 0.f, 10.f);
 		ImGui::End();
 
 		ImGui::Render();

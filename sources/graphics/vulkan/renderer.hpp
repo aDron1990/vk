@@ -98,8 +98,10 @@ private:
 	UniformBuffer<MVP> m_shadowMvp;
 	UniformBuffer<MVP> m_shadowMvp2;
 	UniformBuffer<MVP> m_skyboxMvp;
+	UniformBuffer<Global> m_globalBuffer;
 	UniformBuffer<glm::mat4> m_lightSpace;
 	Light light{};
+	Global m_global{};
 	FramebufferProps m_renderFramebufferProps{};
 	FramebufferProps m_shadowFramebufferProps{};
 };
