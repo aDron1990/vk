@@ -12,6 +12,10 @@ struct DescriptorSet
 public:
 	DescriptorSet(std::function<void()> free, VkDescriptorSet set) : m_free{ free }, m_set{set} {};
 	VkDescriptorSet getSet() { return m_set; };
+	void bind(VkCommandBuffer commandBuffer, VkPipelineLayout layout, uint32_t setId)
+	{
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, layout, setId, 1, &m_set, 0, nullptr);
+	};
 
 private:
 	std::function<void()> m_free;

@@ -21,13 +21,10 @@ public:
 	glm::vec3 getScale();
 	glm::mat4 getModelMatrix();
 
-	Material material{};
 
 private:
 	bool m_initialized = false;
 	Model* m_model;
-	UniformBuffer<MVP> m_mvpBuffer;
-	UniformBuffer<Material> m_materialBuffer;
 	glm::vec3 m_position{};
 	glm::vec3 m_rotation{};
 	glm::vec3 m_scale{ 1.0f };

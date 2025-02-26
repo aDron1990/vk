@@ -1,7 +1,7 @@
 #version 450
 //?#extension GL_KHR_vulkan_glsl: enable
 
-layout(set = 1, binding = 0) uniform Light
+layout(std140, set = 1, binding = 0) uniform Light
 {
     vec3 direction;
     vec3 viewPosition;
@@ -10,12 +10,12 @@ layout(set = 1, binding = 0) uniform Light
     vec3 specular;
 } light;
 
-layout(set = 6, binding = 0) uniform LigthSpace
+layout(std140, set = 6, binding = 0) uniform LigthSpace
 {
 	mat4 space;
 } lightSpace;
 
-layout(set = 2, binding = 0) uniform Material 
+layout(std140, set = 2, binding = 0) uniform Material 
 {
 	vec3 ambient;
 	vec3 diffuse;

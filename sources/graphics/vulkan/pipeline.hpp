@@ -18,6 +18,7 @@ struct PipelineProps
 	std::vector<VkDescriptorSetLayout> descriptorSetLayouts;
 	bool vertexInput;
 	bool depthWrite = true;
+	bool usePushConstants = false;
 	VkCullModeFlags culling;
 };
 

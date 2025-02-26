@@ -111,6 +111,8 @@ set(shader_files
     "resources/shaders/shadow/shader.frag"
 	"resources/shaders/skybox/shader.vert"
     "resources/shaders/skybox/shader.frag"
+    "resources/shaders/test/shader.vert"
+    "resources/shaders/test/shader.frag"
 )
 
 add_shader("${shader_files}" spv_names)

@@ -48,38 +48,9 @@ namespace std {
 	};
 }
 
-struct MVP
+struct ViewProjection
 {
-	glm::mat4 model;
-	glm::mat4 view;
-	glm::mat4 proj;
+	alignas(16) glm::mat4 view;
+	alignas(16) glm::mat4 proj;
 };
 
-struct Light
-{
-	alignas(16) glm::vec3 direction;
-	alignas(16) glm::vec3 viewPosition;
-	alignas(16) glm::vec3 ambient;
-	alignas(16) glm::vec3 diffuse;
-	alignas(16) glm::vec3 specular;
-};
-
-struct Material 
-{
-	alignas(16) glm::vec3 ambient;
-	alignas(16) glm::vec3 diffuse;
-	alignas(16) glm::vec3 specular;
-	alignas(16) glm::vec3 color;
-	float shininess;
-};
-
-struct Emiter
-{
-	alignas(16) glm::vec3 color;
-};
-
-struct Global
-{
-	alignas(16) float gamma;
-	float exposure;
-};

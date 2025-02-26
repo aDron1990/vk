@@ -128,10 +128,17 @@ void Pipeline::createPipeline()
 	depthStencil.depthWriteEnable = m_framebufferProps.useDepthAttachment && m_props.depthWrite ? VK_TRUE : VK_FALSE;
 	depthStencil.depthCompareOp = VK_COMPARE_OP_LESS;
 
+	auto pushConstants = VkPushConstantRange{};
+	pushConstants.stageFlags = VK_SHADER_STAGE_ALL_GRAPHICS;
+	pushConstants.offset = 0;
+	pushConstants.size = sizeof(glm::mat4);
+
 	auto pipelineLayoutInfo = VkPipelineLayoutCreateInfo{};
 	pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 	pipelineLayoutInfo.pSetLayouts = m_props.descriptorSetLayouts.data();
 	pipelineLayoutInfo.setLayoutCount = static_cast<uint32_t>(m_props.descriptorSetLayouts.size());
+	pipelineLayoutInfo.pPushConstantRanges = m_props.usePushConstants ? &pushConstants : nullptr;
+	pipelineLayoutInfo.pushConstantRangeCount = m_props.usePushConstants ? 1 : 0;
 	if (vkCreatePipelineLayout(m_device->getDevice(), &pipelineLayoutInfo, nullptr, &m_layout) != VK_SUCCESS)
 		throw std::runtime_error{ "failed to create vulkan pipeline layout" };
 

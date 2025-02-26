@@ -27,8 +27,6 @@
 #include <optional>
 #include <memory>
 
-using LightBuffer = UniformBuffer<Light>;
-
 class Window;
 class Renderer
 {
@@ -54,9 +52,7 @@ private:
 		Vertical
 	};
 
-	void renderShadows(VkCommandBuffer commandBuffer, RenderPass& renderPass, Pipeline& pipeline);
-	void renderScene(VkCommandBuffer commandBuffer, RenderPass& renderPass, Pipeline& pipeline);
-	void combine(VkCommandBuffer commandBuffer, RenderPass& renderPass, Pipeline& pipeline, uint32_t imageIndex);
+	void renderScene(VkCommandBuffer commandBuffer, RenderPass& renderPass, Pipeline& pipeline, uint32_t imageIndex);
 
 private:
 	void setViewport(VkCommandBuffer commandBuffer);
@@ -75,33 +71,12 @@ private:
 	Device m_device;
 	Swapchain m_swapchain;
 	DescriptorPool m_descriptorPool;
-	SwapchainPass m_swapchainPass;
-	OffscreenPass m_renderPass;
-	OffscreenPass m_shadowPass;
-	OffscreenFramebuffer m_renderFramebuffer;
-	OffscreenFramebuffer m_shadowFramebuffer;
-	Pipeline m_combinePipeline;
-	Pipeline m_renderPipeline;
-	Pipeline m_shadowPipeline;
-	Pipeline m_skyboxPipeline;
-	LightBuffer m_light;
-	Model m_model;
-	Model m_cube;
-	Model m_planeModel;
-	Object m_object;
-	Object m_plane;
-	Object m_skyboxCube;
-	ImageTexture m_specularMap;
-	ImageTexture m_planeSpecularMap;
-	CubemapTexture m_skybox;
 
-	UniformBuffer<MVP> m_shadowMvp;
-	UniformBuffer<MVP> m_shadowMvp2;
-	UniformBuffer<MVP> m_skyboxMvp;
-	UniformBuffer<Global> m_globalBuffer;
-	UniformBuffer<glm::mat4> m_lightSpace;
-	Light light{};
-	Global m_global{};
+	SwapchainPass m_renderPass;
+	Pipeline m_renderPipeline;
+	Model m_model;
+	UniformBuffer<ViewProjection> m_vpBuffer;
+	//Object m_object;
+
 	FramebufferProps m_renderFramebufferProps{};
-	FramebufferProps m_shadowFramebufferProps{};
 };
