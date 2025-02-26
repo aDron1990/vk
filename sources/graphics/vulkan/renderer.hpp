@@ -75,6 +75,7 @@ private:
 	SwapchainPass m_renderPass;
 	Pipeline m_renderPipeline;
 	Model m_model;
+	ImageTexture m_texture;
 	UniformBuffer<ViewProjection> m_vpBuffer;
 	//Object m_object;
 

@@ -39,7 +39,8 @@ Renderer::Renderer(Window& window) : m_window{window}
 	createGraphicsPipeline();
 
 
-	m_model.init(MODEL_PATH, TEXTURE_PATH);
+	m_model.init(MODEL_PATH);
+	m_texture.init(TEXTURE_PATH, m_descriptorPool.createSet(1), 0);
 	m_vpBuffer.init(m_descriptorPool.createSet(0));
 
 
@@ -242,7 +243,7 @@ void Renderer::renderScene(VkCommandBuffer commandBuffer, RenderPass& renderPass
 	alignas(16) auto model = glm::translate(glm::mat4{ 1.0f }, {0.0f, 3.0f, 0.0f});
 	vkCmdPushConstants(commandBuffer, pipeline.getLayout(), VK_SHADER_STAGE_ALL_GRAPHICS, 0, sizeof(model), &model);
 
-	m_model.bindTexture(commandBuffer, pipeline.getLayout(), 1);
+	m_texture.bind(commandBuffer, pipeline.getLayout(), 1);
 	m_model.bindMesh(commandBuffer);
 	m_model.draw(commandBuffer, pipeline.getLayout());
 

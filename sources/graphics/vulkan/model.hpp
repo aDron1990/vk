@@ -16,8 +16,7 @@ using TexturePtr = std::shared_ptr<ImageTexture>;
 class Model
 {
 public:
-	void init(const std::string& modelPath, const std::string& texturePath);
-	void bindTexture(VkCommandBuffer commandBuffer, VkPipelineLayout layout, uint32_t set);
+	void init(const std::string& modelPath);
 	void bindMesh(VkCommandBuffer commandBuffer);
 	void draw(VkCommandBuffer commandBuffer, VkPipelineLayout layout);
 
@@ -25,5 +24,5 @@ private:
 	bool m_initialized = false;
 	Device* m_device{};
 	MeshPtr m_mesh{};
-	TexturePtr m_texture{};
+
 };
