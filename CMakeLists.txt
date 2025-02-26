@@ -20,6 +20,7 @@ add_executable(vk
 	"sources/window/input.cpp"
 
 	"sources/graphics/vulkan/config.hpp"
+	"sources/graphics/vulkan/utils.hpp"
 	"sources/graphics/vulkan/types.hpp"
 	"sources/graphics/vulkan/types.cpp"
 	"sources/graphics/vulkan/renderer.hpp"

@@ -8,6 +8,7 @@
 #include "graphics/vulkan/pipeline.hpp"
 #include "graphics/vulkan/buffer.hpp"
 #include "graphics/vulkan/uniform_buffer.hpp"
+#include "graphics/vulkan/dub.hpp"
 #include "graphics/vulkan/mesh.hpp"
 #include "graphics/vulkan/model.hpp"
 #include "graphics/vulkan/camera.hpp"
@@ -77,6 +78,7 @@ private:
 	Model m_model;
 	ImageTexture m_texture;
 	UniformBuffer<ViewProjection> m_vpBuffer;
+	DUB<glm::vec3> m_dub;
 	//Object m_object;
 
 	FramebufferProps m_renderFramebufferProps{};

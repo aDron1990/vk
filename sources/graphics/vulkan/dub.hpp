@@ -12,17 +12,18 @@
 #include <memory>
 
 template<typename T>
-class UniformBuffer
+class DUB
 {
 public:
-	void init(DescriptorSetPtr descriptorSet, uint32_t binding = 0)
+	void init(size_t count, DescriptorSetPtr descriptorSet, uint32_t binding = 0)
 	{
 		assert(!m_initialized);
 		m_initialized = true;
 		m_device = &Locator::getDevice();
 		m_descriptorSet = descriptorSet;
+		m_count = count;
 
-		m_buffer.init(m_size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+		m_buffer.init(m_alignedSize * count, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 		m_bufferMapped = m_buffer.map();
 
 		auto bufferInfo = VkDescriptorBufferInfo{};
@@ -35,24 +36,29 @@ public:
 		descriptorWrite.dstSet = m_descriptorSet->getSet();
 		descriptorWrite.dstBinding = binding;
 		descriptorWrite.dstArrayElement = 0;
-		descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
 		descriptorWrite.pBufferInfo = &bufferInfo;
 		descriptorWrite.descriptorCount = 1;
 
 		vkUpdateDescriptorSets(m_device->getDevice(), 1, &descriptorWrite, 0, nullptr);
 	}
 
-	void write(const T& data)
+	void write(size_t id, const T& data)
 	{
 		assert(m_initialized);
-		memcpy(m_bufferMapped, &data, sizeof(T));
+		assert(id < m_count);
+		auto* bufferPtr = static_cast<char*>(m_bufferMapped);
+		auto* writePtr = bufferPtr + id * m_alignedSize;
+		memcpy(writePtr, &data, sizeof(T));
 	}
 
-	void bind(VkCommandBuffer commandBuffer, VkPipelineLayout layout, uint32_t setId)
+	void bind(size_t id, VkCommandBuffer commandBuffer, VkPipelineLayout layout, uint32_t setId)
 	{
 		assert(m_initialized);
+		assert(id < m_count);
 		auto set = m_descriptorSet->getSet();
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, layout, setId, 1, &set, 0, nullptr);
+		uint32_t offset = id * m_alignedSize;
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, layout, setId, 1, &set, 1, &offset);
 	}
 
 	Buffer& getBuffer()
@@ -80,5 +86,6 @@ private:
 	void* m_bufferMapped{};
 	DescriptorSetPtr m_descriptorSet{};
 	const size_t m_size = sizeof(T);
-	const size_t m_alignedSize = alignedSize<T>(16);
+	const size_t m_alignedSize = alignedSize<T>(64);
+	size_t m_count{};
 };

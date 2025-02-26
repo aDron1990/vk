@@ -38,11 +38,11 @@ Renderer::Renderer(Window& window) : m_window{window}
 	createSwapchain();
 	createGraphicsPipeline();
 
-
 	m_model.init(MODEL_PATH);
 	m_texture.init(TEXTURE_PATH, m_descriptorPool.createSet(1), 0);
 	m_vpBuffer.init(m_descriptorPool.createSet(0));
 
+	m_dub.init(2, m_descriptorPool.createSet(2));
 
 	ImGui::CreateContext();
 	ImGuiIO& io = ImGui::GetIO(); (void)io;
@@ -108,7 +108,14 @@ void Renderer::createDescriptorPool()
 			{
 				.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
 			}
-		}, VK_SHADER_STAGE_ALL_GRAPHICS, 100 }
+		}, VK_SHADER_STAGE_ALL_GRAPHICS, 100 },
+		DescriptorSetInfo
+		{{
+			BindingInfo
+			{
+				.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
+			}
+		}, VK_SHADER_STAGE_ALL_GRAPHICS, 1 },
 	};
 	m_descriptorPool.init(props);
 }
@@ -140,7 +147,7 @@ void Renderer::createGraphicsPipeline()
 		auto pipelineInfo = PipelineProps{};
 		pipelineInfo.vertexPath = "resources/shaders/test/shader.vert.spv";
 		pipelineInfo.fragmentPath = "resources/shaders/test/shader.frag.spv";
-		pipelineInfo.descriptorSetLayouts = { m_descriptorPool.getLayout(0), m_descriptorPool.getLayout(1) };
+		pipelineInfo.descriptorSetLayouts = { m_descriptorPool.getLayout(0), m_descriptorPool.getLayout(1), m_descriptorPool.getLayout(2) };
 		pipelineInfo.vertexInput = true;
 		pipelineInfo.usePushConstants = true;
 		pipelineInfo.culling = VK_CULL_MODE_BACK_BIT;
@@ -240,13 +247,23 @@ void Renderer::renderScene(VkCommandBuffer commandBuffer, RenderPass& renderPass
 	m_vpBuffer.write(vp);
 	m_vpBuffer.bind(commandBuffer, pipeline.getLayout(), 0);
 
-	alignas(16) auto model = glm::translate(glm::mat4{ 1.0f }, {0.0f, 3.0f, 0.0f});
-	vkCmdPushConstants(commandBuffer, pipeline.getLayout(), VK_SHADER_STAGE_ALL_GRAPHICS, 0, sizeof(model), &model);
-
 	m_texture.bind(commandBuffer, pipeline.getLayout(), 1);
 	m_model.bindMesh(commandBuffer);
-	m_model.draw(commandBuffer, pipeline.getLayout());
-
+	
+	{
+		alignas(16) auto model = glm::translate(glm::mat4{ 1.0f }, { 0.0f, 3.0f, 0.0f });
+		vkCmdPushConstants(commandBuffer, pipeline.getLayout(), VK_SHADER_STAGE_ALL_GRAPHICS, 0, sizeof(model), &model);
+		m_dub.write(0, { 1.0f, 0.0f, 0.0f });
+		m_dub.bind(0, commandBuffer, pipeline.getLayout(), 2);
+		m_model.draw(commandBuffer, pipeline.getLayout());
+	}
+	{
+		alignas(16) auto model = glm::translate(glm::mat4{ 1.0f }, { 0.0f, 0.0f, 0.0f });
+		vkCmdPushConstants(commandBuffer, pipeline.getLayout(), VK_SHADER_STAGE_ALL_GRAPHICS, 0, sizeof(model), &model);
+		m_dub.write(1, { 1.0f, 1.0f, 1.0f });
+		m_dub.bind(1, commandBuffer, pipeline.getLayout(), 2);
+		m_model.draw(commandBuffer, pipeline.getLayout());
+	}
 	renderPass.end(commandBuffer);
 }
 
