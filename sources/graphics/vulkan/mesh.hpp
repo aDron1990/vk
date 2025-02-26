@@ -29,3 +29,5 @@ private:
 	std::unique_ptr<Buffer> m_indexBuffer{};
 
 };
+
+using MeshPtr = std::shared_ptr<Mesh>;

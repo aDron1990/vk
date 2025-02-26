@@ -1,16 +1,12 @@
 #pragma once
 
 #include "graphics/vulkan/types.hpp"
-#include "graphics/vulkan/image/image_texture.hpp"	
 #include "graphics/vulkan/mesh.hpp"
 
 #include <vulkan/vulkan.h>
 
 #include <memory>
 #include <string>
-
-using MeshPtr = std::shared_ptr<Mesh>;
-using TexturePtr = std::shared_ptr<ImageTexture>;
 
 class Model
 {
