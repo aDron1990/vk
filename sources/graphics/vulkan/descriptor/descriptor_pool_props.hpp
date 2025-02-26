@@ -7,6 +7,7 @@
 struct BindingInfo
 {
 	VkDescriptorType descriptorType;
+	uint32_t descriptorCount = 1;
 };
 
 struct DescriptorSetInfo

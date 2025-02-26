@@ -77,6 +77,8 @@ add_executable(vk
 	"sources/graphics/vulkan/image/swapchain_image.cpp"
 	"sources/graphics/vulkan/image/cubemap_texture.hpp"
 	"sources/graphics/vulkan/image/cubemap_texture.cpp"
+	"sources/graphics/vulkan/image/texture_array.hpp"
+	"sources/graphics/vulkan/image/texture_array.cpp"
 )
 
 set_property(TARGET vk PROPERTY CXX_STANDARD 23)
@@ -130,6 +132,7 @@ cmrc_add_resource_library(images
     "resources/images/container2_specular.png"
     "resources/images/brown.png"
     "resources/images/brown_specular.png"
+    "resources/images/error.png"
 
     "resources/images/skybox/right.png"
     "resources/images/skybox/left.png"
@@ -147,6 +150,8 @@ cmrc_add_resource_library(models
 	"resources/models/plane.mtl"
 	"resources/models/cube.obj"
 	"resources/models/cube.mtl"
+	"resources/models/torus.obj"
+	"resources/models/torus.mtl"
 )
 
 target_link_libraries(vk PRIVATE shaders images models)

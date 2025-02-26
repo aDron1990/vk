@@ -19,6 +19,7 @@
 
 #include "graphics/vulkan/image/image_texture.hpp"
 #include "graphics/vulkan/image/cubemap_texture.hpp"
+#include "graphics/vulkan/image/texture_array.hpp"
 
 #include <vulkan/vulkan.h>
 #include <GLFW/glfw3.h>
@@ -75,11 +76,20 @@ private:
 
 	SwapchainPass m_renderPass;
 	Pipeline m_renderPipeline;
+
 	Model m_model;
-	ImageTexture m_texture;
+	Model m_plane;
+	Object m_1;
+	Object m_2;
+	Object m_floor;
 	UBO<ViewProjection> m_vpBuffer;
-	DUB<glm::vec3> m_dub;
+	UBO<glm::vec3> m_view;
+	UBO<DirLight> m_dirLight;
+	DUB<Material> m_materialBuffer;
+	TextureArray m_textures;
 	//Object m_object;
+
+	DirLight dirLight{};
 
 	FramebufferProps m_renderFramebufferProps{};
 };

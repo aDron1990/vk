@@ -1,6 +1,5 @@
 #pragma once
 
-#include "graphics/vulkan/types.hpp"
 #include "graphics/vulkan/mesh.hpp"
 
 #include <vulkan/vulkan.h>
@@ -19,5 +18,4 @@ private:
 	bool m_initialized = false;
 	Device* m_device{};
 	MeshPtr m_mesh{};
-
 };

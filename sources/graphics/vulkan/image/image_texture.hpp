@@ -10,6 +10,7 @@ class ImageTexture : public Texture
 public:
 	~ImageTexture();
 	void init(const std::string& imagePath, DescriptorSetPtr descriptorSet, uint32_t binding = 0);
+	void init(const std::string& imagePath, bool linear = true);
 	void destroy();
 
 	void bind(VkCommandBuffer commandBuffer, VkPipelineLayout layout, uint32_t setId) override;
@@ -19,7 +20,7 @@ public:
 private:
 	void createImage(const std::string& imagePath);
 	void createImageView(VkImageAspectFlags aspect);
-	void createImageSampler(bool depth);
+	void createImageSampler(bool depth, bool linear);
 	void generateMipmaps(VkImage image, VkFormat imageFormat, int32_t width, int32_t height, uint32_t mipLevels);
 	void writeDescriptorSet(uint32_t binding);
 

@@ -36,8 +36,19 @@ void ImageTexture::init(const std::string& imagePath, DescriptorSetPtr descripto
     m_format = VK_FORMAT_R8G8B8A8_UNORM;
     createImage(imagePath);
     createImageView(VK_IMAGE_ASPECT_COLOR_BIT);
-    createImageSampler(false);
+    createImageSampler(false, true);
     writeDescriptorSet(binding);
+}
+
+void ImageTexture::init(const std::string& imagePath, bool linear)
+{
+    assert(!m_initialized);
+    m_initialized = true;
+    m_device = &Locator::getDevice();
+    m_format = VK_FORMAT_R8G8B8A8_UNORM;
+    createImage(imagePath);
+    createImageView(VK_IMAGE_ASPECT_COLOR_BIT);
+    createImageSampler(false, linear);
 }
 
 void ImageTexture::createImage(const std::string& imagePath)
@@ -156,15 +167,15 @@ void ImageTexture::createImageView(VkImageAspectFlags aspect)
     m_imageView = m_device->createImageView(m_image, m_format, aspect, m_mipLevels);
 }
 
-void ImageTexture::createImageSampler(bool depth)
+void ImageTexture::createImageSampler(bool depth, bool linear)
 {
     auto gpuProps = VkPhysicalDeviceProperties{};
     vkGetPhysicalDeviceProperties(m_device->getGpu(), &gpuProps);
 
     auto createInfo = VkSamplerCreateInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-    createInfo.magFilter = VK_FILTER_LINEAR;
-    createInfo.minFilter = VK_FILTER_LINEAR;
+    createInfo.magFilter = linear ? VK_FILTER_LINEAR : VK_FILTER_NEAREST;
+    createInfo.minFilter = linear ? VK_FILTER_LINEAR : VK_FILTER_NEAREST;
     createInfo.addressModeU = depth ? VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER : VK_SAMPLER_ADDRESS_MODE_REPEAT;
     createInfo.addressModeV = depth ? VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER : VK_SAMPLER_ADDRESS_MODE_REPEAT;
     createInfo.addressModeW = depth ? VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER : VK_SAMPLER_ADDRESS_MODE_REPEAT;

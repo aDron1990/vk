@@ -21,7 +21,7 @@
 #include <cstdint>
 #include <unordered_map>
 
-const std::string MODEL_PATH = "resources/models/monkey.obj";
+const std::string MODEL_PATH = "resources/models/torus.obj";
 const std::string TEXTURE_PATH = "resources/images/container2.png";
 
 #define TRACY_ENABLE
@@ -39,10 +39,35 @@ Renderer::Renderer(Window& window) : m_window{window}
 	createGraphicsPipeline();
 
 	m_model.init(MODEL_PATH);
-	m_texture.init(TEXTURE_PATH, m_descriptorPool.createSet(1), 0);
+	m_plane.init("resources/models/plane.obj");
 	m_vpBuffer.init(m_descriptorPool.createSet(0));
+	m_view.init(m_descriptorPool.createSet(0));
+	m_dirLight.init(m_descriptorPool.createSet(0));
+	dirLight.direction = { 0.0f, -1.0f, 0.0f };
+	m_dirLight.write(dirLight);
 
-	m_dub.init(2, m_descriptorPool.createSet(2));
+	m_textures.init(128);
+	auto box = m_textures.addTexture("resources/images/container2.png");
+	m_textures.addTexture("resources/images/statue.jpg");
+	auto boxSpec = m_textures.addTexture("resources/images/container2_specular.png");
+
+	m_materialBuffer.init(64, m_descriptorPool.createSet(2));
+	auto material = Material{};
+
+	m_1.init(m_model, m_materialBuffer);
+	material.diffuse = {1.0f, 0.0f, 0.0f};
+	m_1.setMaterial(material);
+	m_1.setPosition({ -1.5f, 1.0f, 0.0f });
+
+	m_floor.init(m_plane, m_materialBuffer);
+	material.diffuse = { 0.8f, 0.5f, 0.5f };
+	m_floor.setMaterial(material);
+
+	m_2.init(m_model, m_materialBuffer);
+	material.diffuseIndex = box;
+	material.specularIndex = boxSpec;
+	m_2.setMaterial(material);
+	m_2.setPosition({ 1.5f, 1.0f, 0.0f });
 
 	ImGui::CreateContext();
 	ImGuiIO& io = ImGui::GetIO(); (void)io;
@@ -116,6 +141,14 @@ void Renderer::createDescriptorPool()
 				.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
 			}
 		}, VK_SHADER_STAGE_ALL_GRAPHICS, 1 },
+		DescriptorSetInfo
+		{{
+			BindingInfo
+			{
+				.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+				.descriptorCount = 128
+			}
+		}, VK_SHADER_STAGE_ALL_GRAPHICS, 128 },
 	};
 	m_descriptorPool.init(props);
 }
@@ -147,10 +180,17 @@ void Renderer::createGraphicsPipeline()
 		auto pipelineInfo = PipelineProps{};
 		pipelineInfo.vertexPath = "resources/shaders/test/shader.vert.spv";
 		pipelineInfo.fragmentPath = "resources/shaders/test/shader.frag.spv";
-		pipelineInfo.descriptorSetLayouts = { m_descriptorPool.getLayout(0), m_descriptorPool.getLayout(1), m_descriptorPool.getLayout(2) };
 		pipelineInfo.vertexInput = true;
 		pipelineInfo.usePushConstants = true;
 		pipelineInfo.culling = VK_CULL_MODE_BACK_BIT;
+		pipelineInfo.descriptorSetLayouts =
+		{
+			m_descriptorPool.getLayout(0),
+			m_descriptorPool.getLayout(2),
+			m_descriptorPool.getLayout(0),
+			m_descriptorPool.getLayout(0),
+			m_descriptorPool.getLayout(3),
+		};
 		m_renderPipeline.init(pipelineInfo, m_renderFramebufferProps, m_renderPass);
 	}
 }
@@ -235,35 +275,38 @@ void Renderer::renderScene(VkCommandBuffer commandBuffer, RenderPass& renderPass
 	if (input.getKey(GLFW_KEY_SPACE)) cameraMove.y += 1;
 	if (input.getKey(GLFW_KEY_LEFT_SHIFT)) cameraMove.y -= 1;
 	m_camera.move(cameraMove, delta);
+
 	auto extent = m_swapchain.getExtent();
-
-	auto view = m_camera.getViewMatrix();
-	auto proj = glm::perspective(glm::radians(80.0f), extent.width / (float)extent.height, 0.1f, 100.0f);
-	proj[1][1] *= -1;
-
 	auto vp = ViewProjection{};
-	vp.view = view;
-	vp.proj = proj;
+	vp.view = m_camera.getViewMatrix();
+	vp.proj = glm::perspective(glm::radians(80.0f), extent.width / (float)extent.height, 0.1f, 100.0f);
+	vp.proj[1][1] *= -1;
 	m_vpBuffer.write(vp);
 	m_vpBuffer.bind(commandBuffer, pipeline.getLayout(), 0);
+	m_view.write(m_camera.getPosition());
+	m_view.bind(commandBuffer, pipeline.getLayout(), 2);
+	m_dirLight.bind(commandBuffer, pipeline.getLayout(), 3);
 
-	m_texture.bind(commandBuffer, pipeline.getLayout(), 1);
-	m_model.bindMesh(commandBuffer);
-	
-	{
-		alignas(16) auto model = glm::translate(glm::mat4{ 1.0f }, { 0.0f, 3.0f, 0.0f });
-		vkCmdPushConstants(commandBuffer, pipeline.getLayout(), VK_SHADER_STAGE_ALL_GRAPHICS, 0, sizeof(model), &model);
-		m_dub.write(0, { 1.0f, 0.0f, 0.0f });
-		m_dub.bind(0, commandBuffer, pipeline.getLayout(), 2);
-		m_model.draw(commandBuffer, pipeline.getLayout());
-	}
-	{
-		alignas(16) auto model = glm::translate(glm::mat4{ 1.0f }, { 0.0f, 0.0f, 0.0f });
-		vkCmdPushConstants(commandBuffer, pipeline.getLayout(), VK_SHADER_STAGE_ALL_GRAPHICS, 0, sizeof(model), &model);
-		m_dub.write(1, { 1.0f, 1.0f, 1.0f });
-		m_dub.bind(1, commandBuffer, pipeline.getLayout(), 2);
-		m_model.draw(commandBuffer, pipeline.getLayout());
-	}
+	m_textures.bind(commandBuffer, pipeline.getLayout(), 4);
+	glm::mat4 model;
+
+	model = m_1.getModelMatrix();
+	vkCmdPushConstants(commandBuffer, pipeline.getLayout(), VK_SHADER_STAGE_ALL_GRAPHICS, 0, sizeof(model), &model);
+	m_materialBuffer.bind(m_1.getMaterialIndex(), commandBuffer, pipeline.getLayout(), 1);
+	m_1.draw(commandBuffer, pipeline.getLayout());
+
+	model = m_2.getModelMatrix();
+	vkCmdPushConstants(commandBuffer, pipeline.getLayout(), VK_SHADER_STAGE_ALL_GRAPHICS, 0, sizeof(model), &model);
+	m_materialBuffer.bind(m_2.getMaterialIndex(), commandBuffer, pipeline.getLayout(), 1);
+	m_2.draw(commandBuffer, pipeline.getLayout());
+
+	model = m_floor.getModelMatrix();
+	vkCmdPushConstants(commandBuffer, pipeline.getLayout(), VK_SHADER_STAGE_ALL_GRAPHICS, 0, sizeof(model), &model);
+	m_materialBuffer.bind(m_floor.getMaterialIndex(), commandBuffer, pipeline.getLayout(), 1);
+	m_floor.draw(commandBuffer, pipeline.getLayout());
+
+	ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commandBuffer);
+
 	renderPass.end(commandBuffer);
 }
 
@@ -274,6 +317,40 @@ void Renderer::render()
 	ImGui_ImplVulkan_NewFrame();
 	ImGui_ImplGlfw_NewFrame();
 	ImGui::NewFrame();
+	{
+		ImGui::Begin("Directional Light");
+		bool updateLight = false;
+		updateLight = updateLight || ImGui::DragFloat3("direction", (float*)&dirLight.direction, 0.05f, -1.0f, 1.0f);
+		updateLight = updateLight || ImGui::ColorEdit3("ambient", (float*)&dirLight.ambient);
+		updateLight = updateLight || ImGui::ColorEdit3("diffuse", (float*)&dirLight.diffuse);
+		updateLight = updateLight || ImGui::ColorEdit3("specular", (float*)&dirLight.specular);
+		if (updateLight)
+		{
+			dirLight.direction = glm::normalize(dirLight.direction);
+			m_dirLight.write(dirLight);
+		}
+		ImGui::End();
+	}
+	{
+		ImGui::Begin("Torus 1");
+		ImGui::Text("Transform");
+		auto pos = m_1.getPosition();
+		if (ImGui::DragFloat3("position", (float*)&pos, 0.05f)) m_1.setPosition(pos);
+		auto rot = m_1.getRotation();
+		if (ImGui::DragFloat3("rotation", (float*)&rot)) m_1.setRotation(rot);
+		auto scale = m_1.getScale ();
+		if (ImGui::DragFloat3("scale", (float*)&scale)) m_1.setScale(scale);
+		ImGui::Separator();
+
+		ImGui::Text("Material");
+		auto material = m_1.getMaterial();
+		bool updateMaterial = false;
+		updateMaterial = updateMaterial || ImGui::ColorEdit3("diffuse", (float*)&material.diffuse);
+		updateMaterial = updateMaterial || ImGui::ColorEdit3("specular", (float*)&material.specular);
+		updateMaterial = updateMaterial || ImGui::DragFloat("shininess", (float*)&material.shininess, 0.5f, 1.0f, 128.0f);
+		if (updateMaterial) m_1.setMaterial(material);
+		ImGui::End();
+	}
 	ImGui::Render();
 	
 	uint32_t imageIndex;

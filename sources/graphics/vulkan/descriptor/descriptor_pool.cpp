@@ -80,7 +80,7 @@ void DescriptorPool::createDescriptorSetLayouts()
 			auto bind = VkDescriptorSetLayoutBinding{};
 			bind.binding = i;
 			bind.descriptorType = setInfo.bindings[i].descriptorType;
-			bind.descriptorCount = 1;
+			bind.descriptorCount = setInfo.bindings[i].descriptorCount;
 			bind.stageFlags = setInfo.stages;
 			bindings[i] = bind;
 		}

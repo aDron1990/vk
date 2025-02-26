@@ -61,6 +61,13 @@ public:
 		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, layout, setId, 1, &set, 1, &offset);
 	}
 
+	uint32_t genIndex()
+	{
+		assert(m_initialized);
+		assert(m_nextIndex < m_count);
+		return m_nextIndex++;
+	}
+
 	Buffer& getBuffer()
 	{
 		assert(m_initialized);
@@ -88,4 +95,5 @@ private:
 	const size_t m_size = sizeof(T);
 	const size_t m_alignedSize = alignedSize<T>(64);
 	size_t m_count{};
+	uint32_t m_nextIndex{};
 };
