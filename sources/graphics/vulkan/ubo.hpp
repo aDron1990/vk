@@ -12,7 +12,7 @@
 #include <memory>
 
 template<typename T>
-class UniformBuffer
+class UBO
 {
 public:
 	void init(DescriptorSetPtr descriptorSet, uint32_t binding = 0)

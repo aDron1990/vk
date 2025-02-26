@@ -7,7 +7,7 @@
 #include "graphics/vulkan/context/swapchain.hpp"
 #include "graphics/vulkan/pipeline.hpp"
 #include "graphics/vulkan/buffer.hpp"
-#include "graphics/vulkan/uniform_buffer.hpp"
+#include "graphics/vulkan/ubo.hpp"
 #include "graphics/vulkan/dub.hpp"
 #include "graphics/vulkan/mesh.hpp"
 #include "graphics/vulkan/model.hpp"
@@ -77,7 +77,7 @@ private:
 	Pipeline m_renderPipeline;
 	Model m_model;
 	ImageTexture m_texture;
-	UniformBuffer<ViewProjection> m_vpBuffer;
+	UBO<ViewProjection> m_vpBuffer;
 	DUB<glm::vec3> m_dub;
 	//Object m_object;
 

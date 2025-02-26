@@ -3,7 +3,6 @@
 #include "graphics/vulkan/types.hpp"
 #include "graphics/vulkan/image/image_texture.hpp"	
 #include "graphics/vulkan/mesh.hpp"
-#include "graphics/vulkan/uniform_buffer.hpp"
 
 #include <vulkan/vulkan.h>
 
