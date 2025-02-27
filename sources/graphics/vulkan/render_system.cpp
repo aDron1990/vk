@@ -60,7 +60,7 @@ RenderSystem::RenderSystem(Window& window) : m_window{window}
 	m_textures.addTexture("resources/images/statue.jpg", "statue");
 
 	m_materialBuffer.init(64, m_descriptorPool.createSet(2));
-	auto material = Material{};
+	auto material = MaterialData{};
 
 	m_1.init(m_model, m_materialBuffer);
 	material.diffuse = {1.0f, 0.0f, 0.0f};

@@ -67,7 +67,7 @@ struct DirLight
 	alignas(16) glm::vec3 specular{ 1.0f };
 };
 
-struct Material
+struct MaterialData
 {
 	alignas(16) glm::vec3 diffuse{};
 	alignas(16) glm::vec3 specular{};

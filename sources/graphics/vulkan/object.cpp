@@ -15,7 +15,7 @@ void Object::destroy()
 	m_initialized = false;
 }
 
-void Object::init(Model& model, DUB<Material>& materialBuffer)
+void Object::init(Model& model, DUB<MaterialData>& materialBuffer)
 {
 	assert(!m_initialized);
 	m_initialized = true;
@@ -47,14 +47,14 @@ void Object::updateMaterial()
 	m_materialBuffer->write(m_materialIndex, m_material);
 }
 
-void Object::setMaterial(const Material& material)
+void Object::setMaterial(const MaterialData& material)
 {
 	assert(m_initialized);
 	m_material = material;
 	updateMaterial();
 }
 
-Material Object::getMaterial()
+MaterialData Object::getMaterial()
 {
 	assert(m_initialized);
 	return m_material;
