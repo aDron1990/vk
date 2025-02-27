@@ -85,7 +85,7 @@ add_executable(vk
 	"sources/graphics/vulkan/components/transform.hpp"
 	"sources/graphics/vulkan/components/transform.cpp"
 	"sources/graphics/vulkan/components/object_renderer.hpp"
-	"sources/graphics/vulkan/components/object_renderer.cpp"
+	
 )
 
 set_property(TARGET vk PROPERTY CXX_STANDARD 23)

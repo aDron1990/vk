@@ -12,7 +12,7 @@ class Mesh
 {
 public:
 	void init(const std::string& modelPath);
-	void bindBuffers(VkCommandBuffer commandBuffer);
+	void bind(VkCommandBuffer commandBuffer);
 	void draw(VkCommandBuffer commandBuffer);
 
 private:

@@ -80,8 +80,8 @@ private:
 	SwapchainPass m_renderPass;
 	Pipeline m_renderPipeline;
 
-	Model m_model;
-	Model m_plane;
+	MeshPtr m_torus;
+	MeshPtr m_plane;
 	Object m_1;
 	Object m_2;
 	Object m_floor;

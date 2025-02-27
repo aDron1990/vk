@@ -16,7 +16,7 @@ void Model::init(const std::string& modelPath)
 void Model::bindMesh(VkCommandBuffer commandBuffer)
 {
 	assert(m_initialized);
-	m_mesh->bindBuffers(commandBuffer);
+	m_mesh->bind(commandBuffer);
 }
 
 void Model::draw(VkCommandBuffer commandBuffer, VkPipelineLayout layout)

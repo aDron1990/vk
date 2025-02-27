@@ -96,7 +96,7 @@ void Mesh::createIndexBuffer()
 	m_device->copyBuffer(stagingBuffer, *m_indexBuffer);
 }
 
-void Mesh::bindBuffers(VkCommandBuffer commandBuffer)
+void Mesh::bind(VkCommandBuffer commandBuffer)
 {
 	assert(m_initialized);
 	VkDeviceSize offsets[] = { 0 };

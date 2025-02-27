@@ -64,8 +64,10 @@ RenderSystem::RenderSystem(Window& window) : m_window{window}
 	m_materialBuffer.init(64, m_descriptorPool.createSet(2));
 	Locator::setMaterialBuffer(&m_materialBuffer);
 
-	m_model.init(MODEL_PATH);
-	m_plane.init("resources/models/plane.obj");
+	m_torus.reset(new Mesh{});
+	m_torus->init(MODEL_PATH);
+	m_plane.reset(new Mesh{});
+	m_plane->init("resources/models/plane.obj");
 	m_vpBuffer.init(m_descriptorPool.createSet(0));
 	m_view.init(m_descriptorPool.createSet(0));
 	m_dirLight.init(m_descriptorPool.createSet(0));
@@ -80,21 +82,24 @@ RenderSystem::RenderSystem(Window& window) : m_window{window}
 	m_ecs.on_update<ObjectRenderer>().connect<&onRenUpdate>();
 
 
-	auto material = Material{};
+	auto renderer = ObjectRenderer{};
 
-	m_1.init(m_model, m_materialBuffer);
-	material.diffuse = {1.0f, 0.0f, 0.0f};
-	m_1.addComponent<ObjectRenderer>(ObjectRenderer{material, 0});
+	m_1.init();
+	renderer.mesh = m_torus;
+	renderer.material.diffuse = {1.0f, 0.0f, 0.0f};
+	m_1.addComponent<ObjectRenderer>(renderer);
 	m_1.getComponent<Transform>().position = {-1.5f, 1.0f, 0.0f};
 
-	m_floor.init(m_plane, m_materialBuffer);
-	material.diffuse = { 0.8f, 0.5f, 0.5f };
-	m_floor.addComponent<ObjectRenderer>(ObjectRenderer{ material, 0 });
+	m_floor.init();
+	renderer.mesh = m_plane;
+	renderer.material.diffuse = { 0.8f, 0.5f, 0.5f };
+	m_floor.addComponent<ObjectRenderer>(renderer);
 
-	m_2.init(m_model, m_materialBuffer);
-	material.diffuseIndex = m_textures.findIndex("container_diffuse");
-	material.specularIndex = m_textures.findIndex("container_specular");
-	m_2.addComponent<ObjectRenderer>(ObjectRenderer{ material, 0 });
+	m_2.init();
+	renderer.mesh = m_torus;
+	renderer.material.diffuseIndex = m_textures.findIndex("container_diffuse");
+	renderer.material.specularIndex = m_textures.findIndex("container_specular");
+	m_2.addComponent<ObjectRenderer>(renderer);
 	m_2.getComponent<Transform>().position = { 1.5f, 1.0f, 0.0f };
 
 	m_1.addComponent<int>(2);
@@ -338,7 +343,8 @@ void RenderSystem::renderScene(VkCommandBuffer commandBuffer, RenderPass& render
 		auto model = transform.getMatrix();
 		vkCmdPushConstants(commandBuffer, pipeline.getLayout(), VK_SHADER_STAGE_ALL_GRAPHICS, 0, sizeof(model), &model);
 		m_materialBuffer.bind(renderer.materialIndex, commandBuffer, pipeline.getLayout(), 1);
-		m_1.draw(commandBuffer, pipeline.getLayout());
+		renderer.mesh->bind(commandBuffer);
+		renderer.mesh->draw(commandBuffer);
 	}
 
 	ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commandBuffer);
