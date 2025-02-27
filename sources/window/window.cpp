@@ -21,7 +21,7 @@ Window::Window(int widht, int height, std::string_view title) : m_window{ nullpt
 	};
 	
 	m_input.reset(new Input{ *this });
-	m_renderer.reset(new Renderer{ *this });
+	m_renderSystem.reset(new RenderSystem{ *this });
 }
 
 bool Window::shouldClose()
@@ -39,7 +39,7 @@ Input& Window::getInput()
 	return *m_input;
 }
 
-Renderer& Window::getRenderer()
+RenderSystem& Window::getRenderSystem()
 {
-	return *m_renderer;
+	return *m_renderSystem;
 }

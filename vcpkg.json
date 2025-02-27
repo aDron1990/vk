@@ -12,7 +12,9 @@
     },
     "stb",
     "tinyobjloader",
+    "tracy",
     "vulkan",
-    "tracy"
+    "joltphysics",
+    "entt"
   ]
 }

@@ -24,17 +24,18 @@
 #include <vulkan/vulkan.h>
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
+#include <entt/entt.hpp>
 
 #include <vector>
 #include <optional>
 #include <memory>
 
 class Window;
-class Renderer
+class RenderSystem
 {
 public:
-	Renderer(Window& window);
-	~Renderer();
+	RenderSystem(Window& window);
+	~RenderSystem();
 	void render();
 
 private:
@@ -73,6 +74,8 @@ private:
 	Device m_device;
 	Swapchain m_swapchain;
 	DescriptorPool m_descriptorPool;
+	TextureArray m_textures;
+	entt::registry m_ecs;
 
 	SwapchainPass m_renderPass;
 	Pipeline m_renderPipeline;
@@ -86,7 +89,7 @@ private:
 	UBO<glm::vec3> m_view;
 	UBO<DirLight> m_dirLight;
 	DUB<Material> m_materialBuffer;
-	TextureArray m_textures;
+	
 	//Object m_object;
 
 	DirLight dirLight{};

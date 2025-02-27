@@ -10,6 +10,8 @@ find_package(tinyobjloader CONFIG REQUIRED)
 find_package(imgui CONFIG REQUIRED)
 find_package(CMakeRC CONFIG REQUIRED)
 find_package(Tracy CONFIG REQUIRED)
+find_package(EnTT CONFIG REQUIRED)
+find_package(Jolt CONFIG REQUIRED)
 
 add_executable(vk 
 	"sources/main.cpp"
@@ -23,8 +25,8 @@ add_executable(vk
 	"sources/graphics/vulkan/utils.hpp"
 	"sources/graphics/vulkan/types.hpp"
 	"sources/graphics/vulkan/types.cpp"
-	"sources/graphics/vulkan/renderer.hpp"
-	"sources/graphics/vulkan/renderer.cpp"
+	"sources/graphics/vulkan/render_system.hpp"
+	"sources/graphics/vulkan/render_system.cpp"
 	"sources/graphics/vulkan/pipeline.hpp"
 	"sources/graphics/vulkan/pipeline.cpp"
 	"sources/graphics/vulkan/buffer.hpp"
@@ -93,6 +95,8 @@ target_link_libraries(vk PRIVATE
 	tinyobjloader::tinyobjloader
 	imgui::imgui
 	Tracy::TracyClient
+	EnTT::EnTT
+	Jolt::Jolt
 )
 
 # Shaders

@@ -1,11 +1,14 @@
 #pragma once
 
+#include <entt/entt.hpp>
+
 class Window;
 class Renderer;
 class Context;
 class Device;
-class DescriptorPool;
 class Swapchain;
+class DescriptorPool;
+class TextureArray;
 
 class Locator
 {
@@ -16,6 +19,8 @@ public:
 	static Device& getDevice();
 	static Swapchain& getSwapchain();
 	static DescriptorPool& getDescriptorPool();
+	static TextureArray& getTextureArray();
+	static entt::registry& getECS();
 
 	static void setWindow(Window* window);
 	static void setRenderer(Renderer* renderer);
@@ -23,6 +28,8 @@ public:
 	static void setDevice(Device* device);
 	static void setSwapchain(Swapchain* swapchain);
 	static void setDescriptorPool(DescriptorPool* descriptorPool);
+	static void setTextureArray(TextureArray* textureArray);
+	static void setECS(entt::registry* ecs);
 
 private:
 	static Window* m_window;
@@ -31,4 +38,6 @@ private:
 	static Device* m_device;
 	static Swapchain* m_swapchain;
 	static DescriptorPool* m_descriptorPool;
+	static TextureArray* m_textureArray;
+	static entt::registry* m_ecs;
 };

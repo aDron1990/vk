@@ -12,14 +12,14 @@ int main()
 	try
 	{
 		auto window = Window{ 1280, 720, "window" };
-		auto& renderer = window.getRenderer();
+		auto& renderSystem = window.getRenderSystem();
 		auto& input = window.getInput();
 
 		while (!window.shouldClose())
 		{
 			ZoneScopedN("main loop");
 			input.update();
-			renderer.render();
+			renderSystem.render();
 			if (input.getKey(GLFW_KEY_ESCAPE)) break;
 		}
 	}

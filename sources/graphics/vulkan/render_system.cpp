@@ -1,6 +1,6 @@
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 
-#include "graphics/vulkan/renderer.hpp"
+#include "graphics/vulkan/render_system.hpp"
 #include "graphics/vulkan/render_pass/framebuffer.hpp"
 #include "window/window.hpp"
 
@@ -27,7 +27,7 @@ const std::string TEXTURE_PATH = "resources/images/container2.png";
 #define TRACY_ENABLE
 #include <tracy/Tracy.hpp>
 
-Renderer::Renderer(Window& window) : m_window{window}
+RenderSystem::RenderSystem(Window& window) : m_window{window}
 {
 	createContext();
 	createDevice();
@@ -37,6 +37,9 @@ Renderer::Renderer(Window& window) : m_window{window}
 	createRenderPass();
 	createSwapchain();
 	createGraphicsPipeline();
+	m_textures.init(128);
+	Locator::setTextureArray(&m_textures);
+	Locator::setECS(&m_ecs);
 
 	m_model.init(MODEL_PATH);
 	m_plane.init("resources/models/plane.obj");
@@ -46,7 +49,7 @@ Renderer::Renderer(Window& window) : m_window{window}
 	dirLight.direction = { 0.0f, -1.0f, 0.0f };
 	m_dirLight.write(dirLight);
 
-	m_textures.init(128);
+	
 	m_textures.addTexture("resources/images/container2.png", "container_diffuse");
 	m_textures.addTexture("resources/images/container2_specular.png", "container_specular");
 	m_textures.addTexture("resources/images/statue.jpg", "statue");
@@ -87,7 +90,7 @@ Renderer::Renderer(Window& window) : m_window{window}
 	ImGui_ImplVulkan_CreateFontsTexture();
 }
 
-Renderer::~Renderer()
+RenderSystem::~RenderSystem()
 {
 	vkDeviceWaitIdle(m_device.getDevice());
 
@@ -100,12 +103,12 @@ Renderer::~Renderer()
 	vkDestroyFence(m_device.getDevice(), m_inFlightFence, nullptr);
 }
 
-void Renderer::createContext()
+void RenderSystem::createContext()
 {
 	m_context.init();
 }
 
-void Renderer::createDevice()
+void RenderSystem::createDevice()
 {
 	auto surface = VkSurfaceKHR{};
 	if (glfwCreateWindowSurface(m_context.getInstance(), m_window.getWindow(), nullptr, &surface) != VK_SUCCESS)
@@ -114,7 +117,7 @@ void Renderer::createDevice()
 	m_device.init(surface);
 }
 
-void Renderer::createDescriptorPool()
+void RenderSystem::createDescriptorPool()
 {
 	auto props = DescriptorPoolProps{};
 	props.setInfos =
@@ -152,7 +155,7 @@ void Renderer::createDescriptorPool()
 	m_descriptorPool.init(props);
 }
 
-void Renderer::createRenderPass()
+void RenderSystem::createRenderPass()
 {
 	m_renderPass.init();
 
@@ -162,7 +165,7 @@ void Renderer::createRenderPass()
 	m_renderFramebufferProps.depthFormat = VK_FORMAT_D32_SFLOAT;
 }
 
-void Renderer::createSwapchain()
+void RenderSystem::createSwapchain()
 {
 	int width, height;
 	glfwGetFramebufferSize(m_window.getWindow(), &width, &height);
@@ -173,7 +176,7 @@ void Renderer::createSwapchain()
 	});
 }
 
-void Renderer::createGraphicsPipeline()
+void RenderSystem::createGraphicsPipeline()
 {
 	{
 		auto pipelineInfo = PipelineProps{};
@@ -194,7 +197,7 @@ void Renderer::createGraphicsPipeline()
 	}
 }
 
-void Renderer::createSyncObjects()
+void RenderSystem::createSyncObjects()
 {
 	auto semaphoreInfo = VkSemaphoreCreateInfo{};
 	semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
@@ -209,12 +212,12 @@ void Renderer::createSyncObjects()
 		throw std::runtime_error{ "failed to create vulkan sync objects" };
 }
 
-void Renderer::createCommandBuffers()
+void RenderSystem::createCommandBuffers()
 {
 	m_commandBuffer = m_device.createCommandBuffers(1).back();
 }
 
-void Renderer::setViewport(VkCommandBuffer commandBuffer)
+void RenderSystem::setViewport(VkCommandBuffer commandBuffer)
 {
 	auto viewport = VkViewport{};
 	viewport.x = 0.0f;
@@ -231,7 +234,7 @@ void Renderer::setViewport(VkCommandBuffer commandBuffer)
 	vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 }
 
-void Renderer::setViewport(VkCommandBuffer commandBuffer, uint32_t width, uint32_t height)
+void RenderSystem::setViewport(VkCommandBuffer commandBuffer, uint32_t width, uint32_t height)
 {
 	auto viewport = VkViewport{};
 	viewport.x = 0.0f;
@@ -248,7 +251,7 @@ void Renderer::setViewport(VkCommandBuffer commandBuffer, uint32_t width, uint32
 	vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 }
 
-void Renderer::renderScene(VkCommandBuffer commandBuffer, RenderPass& renderPass, Pipeline& pipeline, uint32_t imageIndex)
+void RenderSystem::renderScene(VkCommandBuffer commandBuffer, RenderPass& renderPass, Pipeline& pipeline, uint32_t imageIndex)
 {
 	static auto lastTime = std::chrono::high_resolution_clock::now();
 	auto now = std::chrono::high_resolution_clock::now();
@@ -309,7 +312,7 @@ void Renderer::renderScene(VkCommandBuffer commandBuffer, RenderPass& renderPass
 	renderPass.end(commandBuffer);
 }
 
-void Renderer::render()
+void RenderSystem::render()
 {
 	ZoneScopedN("render");
 

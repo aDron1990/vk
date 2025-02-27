@@ -8,6 +8,8 @@ Context* Locator::m_context = nullptr;
 Device* Locator::m_device = nullptr;
 Swapchain* Locator::m_swapchain = nullptr;
 DescriptorPool* Locator::m_descriptorPool = nullptr;
+TextureArray* Locator::m_textureArray = nullptr;
+entt::registry* Locator::m_ecs = nullptr;
 
 Window& Locator::getWindow()
 {
@@ -45,6 +47,18 @@ DescriptorPool& Locator::getDescriptorPool()
 	return *m_descriptorPool;
 }
 
+TextureArray& Locator::getTextureArray()
+{
+	assert(m_textureArray != nullptr);
+	return *m_textureArray;
+}
+
+entt::registry& Locator::getECS()
+{
+	assert(m_ecs != nullptr);
+	return *m_ecs;
+}
+
 void Locator::setWindow(Window* window)
 {
 	assert(m_window == nullptr);
@@ -79,4 +93,16 @@ void Locator::setDescriptorPool(DescriptorPool* descriptorPool)
 {
 	assert(m_descriptorPool == nullptr);
 	m_descriptorPool = descriptorPool;
+}
+
+void Locator::setTextureArray(TextureArray* textureArray)
+{
+	assert(m_textureArray == nullptr);
+	m_textureArray = textureArray;
+}
+
+void Locator::setECS(entt::registry* ecs)
+{
+	assert(m_ecs == nullptr);
+	m_ecs = ecs;
 }
