@@ -27,6 +27,12 @@ const std::string TEXTURE_PATH = "resources/images/container2.png";
 #define TRACY_ENABLE
 #include <tracy/Tracy.hpp>
 
+void onTransUpdate(entt::registry& ecs, entt::entity entity)
+{
+	auto& trans = ecs.get<Transform>(entity);
+	//std::println("{} {} {}", trans.position.x, trans.position.y, trans.position.z);
+}
+
 RenderSystem::RenderSystem(Window& window) : m_window{window}
 {
 	createContext();
@@ -48,7 +54,6 @@ RenderSystem::RenderSystem(Window& window) : m_window{window}
 	m_dirLight.init(m_descriptorPool.createSet(0));
 	dirLight.direction = { 0.0f, -1.0f, 0.0f };
 	m_dirLight.write(dirLight);
-
 	
 	m_textures.addTexture("resources/images/container2.png", "container_diffuse");
 	m_textures.addTexture("resources/images/container2_specular.png", "container_specular");
@@ -60,7 +65,7 @@ RenderSystem::RenderSystem(Window& window) : m_window{window}
 	m_1.init(m_model, m_materialBuffer);
 	material.diffuse = {1.0f, 0.0f, 0.0f};
 	m_1.setMaterial(material);
-	m_1.setPosition({ -1.5f, 1.0f, 0.0f });
+	m_1.getComponent<Transform>().position = {-1.5f, 1.0f, 0.0f};
 
 	m_floor.init(m_plane, m_materialBuffer);
 	material.diffuse = { 0.8f, 0.5f, 0.5f };
@@ -70,7 +75,21 @@ RenderSystem::RenderSystem(Window& window) : m_window{window}
 	material.diffuseIndex = m_textures.findIndex("container_diffuse");
 	material.specularIndex = m_textures.findIndex("container_specular");
 	m_2.setMaterial(material);
-	m_2.setPosition({ 1.5f, 1.0f, 0.0f });
+	m_2.getComponent<Transform>().position = { 1.5f, 1.0f, 0.0f };
+
+	m_1.addComponent<int>(2);
+	m_2.addComponent<int>(42);
+	m_floor.addComponent<int>(23);
+
+	auto renderView = m_ecs.view<int>();
+	for (auto entity : renderView)
+	{
+		auto a = renderView.get<int>(entity);
+		std::println("{}", a);
+	}
+
+	m_ecs.on_update<Transform>().connect<&onTransUpdate>();
+
 
 	ImGui::CreateContext();
 	ImGuiIO& io = ImGui::GetIO(); (void)io;
@@ -292,17 +311,17 @@ void RenderSystem::renderScene(VkCommandBuffer commandBuffer, RenderPass& render
 	m_textures.bind(commandBuffer, pipeline.getLayout(), 4);
 	glm::mat4 model;
 
-	model = m_1.getModelMatrix();
+	model = m_1.getComponent<Transform>().getMatrix();
 	vkCmdPushConstants(commandBuffer, pipeline.getLayout(), VK_SHADER_STAGE_ALL_GRAPHICS, 0, sizeof(model), &model);
 	m_materialBuffer.bind(m_1.getMaterialIndex(), commandBuffer, pipeline.getLayout(), 1);
 	m_1.draw(commandBuffer, pipeline.getLayout());
 
-	model = m_2.getModelMatrix();
+	model = m_2.getComponent<Transform>().getMatrix();
 	vkCmdPushConstants(commandBuffer, pipeline.getLayout(), VK_SHADER_STAGE_ALL_GRAPHICS, 0, sizeof(model), &model);
 	m_materialBuffer.bind(m_2.getMaterialIndex(), commandBuffer, pipeline.getLayout(), 1);
 	m_2.draw(commandBuffer, pipeline.getLayout());
 
-	model = m_floor.getModelMatrix();
+	model = m_floor.getComponent<Transform>().getMatrix();
 	vkCmdPushConstants(commandBuffer, pipeline.getLayout(), VK_SHADER_STAGE_ALL_GRAPHICS, 0, sizeof(model), &model);
 	m_materialBuffer.bind(m_floor.getMaterialIndex(), commandBuffer, pipeline.getLayout(), 1);
 	m_floor.draw(commandBuffer, pipeline.getLayout());
@@ -336,12 +355,12 @@ void RenderSystem::render()
 	{
 		ImGui::Begin("Torus 1");
 		ImGui::Text("Transform");
-		auto pos = m_1.getPosition();
-		if (ImGui::DragFloat3("position", (float*)&pos, 0.05f)) m_1.setPosition(pos);
-		auto rot = m_1.getRotation();
-		if (ImGui::DragFloat3("rotation", (float*)&rot)) m_1.setRotation(rot);
-		auto scale = m_1.getScale ();
-		if (ImGui::DragFloat3("scale", (float*)&scale)) m_1.setScale(scale);
+		auto& transform = m_1.getComponent<Transform>();
+		bool updateTransform = false;
+		updateTransform = updateTransform || ImGui::DragFloat3("position", (float*)&transform.position, 0.05f);
+		updateTransform = updateTransform || ImGui::DragFloat3("rotation", (float*)&transform.rotation, 0.1);
+		updateTransform = updateTransform || ImGui::DragFloat3("scale", (float*)&transform.scale, 0.05);
+		if (updateTransform) m_ecs.patch<Transform>(m_1.getEntity());
 		ImGui::Separator();
 
 		ImGui::Text("Material");

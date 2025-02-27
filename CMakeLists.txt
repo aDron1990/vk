@@ -39,6 +39,8 @@ add_executable(vk
 	"sources/graphics/vulkan/model.cpp"
 	"sources/graphics/vulkan/camera.hpp"
 	"sources/graphics/vulkan/camera.cpp"
+	"sources/graphics/vulkan/transform.hpp"
+	"sources/graphics/vulkan/transform.cpp"
 	"sources/graphics/vulkan/object.hpp"
 	"sources/graphics/vulkan/object.cpp"
 	"sources/graphics/vulkan/locator.hpp"
