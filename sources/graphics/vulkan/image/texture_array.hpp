@@ -5,6 +5,7 @@
 
 #include <string>
 #include <vector>
+#include <unordered_map>
 
 class TextureArray
 {
@@ -13,7 +14,8 @@ public:
 	void init(uint32_t size);
 	void destroy();
 
-	int addTexture(const std::string& imagePath);
+	int addTexture(const std::string& imagePath, const std::string& resourceName);
+	int findIndex(const std::string& resourceName);
 	void bind(VkCommandBuffer commandBuffer, VkPipelineLayout layout, uint32_t setId);
 
 private:
@@ -26,4 +28,5 @@ private:
 	DescriptorSetPtr m_descriptorSet{};
 	int m_nextIndex{};
 	std::vector<std::shared_ptr<Texture>> m_textures;
+	std::unordered_map<std::string, int> m_textureIndexes;
 };

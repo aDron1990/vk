@@ -47,9 +47,9 @@ Renderer::Renderer(Window& window) : m_window{window}
 	m_dirLight.write(dirLight);
 
 	m_textures.init(128);
-	auto box = m_textures.addTexture("resources/images/container2.png");
-	m_textures.addTexture("resources/images/statue.jpg");
-	auto boxSpec = m_textures.addTexture("resources/images/container2_specular.png");
+	m_textures.addTexture("resources/images/container2.png", "container_diffuse");
+	m_textures.addTexture("resources/images/statue.jpg", "statue");
+	m_textures.addTexture("resources/images/container2_specular.png", "container_specular");
 
 	m_materialBuffer.init(64, m_descriptorPool.createSet(2));
 	auto material = Material{};
@@ -64,8 +64,8 @@ Renderer::Renderer(Window& window) : m_window{window}
 	m_floor.setMaterial(material);
 
 	m_2.init(m_model, m_materialBuffer);
-	material.diffuseIndex = box;
-	material.specularIndex = boxSpec;
+	material.diffuseIndex = m_textures.findIndex("container_diffuse");
+	material.specularIndex = m_textures.findIndex("container_specular");
 	m_2.setMaterial(material);
 	m_2.setPosition({ 1.5f, 1.0f, 0.0f });
 

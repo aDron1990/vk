@@ -41,7 +41,7 @@ void TextureArray::create()
 	m_nextIndex++;
 }
 
-int TextureArray::addTexture(const std::string& imagePath)
+int TextureArray::addTexture(const std::string& imagePath, const std::string& resourceName)
 {
 	assert(m_initialized);
 	assert(m_nextIndex < m_textures.size());
@@ -52,7 +52,13 @@ int TextureArray::addTexture(const std::string& imagePath)
 	fillDescriptor(texture, m_nextIndex);
 
 	m_textures.push_back(texture);
+	m_textureIndexes[resourceName] = m_nextIndex;
 	return m_nextIndex++;
+}
+
+int TextureArray::findIndex(const std::string& resourceName)
+{
+	return m_textureIndexes[resourceName];
 }
 
 void TextureArray::fillDescriptor(std::shared_ptr<Texture> texture, uint32_t index)
