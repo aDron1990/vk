@@ -331,20 +331,15 @@ void RenderSystem::renderScene(VkCommandBuffer commandBuffer, RenderPass& render
 	m_textures.bind(commandBuffer, pipeline.getLayout(), 4);
 	glm::mat4 model;
 
-	model = m_1.getComponent<Transform>().getMatrix();
-	vkCmdPushConstants(commandBuffer, pipeline.getLayout(), VK_SHADER_STAGE_ALL_GRAPHICS, 0, sizeof(model), &model);
-	m_materialBuffer.bind(m_1.getComponent<ObjectRenderer>().materialIndex, commandBuffer, pipeline.getLayout(), 1);
-	m_1.draw(commandBuffer, pipeline.getLayout());
-
-	model = m_2.getComponent<Transform>().getMatrix();
-	vkCmdPushConstants(commandBuffer, pipeline.getLayout(), VK_SHADER_STAGE_ALL_GRAPHICS, 0, sizeof(model), &model);
-	m_materialBuffer.bind(m_2.getComponent<ObjectRenderer>().materialIndex, commandBuffer, pipeline.getLayout(), 1);
-	m_2.draw(commandBuffer, pipeline.getLayout());
-
-	model = m_floor.getComponent<Transform>().getMatrix();
-	vkCmdPushConstants(commandBuffer, pipeline.getLayout(), VK_SHADER_STAGE_ALL_GRAPHICS, 0, sizeof(model), &model);
-	m_materialBuffer.bind(m_floor.getComponent<ObjectRenderer>().materialIndex, commandBuffer, pipeline.getLayout(), 1);
-	m_floor.draw(commandBuffer, pipeline.getLayout());
+	auto view = m_ecs.view<Transform, ObjectRenderer>();
+	for (auto entity : view)
+	{
+		auto [transform, renderer] = view.get<Transform, ObjectRenderer>(entity);
+		auto model = transform.getMatrix();
+		vkCmdPushConstants(commandBuffer, pipeline.getLayout(), VK_SHADER_STAGE_ALL_GRAPHICS, 0, sizeof(model), &model);
+		m_materialBuffer.bind(renderer.materialIndex, commandBuffer, pipeline.getLayout(), 1);
+		m_1.draw(commandBuffer, pipeline.getLayout());
+	}
 
 	ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commandBuffer);
 
