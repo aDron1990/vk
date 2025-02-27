@@ -9,6 +9,9 @@ class Device;
 class Swapchain;
 class DescriptorPool;
 class TextureArray;
+template<typename T>
+class DUB;
+struct Material;
 
 class Locator
 {
@@ -21,6 +24,7 @@ public:
 	static DescriptorPool& getDescriptorPool();
 	static TextureArray& getTextureArray();
 	static entt::registry& getECS();
+	static DUB<Material>& getMaterialBuffer();
 
 	static void setWindow(Window* window);
 	static void setRenderer(Renderer* renderer);
@@ -30,6 +34,7 @@ public:
 	static void setDescriptorPool(DescriptorPool* descriptorPool);
 	static void setTextureArray(TextureArray* textureArray);
 	static void setECS(entt::registry* ecs);
+	static void setMaterialBuffer(DUB<Material>* materialBuffer);
 
 private:
 	static Window* m_window;
@@ -40,4 +45,5 @@ private:
 	static DescriptorPool* m_descriptorPool;
 	static TextureArray* m_textureArray;
 	static entt::registry* m_ecs;
+	static DUB<Material>* m_materialBuffer;
 };

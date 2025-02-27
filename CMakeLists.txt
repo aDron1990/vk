@@ -39,8 +39,6 @@ add_executable(vk
 	"sources/graphics/vulkan/model.cpp"
 	"sources/graphics/vulkan/camera.hpp"
 	"sources/graphics/vulkan/camera.cpp"
-	"sources/graphics/vulkan/components/transform.hpp"
-	"sources/graphics/vulkan/components/transform.cpp"
 	"sources/graphics/vulkan/object.hpp"
 	"sources/graphics/vulkan/object.cpp"
 	"sources/graphics/vulkan/locator.hpp"
@@ -83,6 +81,11 @@ add_executable(vk
 	"sources/graphics/vulkan/image/cubemap_texture.cpp"
 	"sources/graphics/vulkan/image/texture_array.hpp"
 	"sources/graphics/vulkan/image/texture_array.cpp"
+
+	"sources/graphics/vulkan/components/transform.hpp"
+	"sources/graphics/vulkan/components/transform.cpp"
+	"sources/graphics/vulkan/components/object_renderer.hpp"
+	"sources/graphics/vulkan/components/object_renderer.cpp"
 )
 
 set_property(TARGET vk PROPERTY CXX_STANDARD 23)

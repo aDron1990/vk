@@ -4,6 +4,8 @@
 #include "graphics/vulkan/render_pass/framebuffer.hpp"
 #include "window/window.hpp"
 
+#include "graphics/vulkan/components/object_renderer.hpp"
+
 #include <glm/gtc/matrix_transform.hpp>
 
 #include "imgui.h"
@@ -33,6 +35,19 @@ void onTransUpdate(entt::registry& ecs, entt::entity entity)
 	//std::println("{} {} {}", trans.position.x, trans.position.y, trans.position.z);
 }
 
+void onRenConstruct(entt::registry& ecs, entt::entity entity)
+{
+	auto& ren = ecs.get<ObjectRenderer>(entity);
+	ren.materialIndex = Locator::getMaterialBuffer().genIndex();
+	Locator::getMaterialBuffer().write(ren.materialIndex, ren.material);
+}
+
+void onRenUpdate(entt::registry& ecs, entt::entity entity)
+{
+	auto& ren = ecs.get<ObjectRenderer>(entity);
+	Locator::getMaterialBuffer().write(ren.materialIndex, ren.material);
+}
+
 RenderSystem::RenderSystem(Window& window) : m_window{window}
 {
 	createContext();
@@ -46,6 +61,8 @@ RenderSystem::RenderSystem(Window& window) : m_window{window}
 	m_textures.init(128);
 	Locator::setTextureArray(&m_textures);
 	Locator::setECS(&m_ecs);
+	m_materialBuffer.init(64, m_descriptorPool.createSet(2));
+	Locator::setMaterialBuffer(&m_materialBuffer);
 
 	m_model.init(MODEL_PATH);
 	m_plane.init("resources/models/plane.obj");
@@ -59,22 +76,25 @@ RenderSystem::RenderSystem(Window& window) : m_window{window}
 	m_textures.addTexture("resources/images/container2_specular.png", "container_specular");
 	m_textures.addTexture("resources/images/statue.jpg", "statue");
 
-	m_materialBuffer.init(64, m_descriptorPool.createSet(2));
-	auto material = MaterialData{};
+	m_ecs.on_construct<ObjectRenderer>().connect<&onRenConstruct>();
+	m_ecs.on_update<ObjectRenderer>().connect<&onRenUpdate>();
+
+
+	auto material = Material{};
 
 	m_1.init(m_model, m_materialBuffer);
 	material.diffuse = {1.0f, 0.0f, 0.0f};
-	m_1.setMaterial(material);
+	m_1.addComponent<ObjectRenderer>(ObjectRenderer{material, 0});
 	m_1.getComponent<Transform>().position = {-1.5f, 1.0f, 0.0f};
 
 	m_floor.init(m_plane, m_materialBuffer);
 	material.diffuse = { 0.8f, 0.5f, 0.5f };
-	m_floor.setMaterial(material);
+	m_floor.addComponent<ObjectRenderer>(ObjectRenderer{ material, 0 });
 
 	m_2.init(m_model, m_materialBuffer);
 	material.diffuseIndex = m_textures.findIndex("container_diffuse");
 	material.specularIndex = m_textures.findIndex("container_specular");
-	m_2.setMaterial(material);
+	m_2.addComponent<ObjectRenderer>(ObjectRenderer{ material, 0 });
 	m_2.getComponent<Transform>().position = { 1.5f, 1.0f, 0.0f };
 
 	m_1.addComponent<int>(2);
@@ -313,17 +333,17 @@ void RenderSystem::renderScene(VkCommandBuffer commandBuffer, RenderPass& render
 
 	model = m_1.getComponent<Transform>().getMatrix();
 	vkCmdPushConstants(commandBuffer, pipeline.getLayout(), VK_SHADER_STAGE_ALL_GRAPHICS, 0, sizeof(model), &model);
-	m_materialBuffer.bind(m_1.getMaterialIndex(), commandBuffer, pipeline.getLayout(), 1);
+	m_materialBuffer.bind(m_1.getComponent<ObjectRenderer>().materialIndex, commandBuffer, pipeline.getLayout(), 1);
 	m_1.draw(commandBuffer, pipeline.getLayout());
 
 	model = m_2.getComponent<Transform>().getMatrix();
 	vkCmdPushConstants(commandBuffer, pipeline.getLayout(), VK_SHADER_STAGE_ALL_GRAPHICS, 0, sizeof(model), &model);
-	m_materialBuffer.bind(m_2.getMaterialIndex(), commandBuffer, pipeline.getLayout(), 1);
+	m_materialBuffer.bind(m_2.getComponent<ObjectRenderer>().materialIndex, commandBuffer, pipeline.getLayout(), 1);
 	m_2.draw(commandBuffer, pipeline.getLayout());
 
 	model = m_floor.getComponent<Transform>().getMatrix();
 	vkCmdPushConstants(commandBuffer, pipeline.getLayout(), VK_SHADER_STAGE_ALL_GRAPHICS, 0, sizeof(model), &model);
-	m_materialBuffer.bind(m_floor.getMaterialIndex(), commandBuffer, pipeline.getLayout(), 1);
+	m_materialBuffer.bind(m_floor.getComponent<ObjectRenderer>().materialIndex, commandBuffer, pipeline.getLayout(), 1);
 	m_floor.draw(commandBuffer, pipeline.getLayout());
 
 	ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commandBuffer);
@@ -364,12 +384,12 @@ void RenderSystem::render()
 		ImGui::Separator();
 
 		ImGui::Text("Material");
-		auto material = m_1.getMaterial();
+		auto& renderer = m_1.getComponent<ObjectRenderer>();
 		bool updateMaterial = false;
-		updateMaterial = updateMaterial || ImGui::ColorEdit3("diffuse", (float*)&material.diffuse);
-		updateMaterial = updateMaterial || ImGui::ColorEdit3("specular", (float*)&material.specular);
-		updateMaterial = updateMaterial || ImGui::DragFloat("shininess", (float*)&material.shininess, 0.5f, 1.0f, 128.0f);
-		if (updateMaterial) m_1.setMaterial(material);
+		updateMaterial = updateMaterial || ImGui::ColorEdit3("diffuse", (float*)&renderer.material.diffuse);
+		updateMaterial = updateMaterial || ImGui::ColorEdit3("specular", (float*)&renderer.material.specular);
+		updateMaterial = updateMaterial || ImGui::DragFloat("shininess", (float*)&renderer.material.shininess, 0.5f, 1.0f, 128.0f);
+		if (updateMaterial) m_ecs.patch<ObjectRenderer>(m_1.getEntity());
 		ImGui::End();
 	}
 	ImGui::Render();

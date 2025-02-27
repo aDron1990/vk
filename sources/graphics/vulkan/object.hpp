@@ -9,7 +9,7 @@ class Object
 {
 public:
 	~Object();
-	void init(Model& model, DUB<MaterialData>& materialBuffer);
+	void init(Model& model, DUB<Material>& materialBuffer);
 	void destroy();
 
 	template<typename T, typename... Args>
@@ -29,20 +29,12 @@ public:
 	void draw(VkCommandBuffer commandBuffer, VkPipelineLayout layout);
 	void bindMesh(VkCommandBuffer commandBuffer);
 
-	void setMaterial(const MaterialData& material);
-	MaterialData getMaterial();
-
-	uint32_t getMaterialIndex();
-
-private:
-	void updateMaterial();
-
 private:
 	bool m_initialized = false;
 	entt::registry* m_ecs{};
 	entt::entity m_entity{};
 	Model* m_model{};
-	DUB<MaterialData>* m_materialBuffer{};
-	MaterialData m_material{};
+	DUB<Material>* m_materialBuffer{};
+	Material m_material{};
 	uint32_t m_materialIndex{};
 };

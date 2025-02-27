@@ -88,7 +88,7 @@ private:
 	UBO<ViewProjection> m_vpBuffer;
 	UBO<glm::vec3> m_view;
 	UBO<DirLight> m_dirLight;
-	DUB<MaterialData> m_materialBuffer;
+	DUB<Material> m_materialBuffer;
 	
 	//Object m_object;
 

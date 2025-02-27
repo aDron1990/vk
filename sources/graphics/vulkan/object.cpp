@@ -15,7 +15,7 @@ void Object::destroy()
 	m_initialized = false;
 }
 
-void Object::init(Model& model, DUB<MaterialData>& materialBuffer)
+void Object::init(Model& model, DUB<Material>& materialBuffer)
 {
 	assert(!m_initialized);
 	m_initialized = true;
@@ -25,7 +25,6 @@ void Object::init(Model& model, DUB<MaterialData>& materialBuffer)
 	m_materialBuffer = &materialBuffer;
 	m_materialIndex = m_materialBuffer->genIndex();
 	addComponent<Transform>();
-	updateMaterial();
 }
 
 void Object::draw(VkCommandBuffer commandBuffer, VkPipelineLayout layout)
@@ -41,27 +40,3 @@ void Object::bindMesh(VkCommandBuffer commandBuffer)
 	m_model->bindMesh(commandBuffer);
 }
 
-void Object::updateMaterial()
-{
-	assert(m_initialized);
-	m_materialBuffer->write(m_materialIndex, m_material);
-}
-
-void Object::setMaterial(const MaterialData& material)
-{
-	assert(m_initialized);
-	m_material = material;
-	updateMaterial();
-}
-
-MaterialData Object::getMaterial()
-{
-	assert(m_initialized);
-	return m_material;
-}
-
-uint32_t Object::getMaterialIndex()
-{
-	assert(m_initialized);
-	return m_materialIndex;
-}

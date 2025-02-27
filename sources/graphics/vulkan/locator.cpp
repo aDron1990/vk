@@ -10,6 +10,7 @@ Swapchain* Locator::m_swapchain = nullptr;
 DescriptorPool* Locator::m_descriptorPool = nullptr;
 TextureArray* Locator::m_textureArray = nullptr;
 entt::registry* Locator::m_ecs = nullptr;
+DUB<Material>* Locator::m_materialBuffer = nullptr;
 
 Window& Locator::getWindow()
 {
@@ -59,6 +60,12 @@ entt::registry& Locator::getECS()
 	return *m_ecs;
 }
 
+DUB<Material>& Locator::getMaterialBuffer()
+{
+	assert(m_materialBuffer != nullptr);
+	return *m_materialBuffer;
+}
+
 void Locator::setWindow(Window* window)
 {
 	assert(m_window == nullptr);
@@ -105,4 +112,10 @@ void Locator::setECS(entt::registry* ecs)
 {
 	assert(m_ecs == nullptr);
 	m_ecs = ecs;
+}
+
+void Locator::setMaterialBuffer(DUB<Material>* materialBuffer)
+{
+	assert(m_materialBuffer == nullptr);
+	m_materialBuffer = materialBuffer;
 }
