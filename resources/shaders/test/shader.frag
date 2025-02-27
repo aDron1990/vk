@@ -1,7 +1,8 @@
 #version 450
 //?#extension GL_KHR_vulkan_glsl: enable
+#extension GL_EXT_nonuniform_qualifier: enable // for textureArray[] unstead textureArray[128]
 
-layout(set = 4, binding = 0) uniform sampler2D textureArray[128];
+layout(set = 4, binding = 0) uniform sampler2D textureArray[];
 
 layout(location = 0) in vec3 fragPosition;
 layout(location = 2) in vec3 fragNormal;

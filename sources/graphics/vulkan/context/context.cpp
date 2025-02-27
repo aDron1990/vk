@@ -36,7 +36,7 @@ void Context::createInstance()
 	auto debugInfo = VkDebugUtilsMessengerCreateInfoEXT{};
 	auto appInfo = VkApplicationInfo{};
 	appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-	appInfo.apiVersion = VK_API_VERSION_1_0;
+	appInfo.apiVersion = VK_API_VERSION_1_2;
 
 	auto requiredExtensions = getReqiuredExtensions();
 

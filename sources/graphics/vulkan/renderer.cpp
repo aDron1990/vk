@@ -48,8 +48,8 @@ Renderer::Renderer(Window& window) : m_window{window}
 
 	m_textures.init(128);
 	m_textures.addTexture("resources/images/container2.png", "container_diffuse");
-	m_textures.addTexture("resources/images/statue.jpg", "statue");
 	m_textures.addTexture("resources/images/container2_specular.png", "container_specular");
+	m_textures.addTexture("resources/images/statue.jpg", "statue");
 
 	m_materialBuffer.init(64, m_descriptorPool.createSet(2));
 	auto material = Material{};
@@ -71,7 +71,6 @@ Renderer::Renderer(Window& window) : m_window{window}
 
 	ImGui::CreateContext();
 	ImGuiIO& io = ImGui::GetIO(); (void)io;
-	ImGui::SetNavCursorVisible(false);
 	ImGui_ImplGlfw_InitForVulkan(window.getWindow(), true);
 	ImGui_ImplVulkan_InitInfo initInfo{};
 	initInfo.Instance = m_context.getInstance();

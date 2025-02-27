@@ -58,11 +58,16 @@ bool Device::isGpuSuitable(VkPhysicalDevice gpu)
 	auto indices = findQueueFamilies(gpu);
 	auto gpuProperties = VkPhysicalDeviceProperties{};
 	auto gpuFeatures = VkPhysicalDeviceFeatures{};
+	auto gpuFeatures2 = VkPhysicalDeviceFeatures2{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2 };
+	auto gpuFeatures12 = VkPhysicalDeviceVulkan12Features{};
+	gpuFeatures12.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
+	gpuFeatures2.pNext = &gpuFeatures12;
 	auto extensionsSupport = checkGpuExtensionsSupport(gpu);
 	vkGetPhysicalDeviceProperties(gpu, &gpuProperties);
 	vkGetPhysicalDeviceFeatures(gpu, &gpuFeatures);
+	vkGetPhysicalDeviceFeatures2(gpu, &gpuFeatures2);
 	if (gpuProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU &&
-		gpuFeatures.geometryShader)
+		gpuFeatures.geometryShader && gpuFeatures12.runtimeDescriptorArray)
 	{
 		std::println("GPU: {}", gpuProperties.deviceName);
 		auto swapchainAdequate = false;
@@ -205,12 +210,17 @@ void Device::createDevice()
 	auto deviceFeatures = VkPhysicalDeviceFeatures{};
 	deviceFeatures.samplerAnisotropy = VK_TRUE;
 
+	auto vulkan12Features = VkPhysicalDeviceVulkan12Features{};
+	vulkan12Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
+	vulkan12Features.runtimeDescriptorArray = VK_TRUE;
+
 	auto createInfo = VkDeviceCreateInfo{};
 	createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 	createInfo.pQueueCreateInfos = queueCreateInfos.data();
 	createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
 	createInfo.pEnabledFeatures = &deviceFeatures;
 	createInfo.ppEnabledExtensionNames = DEVICE_EXTENSIONS.data();
+	createInfo.pNext = &vulkan12Features;
 	createInfo.enabledExtensionCount = static_cast<uint32_t>(DEVICE_EXTENSIONS.size());
 	if (USE_VALIDATION_LAYERS)
 	{
