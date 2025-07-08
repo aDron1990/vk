@@ -1,6 +1,7 @@
 {
   "dependencies": [
     "cmakerc",
+    "entt",
     "glfw3",
     "glm",
     {
@@ -14,7 +15,6 @@
     "tinyobjloader",
     "tracy",
     "vulkan",
-    "joltphysics",
-    "entt"
+    "bullet3"
   ]
 }

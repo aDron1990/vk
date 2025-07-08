@@ -21,6 +21,8 @@
 #include "graphics/vulkan/image/cubemap_texture.hpp"
 #include "graphics/vulkan/image/texture_array.hpp"
 
+#include <btBulletDynamicsCommon.h>
+
 #include <vulkan/vulkan.h>
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
@@ -89,6 +91,13 @@ private:
 	UBO<glm::vec3> m_view;
 	UBO<DirLight> m_dirLight;
 	DUB<Material> m_materialBuffer;
+
+	btDiscreteDynamicsWorld m_world{
+		new btCollisionDispatcher{new btDefaultCollisionConfiguration},
+		new btDbvtBroadphase{},
+		new btSequentialImpulseConstraintSolver{},
+		new btDefaultCollisionConfiguration{}, 
+	};
 	
 	//Object m_object;
 

@@ -11,7 +11,7 @@ find_package(imgui CONFIG REQUIRED)
 find_package(CMakeRC CONFIG REQUIRED)
 find_package(Tracy CONFIG REQUIRED)
 find_package(EnTT CONFIG REQUIRED)
-find_package(Jolt CONFIG REQUIRED)
+find_package(Bullet CONFIG REQUIRED)
 
 add_executable(vk 
 	"sources/main.cpp"
@@ -101,7 +101,7 @@ target_link_libraries(vk PRIVATE
 	imgui::imgui
 	Tracy::TracyClient
 	EnTT::EnTT
-	Jolt::Jolt
+	${BULLET_LIBRARIES}
 )
 
 # Shaders

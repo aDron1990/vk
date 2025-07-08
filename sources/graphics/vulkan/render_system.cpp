@@ -58,6 +58,28 @@ RenderSystem::RenderSystem(Window& window) : m_window{window}
 	createRenderPass();
 	createSwapchain();
 	createGraphicsPipeline();
+	ImGui::CreateContext();
+	ImGuiIO& io = ImGui::GetIO(); (void)io;
+	ImGui_ImplGlfw_InitForVulkan(window.getWindow(), true);
+	ImGui_ImplVulkan_InitInfo initInfo{};
+	initInfo.Instance = m_context.getInstance();
+	initInfo.PhysicalDevice = m_device.getGpu();
+	initInfo.Device = m_device.getDevice();
+	initInfo.QueueFamily = m_device.findQueueFamilies(m_device.getGpu()).graphics.value();
+	initInfo.Queue = m_device.getGraphicsQueue();
+	initInfo.RenderPass = m_renderPass.getRenderPass();
+	initInfo.MinImageCount = 2;
+	initInfo.ImageCount = 3;
+	initInfo.DescriptorPoolSize = 128;
+	if (!ImGui_ImplVulkan_Init(&initInfo))
+		throw;
+	ImGui_ImplVulkan_CreateFontsTexture();
+
+
+	m_world.setGravity({ 0, -10, 0 });
+
+
+
 	m_textures.init(128);
 	Locator::setTextureArray(&m_textures);
 	Locator::setECS(&m_ecs);
@@ -102,36 +124,8 @@ RenderSystem::RenderSystem(Window& window) : m_window{window}
 	m_2.addComponent<ObjectRenderer>(renderer);
 	m_2.getComponent<Transform>().position = { 1.5f, 1.0f, 0.0f };
 
-	m_1.addComponent<int>(2);
-	m_2.addComponent<int>(42);
-	m_floor.addComponent<int>(23);
 
-	auto renderView = m_ecs.view<int>();
-	for (auto entity : renderView)
-	{
-		auto a = renderView.get<int>(entity);
-		std::println("{}", a);
-	}
-
-	m_ecs.on_update<Transform>().connect<&onTransUpdate>();
-
-
-	ImGui::CreateContext();
-	ImGuiIO& io = ImGui::GetIO(); (void)io;
-	ImGui_ImplGlfw_InitForVulkan(window.getWindow(), true);
-	ImGui_ImplVulkan_InitInfo initInfo{};
-	initInfo.Instance = m_context.getInstance();
-	initInfo.PhysicalDevice = m_device.getGpu();
-	initInfo.Device = m_device.getDevice();
-	initInfo.QueueFamily = m_device.findQueueFamilies(m_device.getGpu()).graphics.value();
-	initInfo.Queue = m_device.getGraphicsQueue();
-	initInfo.RenderPass = m_renderPass.getRenderPass();
-	initInfo.MinImageCount = 2;
-	initInfo.ImageCount = 3;
-	initInfo.DescriptorPoolSize = 128;
-	if (!ImGui_ImplVulkan_Init(&initInfo))
-		throw;
-	ImGui_ImplVulkan_CreateFontsTexture();
+	
 }
 
 RenderSystem::~RenderSystem()
